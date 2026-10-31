@@ -75,6 +75,7 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
   let currencies = starter.currencies;
   let league = 'Standard';
   let deadHardcore = false;
+  let bestTier = 1;
   let bossKills = 0;
   let slainInZone = '';
   let level = 1;
@@ -86,7 +87,7 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
   const resolvedName = savedRow ? savedRow.name : (requestedName || cls.name).slice(0, 18);
 
   if (savedRow) {
-    level = Math.max(1, Math.min(45, savedRow.level || 1));
+    level = Math.max(1, Math.min(100, savedRow.level || 1));
     xpNext = getCharXpForLevel(level);
     xp = Math.max(0, Math.min(xpNext - 1, savedRow.xp || 0));
     passivePoints = Math.max(0, savedRow.passive_points ?? 2);
@@ -135,6 +136,7 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
         currencies = { ...starter.currencies, ...parsedCur };
         league = parsedCur._league === 'Hardcore' ? 'Hardcore' : 'Standard';
         deadHardcore = !!parsedCur._deadHardcore;
+        bestTier = Math.max(1, Math.floor(parsedCur._bestTier || 1));
         bossKills = Math.max(0, Math.floor(parsedCur._bossKills || 0));
         slainInZone = parsedCur._slainInZone || '';
       }
@@ -177,6 +179,7 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
     classId: lockedClassId,
     league,
     deadHardcore,
+    bestTier,
     bossKills,
     slainInZone,
     ready: false,
@@ -313,6 +316,7 @@ function sendPrivateProfile(player) {
     classId: player.classId,
     league: player.league || 'Standard',
     deadHardcore: !!player.deadHardcore,
+    bestTier: Math.max(1, player.bestTier || 1),
     name: player.name,
     ready: player.ready,
     level: player.level,

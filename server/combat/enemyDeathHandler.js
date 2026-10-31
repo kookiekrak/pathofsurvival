@@ -32,8 +32,8 @@ function onEnemyKilled(room, enemy, killer) {
 
   // Grant Persistent Character XP, Un-inflated In-Run Rogue-Lite XP, Scaled-Down Gold, Flask Charges & Vaal Souls
   const mapDef = GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId) || GameData.ATLAS_MAPS[0];
-  const mapTier = mapDef ? mapDef.tier : 1;
-  const goldMult = mapDef ? (mapDef.goldMult || 1.0) : 1.0;
+  const mapTier = room.activeRaidDef ? room.activeRaidDef.tier : (mapDef ? mapDef.tier : 1);
+  const goldMult = room.activeRaidDef ? (room.activeRaidDef.goldMult || 1.0) : (mapDef ? (mapDef.goldMult || 1.0) : 1.0);
   const baseGoldGain = (enemy.rarity === 'boss' || enemy.rarity === 'unique')
     ? 32 + mapTier * 8
     : enemy.typeId === 'gilded_goblin'
@@ -58,6 +58,8 @@ function onEnemyKilled(room, enemy, killer) {
   const rawSoulGain = enemy.rarity === 'boss' ? 10 : enemy.rarity === 'rare' ? 4 : enemy.rarity === 'magic' ? 2 : (Math.random() < 0.65 ? 1 : 0);
   for (const p of room.players.values()) {
     if (!p.dead) {
+      p.bestTier = Math.max(p.bestTier || (p.currencies && p.currencies._bestTier) || 1, mapTier);
+      if (p.currencies) p.currencies._bestTier = p.bestTier;
       const pGoldGain = goldGain > 0 ? Math.max(1, Math.round(goldGain * (1 + ((p.stats && p.stats.goldGainPct) || 0) / 100))) : 0;
       p.runGold = (p.runGold || 0) + pGoldGain;
       p.earnedRunGold = (p.earnedRunGold || 0) + pGoldGain;
@@ -125,13 +127,13 @@ function onEnemyKilled(room, enemy, killer) {
         }
       }
 
-      // 2. Persistent Character Leveling (Saved across maps in SQLite, Lv 1-45, grants +1 Permanent Skill Tree Point)
-      if ((p.level || 1) < 45) {
+      // 2. Persistent Character Leveling (Saved across maps in SQLite, Lv 1-100, grants +1 Permanent Skill Tree Point up to 45)
+      if ((p.level || 1) < 100) {
         p.xp = (p.xp || 0) + (enemy.xp || 0);
         p.xpNext = p.xpNext || getCharXpForLevel(p.level || 1);
         if (p.xp >= p.xpNext) {
           p.xp -= p.xpNext;
-          p.level = Math.min(45, (p.level || 1) + 1);
+          p.level = Math.min(100, (p.level || 1) + 1);
           p.xpNext = getCharXpForLevel(p.level);
           if (p.xp >= p.xpNext) {
             p.xp = Math.floor(p.xpNext * 0.5);

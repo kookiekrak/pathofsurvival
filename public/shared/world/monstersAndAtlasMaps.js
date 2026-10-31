@@ -1,8 +1,5 @@
-// Shared GameData Module: Monsters, Rare Modifiers & Atlas Maps
+// Shared GameData Module: Monsters, Rare Modifiers, 16 Atlas Map Tiers & 4 Pinnacle Boss Raids
 (function (exports) {
-  // ============================================================================
-  // 6. BALANCED MONSTER ARCHETYPES, RARE MODS & 6 ATLAS MAPS (TIERS 1-6)
-  // ============================================================================
   const MONSTER_TYPES = [
     { id: 'skeleton', name: 'Brittle Emperor Guard', role: 'swarmer', minWave: 1, hp: 46, speed: 138, radius: 14, damage: 18, xp: 18, color: '#d9d2c5', behavior: 'melee' },
     { id: 'scarab', name: 'Vaal Blood Swarmer', role: 'swarmer', minWave: 1, hp: 36, speed: 154, radius: 13, damage: 16, xp: 16, color: '#e03131', behavior: 'melee' },
@@ -37,7 +34,7 @@
     { id: 'executioner', name: 'Executioner', color: '#c92a2a', hpMulti: 1.9, dmgMulti: 1.45, radiusMulti: 1.22 }
   ];
 
-  // 4 WoW-Style Multi-Phase Pinnacle Boss Raids (Selectable in the Map Device)
+  // 4 WoW-Style Multi-Phase Pinnacle Boss Raids (Scaled across Tiers 5, 9, 13, and 17)
   const PINNACLE_RAID_BOSSES = [
     {
       id: 'raid_searing_exarch',
@@ -45,14 +42,14 @@
       subtitle: 'Pinnacle Raid I • Cataclysm of Ash',
       bossName: 'The Searing Exarch',
       mapId: 'vaal_pyramid',
-      tier: 2,
-      recGear: 'Lv 6+ • Multi-Phase Raid',
-      hpBase: 14500,
-      dmgBase: 68,
-      armor: 65,
-      lootQuantity: 280,
-      lootRarityBonus: 120,
-      goldMult: 1.6,
+      tier: 5,
+      recGear: 'Tier 5 Raid • White Atlas Pinnacle',
+      hpBase: 32000,
+      dmgBase: 95,
+      armor: 140,
+      lootQuantity: 350,
+      lootRarityBonus: 180,
+      goldMult: 1.8,
       mechanicsDesc: 'Meteor Soak Circles • Rolling Magma Wall • Solar Pylon Intermission Shield'
     },
     {
@@ -61,14 +58,14 @@
       subtitle: 'Pinnacle Raid II • Tentacles of the Deep',
       bossName: 'The Eater of Worlds',
       mapId: 'fetid_pool',
-      tier: 4,
-      recGear: 'Lv 14+ • Multi-Phase Raid',
-      hpBase: 95000,
-      dmgBase: 145,
-      armor: 210,
-      lootQuantity: 420,
-      lootRarityBonus: 210,
-      goldMult: 2.0,
+      tier: 9,
+      recGear: 'Tier 9 Raid • Yellow Atlas Pinnacle',
+      hpBase: 260000,
+      dmgBase: 240,
+      armor: 720,
+      lootQuantity: 580,
+      lootRarityBonus: 360,
+      goldMult: 2.4,
       mechanicsDesc: 'Inescapable Doom Soak Orbs • Sweeping Cosmos Beam • Golden Sanctuary Safe Dome'
     },
     {
@@ -77,14 +74,14 @@
       subtitle: 'Pinnacle Raid III • Memory & Cascade',
       bossName: 'The Maven, Progenitor',
       mapId: 'defiled_cathedral',
-      tier: 5,
-      recGear: 'Lv 22+ • Multi-Phase Raid',
-      hpBase: 280000,
-      dmgBase: 260,
-      armor: 520,
-      lootQuantity: 580,
-      lootRarityBonus: 310,
-      goldMult: 2.4,
+      tier: 13,
+      recGear: 'Tier 13 Raid • Red Atlas Pinnacle',
+      hpBase: 1650000,
+      dmgBase: 680,
+      armor: 2600,
+      lootQuantity: 920,
+      lootRarityBonus: 680,
+      goldMult: 3.2,
       mechanicsDesc: 'Rotating Void Lasers • Safe Quadrant Cascade • Brain Synapse Shield Pylons'
     },
     {
@@ -93,133 +90,36 @@
       subtitle: 'Uber Pinnacle Raid IV • Eye of the Storm',
       bossName: 'Sirus, Awakener of Worlds',
       mapId: 'shaper_realm',
-      tier: 6,
-      recGear: 'Lv 30+ • Uber Raid Boss',
-      hpBase: 760000,
-      dmgBase: 440,
-      armor: 1250,
-      lootQuantity: 850,
-      lootRarityBonus: 480,
-      goldMult: 3.0,
+      tier: 17,
+      recGear: 'Tier 17 Raid • Uber Pinnacle Boss',
+      hpBase: 6800000,
+      dmgBase: 1650,
+      armor: 6800,
+      lootQuantity: 1450,
+      lootRarityBonus: 1150,
+      goldMult: 4.2,
       mechanicsDesc: '4-Way Spinning Corruption Cross • "DIE!" Tracking Beam • Meteor Ring Maze & Pylons'
     }
   ];
 
+  // 16 Path of Exile Atlas Map Tiers: White (T1-T5), Yellow (T6-T10), Red (T11-T16)
   const ATLAS_MAPS = [
-    {
-      id: 'strand',
-      name: 'Forsaken Strand',
-      tier: 1,
-      durationSec: 240,
-      monsterScale: 1.0,
-      dmgScale: 1.0,
-      monsterArmor: 0,
-      speedScale: 1.0,
-      packDensity: 1.0,
-      eliteBonus: 0,
-      lootQuantity: 100,
-      lootRarityBonus: 0,
-      goldMult: 1.0,
-      recGear: 'Starter Gear',
-      bossName: 'Hillock',
-      themeColor: '#1f2933',
-      desc: 'Baseline monster strength & drops.'
-    },
-    {
-      id: 'fetid_pool',
-      name: 'The Fetid Pool',
-      tier: 2,
-      durationSec: 250,
-      monsterScale: 3.5,
-      dmgScale: 2.4,
-      monsterArmor: 24,
-      speedScale: 1.12,
-      packDensity: 1.18,
-      eliteBonus: 0.05,
-      lootQuantity: 150,
-      lootRarityBonus: 35,
-      goldMult: 1.12,
-      recGear: 'ilvl 3+ Gear • 6+ Tree Pts',
-      bossName: 'Kadavrus',
-      themeColor: '#1b2b1e',
-      desc: '3.5x Monster HP • +50% Drops • +35% Rarity.'
-    },
-    {
-      id: 'vaal_pyramid',
-      name: 'Ancient Pyramid',
-      tier: 3,
-      durationSec: 260,
-      monsterScale: 11.0,
-      dmgScale: 5.2,
-      monsterArmor: 78,
-      speedScale: 1.24,
-      packDensity: 1.36,
-      eliteBonus: 0.10,
-      lootQuantity: 220,
-      lootRarityBonus: 80,
-      goldMult: 1.25,
-      recGear: 'ilvl 6+ Gear • 14+ Tree Pts',
-      bossName: 'Oversoul Construct',
-      themeColor: '#2b2118',
-      desc: '11x Monster HP • +120% Drops • +80% Rarity.'
-    },
-    {
-      id: 'crimson_temple',
-      name: 'Crimson Temple',
-      tier: 4,
-      durationSec: 270,
-      monsterScale: 32.0,
-      dmgScale: 10.5,
-      monsterArmor: 220,
-      speedScale: 1.36,
-      packDensity: 1.56,
-      eliteBonus: 0.16,
-      lootQuantity: 320,
-      lootRarityBonus: 145,
-      goldMult: 1.40,
-      recGear: 'ilvl 10+ Gear • 22+ Tree Pts',
-      bossName: 'Crimson Queen',
-      themeColor: '#291518',
-      desc: '32x Monster HP • +220% Drops • +145% Rarity.'
-    },
-    {
-      id: 'defiled_cathedral',
-      name: 'Defiled Cathedral',
-      tier: 5,
-      durationSec: 285,
-      monsterScale: 90.0,
-      dmgScale: 20.0,
-      monsterArmor: 580,
-      speedScale: 1.48,
-      packDensity: 1.78,
-      eliteBonus: 0.22,
-      lootQuantity: 460,
-      lootRarityBonus: 230,
-      goldMult: 1.55,
-      recGear: 'ilvl 13+ Gear • 30+ Tree Pts',
-      bossName: 'High Templar Avarius',
-      themeColor: '#1c1d2e',
-      desc: '90x Monster HP • +360% Drops • +230% Rarity.'
-    },
-    {
-      id: 'shaper_realm',
-      name: 'Void Crucible',
-      tier: 6,
-      durationSec: 300,
-      monsterScale: 250.0,
-      dmgScale: 38.0,
-      monsterArmor: 1450,
-      speedScale: 1.62,
-      packDensity: 2.10,
-      eliteBonus: 0.30,
-      lootQuantity: 680,
-      lootRarityBonus: 360,
-      goldMult: 1.75,
-      recGear: 'ilvl 16+ Gear • 38+ Tree Pts',
-      bossName: 'The Void Arbiter',
-      themeColor: '#161326',
-      desc: '250x Monster HP • +580% Drops • +360% Rarity.'
-    }
+    { id: 'strand', name: 'Forsaken Strand', tier: 1, biome: 'strand', durationSec: 240, monsterScale: 1.0, dmgScale: 1.0, monsterArmor: 0, speedScale: 1.0, packDensity: 1.0, eliteBonus: 0, lootQuantity: 100, lootRarityBonus: 0, goldMult: 1.0, recGear: 'White T1 • Starter Gear', bossName: 'Hillock, the Risen', themeColor: '#1f2933' },
+    { id: 'fetid_pool', name: 'The Fetid Pool', tier: 2, biome: 'fetid_pool', durationSec: 245, monsterScale: 2.2, dmgScale: 1.6, monsterArmor: 15, speedScale: 1.05, packDensity: 1.08, eliteBonus: 0.03, lootQuantity: 130, lootRarityBonus: 20, goldMult: 1.1, recGear: 'White T2 • ilvl 4+ Gear', bossName: 'Kadavrus, the Defiler', themeColor: '#1b2b1e' },
+    { id: 'submerged_cavern', name: 'Submerged Cavern', tier: 3, biome: 'strand', durationSec: 250, monsterScale: 4.5, dmgScale: 2.5, monsterArmor: 38, speedScale: 1.10, packDensity: 1.16, eliteBonus: 0.05, lootQuantity: 165, lootRarityBonus: 45, goldMult: 1.2, recGear: 'White T3 • ilvl 7+ Gear', bossName: 'Merveil, Twisted Siren', themeColor: '#142834' },
+    { id: 'vaal_pyramid', name: 'Ancient Vaal Pyramid', tier: 4, biome: 'vaal_pyramid', durationSec: 255, monsterScale: 9.0, dmgScale: 3.8, monsterArmor: 75, speedScale: 1.15, packDensity: 1.24, eliteBonus: 0.08, lootQuantity: 205, lootRarityBonus: 75, goldMult: 1.3, recGear: 'White T4 • ilvl 10+ Gear', bossName: 'Vaal Oversoul', themeColor: '#2b2118' },
+    { id: 'sarn_ruins', name: 'Ruins of Sarn', tier: 5, biome: 'vaal_pyramid', durationSec: 260, monsterScale: 17.5, dmgScale: 5.6, monsterArmor: 130, speedScale: 1.20, packDensity: 1.32, eliteBonus: 0.10, lootQuantity: 250, lootRarityBonus: 110, goldMult: 1.4, recGear: 'White T5 • ilvl 13+ Gear', bossName: 'General Gravicius', themeColor: '#2e2318' },
+    { id: 'blood_aqueduct', name: 'Blood Aqueduct', tier: 6, biome: 'crimson_temple', durationSec: 265, monsterScale: 32.0, dmgScale: 8.2, monsterArmor: 210, speedScale: 1.25, packDensity: 1.40, eliteBonus: 0.13, lootQuantity: 300, lootRarityBonus: 150, goldMult: 1.5, recGear: 'Yellow T6 • ilvl 16+ Gear', bossName: 'Highgate Behemoth', themeColor: '#2e1619' },
+    { id: 'toxic_sewer', name: 'Blighted Sewer', tier: 7, biome: 'fetid_pool', durationSec: 270, monsterScale: 56.0, dmgScale: 11.8, monsterArmor: 320, speedScale: 1.30, packDensity: 1.48, eliteBonus: 0.15, lootQuantity: 355, lootRarityBonus: 195, goldMult: 1.65, recGear: 'Yellow T7 • ilvl 19+ Gear', bossName: 'Doedre the Vile', themeColor: '#1a2e19' },
+    { id: 'lunaris_temple', name: 'Lunaris Concourse', tier: 8, biome: 'defiled_cathedral', durationSec: 275, monsterScale: 95.0, dmgScale: 16.5, monsterArmor: 470, speedScale: 1.34, packDensity: 1.56, eliteBonus: 0.18, lootQuantity: 415, lootRarityBonus: 245, goldMult: 1.8, recGear: 'Yellow T8 • ilvl 22+ Gear', bossName: 'Piety, the Abomination', themeColor: '#192136' },
+    { id: 'imperial_gardens', name: 'Imperial Gardens', tier: 9, biome: 'fetid_pool', durationSec: 280, monsterScale: 155.0, dmgScale: 23.0, monsterArmor: 680, speedScale: 1.38, packDensity: 1.64, eliteBonus: 0.20, lootQuantity: 480, lootRarityBonus: 300, goldMult: 1.95, recGear: 'Yellow T9 • ilvl 25+ Gear', bossName: 'High Templar Dominus', themeColor: '#1f2e1b' },
+    { id: 'crimson_temple', name: 'Crimson Temple', tier: 10, biome: 'crimson_temple', durationSec: 285, monsterScale: 250.0, dmgScale: 32.0, monsterArmor: 960, speedScale: 1.42, packDensity: 1.72, eliteBonus: 0.23, lootQuantity: 550, lootRarityBonus: 360, goldMult: 2.1, recGear: 'Yellow T10 • ilvl 28+ Gear', bossName: 'Malachai, the Nightmare', themeColor: '#291518' },
+    { id: 'caldera_of_ash', name: 'Caldera of Ash', tier: 11, biome: 'crimson_temple', durationSec: 290, monsterScale: 400.0, dmgScale: 44.0, monsterArmor: 1350, speedScale: 1.46, packDensity: 1.80, eliteBonus: 0.26, lootQuantity: 630, lootRarityBonus: 430, goldMult: 2.3, recGear: 'Red T11 • ilvl 31+ Gear', bossName: 'King Kaom, the Molten', themeColor: '#33140e' },
+    { id: 'glacier_summit', name: 'Glacial Summit', tier: 12, biome: 'strand', durationSec: 295, monsterScale: 630.0, dmgScale: 60.0, monsterArmor: 1850, speedScale: 1.50, packDensity: 1.88, eliteBonus: 0.28, lootQuantity: 720, lootRarityBonus: 510, goldMult: 2.5, recGear: 'Red T12 • ilvl 34+ Gear', bossName: 'Veritania, the Redeemer', themeColor: '#142636' },
+    { id: 'defiled_cathedral', name: 'Defiled Cathedral', tier: 13, biome: 'defiled_cathedral', durationSec: 300, monsterScale: 980.0, dmgScale: 82.0, monsterArmor: 2500, speedScale: 1.54, packDensity: 1.96, eliteBonus: 0.31, lootQuantity: 820, lootRarityBonus: 600, goldMult: 2.75, recGear: 'Red T13 • ilvl 37+ Gear', bossName: 'Innocence, God-Emperor', themeColor: '#1c1d2e' },
+    { id: 'alluring_abyss', name: 'The Alluring Abyss', tier: 14, biome: 'crimson_temple', durationSec: 305, monsterScale: 1500.0, dmgScale: 112.0, monsterArmor: 3400, speedScale: 1.58, packDensity: 2.04, eliteBonus: 0.34, lootQuantity: 930, lootRarityBonus: 700, goldMult: 3.0, recGear: 'Red T14 • ilvl 40+ Gear', bossName: 'Atziri, Queen of the Vaal', themeColor: '#2e1118' },
+    { id: 'synthete_cortex', name: 'Synthete Cortex', tier: 15, biome: 'defiled_cathedral', durationSec: 310, monsterScale: 2300.0, dmgScale: 152.0, monsterArmor: 4600, speedScale: 1.62, packDensity: 2.12, eliteBonus: 0.37, lootQuantity: 1060, lootRarityBonus: 820, goldMult: 3.3, recGear: 'Red T15 • ilvl 43+ Gear', bossName: 'Venarius, High Synthete', themeColor: '#161b33' },
+    { id: 'shaper_realm', name: "The Shaper's Crucible", tier: 16, biome: 'shaper_realm', durationSec: 320, monsterScale: 3500.0, dmgScale: 205.0, monsterArmor: 6200, speedScale: 1.66, packDensity: 2.20, eliteBonus: 0.40, lootQuantity: 1200, lootRarityBonus: 950, goldMult: 3.6, recGear: 'Red T16 • ilvl 46+ Endgame', bossName: 'The Shaper of Worlds', themeColor: '#161326' }
   ];
 
   Object.assign(exports, { MONSTER_TYPES, RARE_MODS, PINNACLE_RAID_BOSSES, ATLAS_MAPS });

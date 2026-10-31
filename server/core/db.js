@@ -83,6 +83,7 @@ function saveCharacterToDb(player) {
       : ['life', null, null, null, null];
     player.currencies._league = player.league === 'Hardcore' ? 'Hardcore' : 'Standard';
     player.currencies._deadHardcore = !!player.deadHardcore;
+    player.currencies._bestTier = Math.max(1, Math.floor(player.bestTier || player.currencies._bestTier || 1));
     player.currencies._bossKills = Math.max(0, Math.floor(player.bossKills || player.currencies._bossKills || 0));
     if (player.slainInZone || player.currencies._slainInZone) {
       player.currencies._slainInZone = player.slainInZone || player.currencies._slainInZone;

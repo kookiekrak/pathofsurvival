@@ -41,6 +41,7 @@ const httpServer = http.createServer((req, res) => {
         let eqCount = 0;
         let league = 'Standard';
         let deadHardcore = false;
+        let bestTier = 1;
         try {
           const eq = JSON.parse(r.equipment_json || '{}');
           eqCount = Object.values(eq).filter(Boolean).length;
@@ -49,6 +50,7 @@ const httpServer = http.createServer((req, res) => {
           const cur = JSON.parse(r.currencies_json || '{}');
           if (cur && cur._league === 'Hardcore') league = 'Hardcore';
           deadHardcore = !!(cur && cur._deadHardcore);
+          bestTier = Math.max(1, Math.floor((cur && cur._bestTier) || 1));
         } catch {}
         return {
           id: r.id,
@@ -56,6 +58,7 @@ const httpServer = http.createServer((req, res) => {
           classId: r.class_id,
           league,
           deadHardcore,
+          bestTier,
           level: r.level,
           xp: r.xp,
           xpNext: r.xp_next,
@@ -174,6 +177,7 @@ const httpServer = http.createServer((req, res) => {
         let uniqueCount = 0;
         let league = 'Standard';
         let deadHardcore = false;
+        let bestTier = 1;
         let bossKills = 0;
         let slainInZone = '';
         try {
@@ -189,6 +193,7 @@ const httpServer = http.createServer((req, res) => {
           const cur = JSON.parse(r.currencies_json || '{}');
           if (cur && cur._league === 'Hardcore') league = 'Hardcore';
           deadHardcore = !!(cur && cur._deadHardcore);
+          bestTier = Math.max(1, Math.floor(cur._bestTier || 1));
           bossKills = Math.max(0, Math.floor(cur._bossKills || 0));
           slainInZone = cur._slainInZone || '';
         } catch {}
@@ -198,6 +203,7 @@ const httpServer = http.createServer((req, res) => {
           classId: r.class_id,
           league,
           deadHardcore,
+          bestTier,
           level: r.level,
           xp: r.xp,
           xpNext: r.xp_next,
@@ -207,7 +213,7 @@ const httpServer = http.createServer((req, res) => {
           slainInZone,
           updatedAt: r.updated_at
         };
-      });
+      }).sort((a, b) => ((b.level + b.bestTier) - (a.level + a.bestTier)) || (b.bestTier - a.bestTier) || (b.level - a.level) || (b.xp - a.xp));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ leaderboard: rows }));
     } catch (err) {

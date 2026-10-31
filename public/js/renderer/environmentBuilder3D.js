@@ -225,13 +225,24 @@
 
     const biomeThemes = {
       strand:            { bg: 0x0a131c, hemi: 0xa5d8ff, ground: 0x1b2631, dir: 0xd0ebff, floor: 0x6c7a89, tex: 'strand_diff', ringColor: 0x3bc9db },
+      submerged_cavern:  { bg: 0x071422, hemi: 0x74c0fc, ground: 0x102233, dir: 0xa5d8ff, floor: 0x4b657d, tex: 'strand_diff', ringColor: 0x4dabf7 },
+      glacier_summit:    { bg: 0x0b1826, hemi: 0xc5f6fa, ground: 0x182b3b, dir: 0xe3fafc, floor: 0x86a6ba, tex: 'marble_diff', ringColor: 0x66d9e8 },
       fetid_pool:        { bg: 0x09160e, hemi: 0x8ce99a, ground: 0x132619, dir: 0xb2f2bb, floor: 0x496b52, tex: 'strand_diff', ringColor: 0x51cf66 },
+      toxic_sewer:       { bg: 0x0b1709, hemi: 0x94d82d, ground: 0x162411, dir: 0xc0eb75, floor: 0x526b3d, tex: 'brick_diff',  ringColor: 0x82c91e },
+      imperial_gardens:  { bg: 0x0c1a12, hemi: 0x96f2d7, ground: 0x172b1f, dir: 0xc3fae8, floor: 0x567863, tex: 'marble_diff', ringColor: 0x38d9a9 },
       vaal_pyramid:      { bg: 0x181008, hemi: 0xffec99, ground: 0x2b1d0e, dir: 0xffd43b, floor: 0x7d623b, tex: 'brick_diff',  ringColor: 0xfcc419 },
+      sarn_ruins:        { bg: 0x1a120a, hemi: 0xffd8a8, ground: 0x2e2012, dir: 0xffec99, floor: 0x856a47, tex: 'brick_diff',  ringColor: 0xffa94d },
       crimson_temple:    { bg: 0x17080c, hemi: 0xffa8a8, ground: 0x2b0f14, dir: 0xff8787, floor: 0x8a4b52, tex: 'brick_diff',  ringColor: 0xff6b6b },
+      blood_aqueduct:    { bg: 0x1a090d, hemi: 0xff8787, ground: 0x2e1116, dir: 0xffa8a8, floor: 0x823d45, tex: 'brick_diff',  ringColor: 0xfa5252 },
+      caldera_of_ash:    { bg: 0x1c0b06, hemi: 0xff922b, ground: 0x331409, dir: 0xffb86c, floor: 0x8c4a2b, tex: 'lava_diff',   ringColor: 0xff6b2b },
+      alluring_abyss:    { bg: 0x1c0712, hemi: 0xf783ac, ground: 0x2e0c1d, dir: 0xffa8c5, floor: 0x7d3554, tex: 'marble_diff', ringColor: 0xe64980 },
       defiled_cathedral: { bg: 0x0d1021, hemi: 0xbac8ff, ground: 0x191d36, dir: 0xdbe4ff, floor: 0x5c6482, tex: 'marble_diff', ringColor: 0x748ffc },
+      lunaris_temple:    { bg: 0x0b1224, hemi: 0x91a7ff, ground: 0x141f3b, dir: 0xbac8ff, floor: 0x4f5f8a, tex: 'marble_diff', ringColor: 0x5c7cfa },
+      synthete_cortex:   { bg: 0x091326, hemi: 0x66d9e8, ground: 0x122240, dir: 0x99e9f2, floor: 0x49688f, tex: 'marble_diff', ringColor: 0x22b8cf },
       shaper_realm:      { bg: 0x110821, hemi: 0xd0bfff, ground: 0x24123b, dir: 0xffe066, floor: 0x845ef7, tex: 'lava_diff',   ringColor: 0xcc5de8 }
     };
-    const th = biomeThemes[mapId] || biomeThemes.shaper_realm;
+    const mapObj = (GameData.ATLAS_MAPS || []).find(m => m.id === mapId);
+    const th = biomeThemes[mapId] || (mapObj && biomeThemes[mapObj.biome]) || biomeThemes.shaper_realm;
     scene.background = new THREE.Color(th.bg);
     scene.fog = new THREE.FogExp2(th.bg, 0.00055);
     hemiLight.color.setHex(th.hemi);

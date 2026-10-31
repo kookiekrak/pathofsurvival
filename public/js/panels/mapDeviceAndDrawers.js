@@ -19,10 +19,12 @@
       const dropBonus = (m.lootQuantity || 100) - 100;
       const rarityBonus = m.lootRarityBonus || 0;
       const baseIlvl = (m.tier - 1) * 3 + 1;
+      const tierColor = m.tier >= 11 ? '#ff6b6b' : m.tier >= 6 ? '#ffd43b' : '#dee2e6';
+      const tierCat = m.tier >= 11 ? 'RED' : m.tier >= 6 ? 'YELLOW' : 'WHITE';
       card.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <div class="map-tier-badge" style="margin:0">TIER ${m.tier}</div>
-          <span style="font-size:0.74rem;color:#f2c76e;font-weight:700">${m.recGear || `ilvl ${baseIlvl}+`}</span>
+          <div class="map-tier-badge" style="margin:0;color:${tierColor}">${tierCat} TIER ${m.tier}</div>
+          <span style="font-size:0.72rem;color:#f2c76e;font-weight:700">ilvl ${baseIlvl}+</span>
         </div>
         <h3 style="margin:0 0 5px;font-size:0.98rem">${m.name} <span style="font-size:0.74rem;color:#9e8d73;font-weight:400">• ${m.bossName}</span></h3>
         <div class="map-stat-line" style="margin-bottom:3px;color:#ff8787;font-size:0.8rem">
@@ -195,7 +197,7 @@
 
     if (filtered.length === 0) {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td colspan="6" style="text-align:center;color:#9e8d73;padding:18px">No Exiles recorded in this ladder bracket yet. Create a Hardcore character to claim Rank #1!</td>`;
+      tr.innerHTML = `<td colspan="7" style="text-align:center;color:#9e8d73;padding:18px">No Exiles recorded in this ladder bracket yet. Create a Hardcore character to claim Rank #1!</td>`;
       tbody.appendChild(tr);
       return;
     }
@@ -205,6 +207,9 @@
       const rankBadge = rank === 1 ? '👑 #1' : rank === 2 ? '🥈 #2' : rank === 3 ? '🥉 #3' : `#${rank}`;
       const xpPct = r.xpNext > 0 ? Math.min(99, Math.floor((r.xp / r.xpNext) * 100)) : 0;
       const clsDef = (GameData.CLASSES && GameData.CLASSES[r.classId]) || { color: '#e8c26b' };
+      const bestT = Math.max(1, r.bestTier || 1);
+      const tCol = bestT >= 17 ? '#da77f2' : bestT >= 11 ? '#ff6b6b' : bestT >= 6 ? '#ffd43b' : '#dee2e6';
+      const tLabel = bestT >= 17 ? `UBER T${bestT}` : bestT >= 11 ? `RED T${bestT}` : bestT >= 6 ? `YELLOW T${bestT}` : `WHITE T${bestT}`;
       const statusHtml = r.league === 'Hardcore'
         ? (r.deadHardcore
           ? `<span style="color:#ff4d4d;font-weight:700">💀 FALLEN${r.slainInZone ? ` (${r.slainInZone})` : ''}</span>`
@@ -216,7 +221,8 @@
         <td><strong style="color:${rank <= 3 ? '#ffd43b' : '#c8b38a'}">${rankBadge}</strong></td>
         <td><strong style="color:${r.deadHardcore ? '#ff8787' : '#f4ece1'}">${r.name}</strong></td>
         <td><span style="color:${clsDef.color || '#e8c26b'}">${r.classId}</span></td>
-        <td><strong>Lv. ${r.level}</strong> <span style="font-size:0.76rem;color:#9e8d73">(${xpPct}% XP)</span></td>
+        <td><strong>Lv. ${r.level}</strong> <span style="font-size:0.74rem;color:#9e8d73">(${xpPct}% XP)</span></td>
+        <td><strong style="color:${tCol}">${tLabel}</strong> <span style="font-size:0.72rem;color:#9e8d73">• Score ${r.level + bestT}</span></td>
         <td><span style="color:#ffd43b">${r.bossKills || 0} Bosses</span> <span style="font-size:0.74rem;color:#9e8d73">• ${r.uniqueCount || 0} Uniques</span></td>
         <td>${statusHtml}</td>
       `;

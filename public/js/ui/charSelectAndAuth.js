@@ -183,7 +183,7 @@
           <div class="class-emblem" style="width:32px;height:32px">${getClassEmblemSvg(ch.classId)}</div>
           <div style="min-width:0">
             <div style="font-family:var(--font-serif);font-weight:700;font-size:0.95rem;color:${ch.deadHardcore ? '#999' : 'var(--poe-gold-bright)'}">${ch.name}</div>
-            <div style="font-size:0.78rem;color:#c7b089">Level ${ch.level} ${ch.classId} • <span style="color:${lgCol}">${lgTxt}</span></div>
+            <div style="font-size:0.78rem;color:#c7b089">Lv.${ch.level} ${ch.classId} • <strong style="color:#ffd43b">T${ch.bestTier || 1}</strong> • <span style="color:${lgCol}">${lgTxt}</span></div>
           </div>
         </div>
         <div style="text-align:right;font-size:0.76rem;color:#9e8d73;flex-shrink:0">
