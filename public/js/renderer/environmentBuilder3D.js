@@ -23,12 +23,21 @@
     return clone;
   }
 
-  function rebuildBiomeEnvironment(mode, mapId) {
+  function seededRand(seed) {
+    let s = Math.max(1, (Number(seed) | 0) ^ 0x6d2b79f5);
+    return () => {
+      s = Math.imul(s ^ (s >>> 15), s | 1);
+      s ^= s + Math.imul(s ^ (s >>> 7), s | 61);
+      return ((s ^ (s >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function rebuildBiomeEnvironment(mode, mapId, mapSeed = 1) {
     if (!ASSETS.ready) return;
     const isOriathTown = mode === 'HIDEOUT' && worldState && worldState.roomCode === 'ORIATH';
-    const key = `${mode}_${isOriathTown ? 'TOWN' : 'HIDE'}_${mapId}`;
-    if (key === currentEnvKey) return;
-    currentEnvKey = key;
+    const envKey = mode === 'HIDEOUT' ? (isOriathTown ? 'HIDEOUT_TOWN' : 'HIDEOUT') : `${mode}_${mapId}_${mapSeed}`;
+    if (envKey === currentEnvKey) return;
+    currentEnvKey = envKey;
 
     while (envGroup.children.length > 0) {
       envGroup.remove(envGroup.children[0]);
@@ -248,19 +257,14 @@
     floorMesh.receiveShadow = true;
     envGroup.add(floorMesh);
 
-    // Central Boss Sanctum Ritual Ring & Colonnade at (0, 0, 0)
+    // Central Boss Sanctum Ritual Ring at (0, 0, 0) (kept clear inside r < 185 for portal!)
     const sanctumRing = new THREE.Mesh(
-      new THREE.RingGeometry(195, 210, 48),
+      new THREE.RingGeometry(188, 202, 48),
       new THREE.MeshBasicMaterial({ color: th.ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.42 })
     );
     sanctumRing.rotation.x = -Math.PI / 2;
     sanctumRing.position.y = 1.2;
     envGroup.add(sanctumRing);
-    for (let i = 0; i < 6; i++) {
-      const ang = (Math.PI * 2 * i) / 6 + 0.25;
-      placePropByHeight('column', Math.cos(ang) * 215, Math.sin(ang) * 215, 64, -ang);
-      placePropByHeight('torch', Math.cos(ang) * 202, Math.sin(ang) * 202, 22, -ang, 18);
-    }
 
     // Perimeter Pillars around the 6000x6000 boundary
     for (let i = -bound; i <= bound; i += 300) {
@@ -270,35 +274,45 @@
       placePropByHeight('pillar', bound, i, 98, -Math.PI / 2);
     }
 
-    // Procedural Ruin & Biome Architecture across 5 Concentric Rings
-    const rings = [460, 880, 1380, 1920, 2480];
-    rings.forEach((radius, rIdx) => {
-      const count = 8 + rIdx * 5;
-      for (let k = 0; k < count; k++) {
-        const ang = (Math.PI * 2 * k) / count + rIdx * 0.37;
-        const rx = Math.cos(ang) * radius;
-        const rz = Math.sin(ang) * radius;
+    // Procedurally Scattered Architectural Landmarks driven by seededRand(mapSeed)
+    const rng = seededRand(mapSeed + (mapId ? mapId.charCodeAt(0) * 137 : 17));
+    const biomePropPools = {
+      strand:            [['tree_dead', 115], ['column', 64], ['rubble', 38], ['pillar', 84], ['torch', 24]],
+      fetid_pool:        [['tree_dead', 120], ['post_skull', 66], ['crypt', 110], ['rubble', 36], ['torch', 24]],
+      vaal_pyramid:      [['arch_gate', 108], ['column', 74], ['pillar', 90], ['torch', 26], ['rubble', 36]],
+      crimson_temple:    [['arch_gate', 104], ['pillar', 92], ['banner', 62], ['column', 70], ['torch', 26]],
+      defiled_cathedral: [['wall_arched', 98], ['pillar', 88], ['crypt', 118], ['banner', 60], ['torch', 25]],
+      shaper_realm:      [['crypt', 124], ['arch_gate', 106], ['post_skull', 82], ['pillar', 94], ['banner', 62]]
+    };
+    const pool = biomePropPools[mapId] || biomePropPools.shaper_realm;
 
-        if (mapId === 'strand') {
-          placePropByHeight(k % 2 === 0 ? 'tree_dead' : 'column', rx, rz, k % 2 === 0 ? 115 : 62, k * 1.3);
-          if (k % 3 === 0) placePropByHeight('rubble', rx + 42, rz + 28, 36, k);
-        } else if (mapId === 'fetid_pool') {
-          placePropByHeight(k % 2 === 0 ? 'tree_dead' : 'post_skull', rx, rz, k % 2 === 0 ? 120 : 66, k * 1.1);
-          if (k % 4 === 0) placePropByHeight('crypt', rx - 48, rz + 32, 110, k * 0.5);
-        } else if (mapId === 'vaal_pyramid') {
-          placePropByHeight(k % 2 === 0 ? 'arch_gate' : 'column', rx, rz, k % 2 === 0 ? 108 : 74, -ang);
-          if (k % 3 === 0) placePropByHeight('torch', rx + 26, rz - 26, 26, k);
-        } else if (mapId === 'crimson_temple') {
-          placePropByHeight(k % 2 === 0 ? 'arch_gate' : 'pillar', rx, rz, k % 2 === 0 ? 104 : 92, -ang);
-          if (k % 3 === 0) placePropByHeight('banner', rx + 30, rz - 20, 62, k);
-        } else if (mapId === 'defiled_cathedral') {
-          placePropByHeight(k % 2 === 0 ? 'wall_arched' : 'pillar', rx, rz, k % 2 === 0 ? 98 : 88, -ang);
-          if (k % 3 === 0) placePropByHeight('crypt', rx + 44, rz - 30, 118, -ang);
-        } else {
-          placePropByHeight(k % 3 === 0 ? 'crypt' : k % 2 === 0 ? 'arch_gate' : 'post_skull', rx, rz, k % 3 === 0 ? 128 : 82, k * 0.9);
-        }
+    // Scatter 22 primary landmark clusters within r = 220..1250 (keeping r < 185 clear around (0,0) for portal)
+    const clusterCount = 18 + Math.floor(rng() * 7); // 18 to 24 clusters
+    for (let c = 0; c < clusterCount; c++) {
+      const ang = rng() * Math.PI * 2;
+      const rad = 220 + rng() * 1030;
+      const cx = Math.cos(ang) * rad;
+      const cz = Math.sin(ang) * rad;
+      const [mainKey, mainH] = pool[Math.floor(rng() * pool.length)];
+      const rot = rng() * Math.PI * 2;
+      placePropByHeight(mainKey, cx, cz, mainH * (0.88 + rng() * 0.26), rot);
+
+      // Satellite accent prop in cluster (torch, rubble, banner, skull post, or column)
+      if (rng() < 0.72) {
+        const satAng = ang + (rng() - 0.5) * 0.45;
+        const satR = Math.max(195, rad + (rng() - 0.5) * 90);
+        const [satKey, satH] = pool[Math.floor(rng() * pool.length)];
+        placePropByHeight(satKey, Math.cos(satAng) * satR, Math.sin(satAng) * satR, satH * 0.85, rng() * Math.PI * 2);
       }
-    });
+    }
+
+    // Outer exploration landmarks (1250 to 2550 units)
+    for (let k = 0; k < 28; k++) {
+      const ang = rng() * Math.PI * 2;
+      const rad = 1280 + rng() * 1250;
+      const [pKey, pH] = pool[k % pool.length];
+      placePropByHeight(pKey, Math.cos(ang) * rad, Math.sin(ang) * rad, pH * (0.9 + rng() * 0.25), rng() * Math.PI * 2);
+    }
   }
 
   Object.assign(window.__POS_CTX__, { placePropByHeight, rebuildBiomeEnvironment });

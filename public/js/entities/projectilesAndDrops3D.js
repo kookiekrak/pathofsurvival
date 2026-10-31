@@ -117,19 +117,19 @@
     const col = colorMap[prj.dt] || 0xffd43b;
 
     const group = new THREE.Group();
-    const yHeight = prj.s === 'sunder' ? 2.5 : 16;
+    const yHeight = (prj.s === 'sunder' || prj.s === 'volcanic_fissure' || prj.s === 'glacial_cascade') ? 2.5 : 16;
     group.position.set(prj.x, yHeight, prj.y);
 
     const mesh = new THREE.Group();
     let spinSpeed = 0;
 
-    if (prj.s === 'sunder') {
-      // Jagged 5-spike tectonic fault wave + glowing magma fissure (spawns cascading shockwave rings along its path!)
+    if (prj.s === 'sunder' || prj.s === 'volcanic_fissure' || prj.s === 'glacial_cascade') {
+      const isIce = prj.s === 'glacial_cascade';
       const rockMat = new THREE.MeshStandardMaterial({
-        color: 0x704225,
-        emissive: 0xe8590c,
+        color: isIce ? 0x4dabf7 : 0x704225,
+        emissive: isIce ? 0x1c7ed6 : 0xe8590c,
         emissiveIntensity: 1.15,
-        roughness: 0.6
+        roughness: isIce ? 0.25 : 0.6
       });
       const offsets = [
         { x: 0, z: 6, h: 11.5, rx: 0.36, rz: 0 },
@@ -146,7 +146,7 @@
         mesh.add(spike);
       }
       const crackMat = new THREE.MeshBasicMaterial({
-        color: 0xff6b35,
+        color: isIce ? 0x74c0fc : 0xff6b35,
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 0.9,
@@ -158,10 +158,9 @@
       crackRing.scale.set(18, 12, 1);
       crackRing.position.y = 0.6;
       mesh.add(crackRing);
-    } else if (prj.s === 'tornado_shot' || prj.s === 'lightning_arrow') {
-      // High-visibility glowing arrow shaft + broadhead tip + horizontal wind/lightning chevron along +Z
+    } else if (prj.s === 'tornado_shot' || prj.s === 'lightning_arrow' || prj.s === 'toxic_rain') {
       const isLightning = prj.s === 'lightning_arrow' || prj.dt === 'lightning';
-      const arrowCol = isLightning ? 0x74c0fc : 0xffe066;
+      const arrowCol = prj.s === 'toxic_rain' ? 0x94d82d : (isLightning ? 0x74c0fc : 0xffe066);
       const shaftMat = new THREE.MeshBasicMaterial({ color: arrowCol });
       const shaft = new THREE.Mesh(sharedProjGeos.shaft, shaftMat);
       shaft.rotation.x = Math.PI / 2;
@@ -225,15 +224,15 @@
       tail.position.z = -rScale * 1.4;
       mesh.add(tail);
       spinSpeed = 10;
-    } else if (prj.s === 'spectral_throw' || prj.s === 'blade_vortex') {
+    } else if (prj.s === 'spectral_throw' || prj.s === 'blade_vortex' || prj.s === 'ethereal_knives') {
       if (ASSETS.models.wep_blade) {
         const blade = ASSETS.models.wep_blade.scene.clone(true);
-        blade.scale.setScalar(13.5);
+        blade.scale.setScalar(prj.s === 'ethereal_knives' ? 10.5 : 13.5);
         blade.rotation.x = Math.PI / 2;
         mesh.add(blade);
       }
       const discMat = new THREE.MeshBasicMaterial({
-        color: prj.s === 'blade_vortex' ? 0x69db7c : 0xffe8a3,
+        color: prj.s === 'blade_vortex' ? 0x69db7c : (prj.s === 'ethereal_knives' ? 0x63e6be : 0xffe8a3),
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 0.72,
@@ -242,9 +241,17 @@
       });
       const sawRing = new THREE.Mesh(sharedProjGeos.ring, discMat);
       sawRing.rotation.x = -Math.PI / 2;
-      sawRing.scale.setScalar(13);
+      sawRing.scale.setScalar(prj.s === 'ethereal_knives' ? 9 : 13);
       mesh.add(sawRing);
-      spinSpeed = 20;
+      spinSpeed = prj.s === 'ethereal_knives' ? 8 : 20;
+    } else if (prj.s === 'ball_lightning' || prj.s === 'eye_of_winter' || prj.s === 'divine_ire') {
+      const orbCol = prj.s === 'eye_of_winter' ? 0x74c0fc : (prj.s === 'divine_ire' ? 0xffd43b : 0x4dabf7);
+      const core = new THREE.Mesh(sharedProjGeos.sphere, new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      core.scale.setScalar(7.5);
+      const shell = new THREE.Mesh(sharedProjGeos.icosa, new THREE.MeshBasicMaterial({ color: orbCol, wireframe: true, transparent: true, opacity: 0.9 }));
+      shell.scale.setScalar(11.5);
+      mesh.add(core, shell);
+      spinSpeed = 16;
     } else if (prj.s === 'spark') {
       const sparkMat = new THREE.MeshBasicMaterial({ color: 0x99e9f2 });
       const s1 = new THREE.Mesh(sharedProjGeos.octa, sparkMat);

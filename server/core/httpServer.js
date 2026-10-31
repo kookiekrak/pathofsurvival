@@ -39,14 +39,23 @@ const httpServer = http.createServer((req, res) => {
     try {
       const rows = stmtListCharacters.all(accountId).map(r => {
         let eqCount = 0;
+        let league = 'Standard';
+        let deadHardcore = false;
         try {
           const eq = JSON.parse(r.equipment_json || '{}');
           eqCount = Object.values(eq).filter(Boolean).length;
+        } catch {}
+        try {
+          const cur = JSON.parse(r.currencies_json || '{}');
+          if (cur && cur._league === 'Hardcore') league = 'Hardcore';
+          deadHardcore = !!(cur && cur._deadHardcore);
         } catch {}
         return {
           id: r.id,
           name: r.name,
           classId: r.class_id,
+          league,
+          deadHardcore,
           level: r.level,
           xp: r.xp,
           xpNext: r.xp_next,
@@ -92,6 +101,8 @@ const httpServer = http.createServer((req, res) => {
 
         const cls = GameData.CLASSES[classId];
         const starter = createStarterLoadout(classId);
+        const league = payload.league === 'Hardcore' ? 'Hardcore' : 'Standard';
+        const starterCurrencies = { ...(starter.currencies || {}), _league: league, _deadHardcore: false };
         const charId = uid('char');
         const now = Date.now();
 
@@ -107,7 +118,7 @@ const httpServer = http.createServer((req, res) => {
           JSON.stringify([cls.startNode]),
           JSON.stringify(starter.equipment || {}),
           JSON.stringify(starter.inventory || []),
-          JSON.stringify(starter.currencies || {}),
+          JSON.stringify(starterCurrencies),
           JSON.stringify(starter.gemLinks || []),
           JSON.stringify(starter.supportReserve || []),
           100,
@@ -122,6 +133,8 @@ const httpServer = http.createServer((req, res) => {
             id: charId,
             name,
             classId,
+            league,
+            deadHardcore: false,
             level: 1,
             xp: 0,
             xpNext: 120,
@@ -149,6 +162,57 @@ const httpServer = http.createServer((req, res) => {
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, error: err.message }));
+    }
+    return;
+  }
+
+  if (urlPath === '/api/leaderboard' && req.method === 'GET') {
+    try {
+      flushAllCharactersToDb();
+      const rows = stmtListLeaderboard.all().map(r => {
+        let eqCount = 0;
+        let uniqueCount = 0;
+        let league = 'Standard';
+        let deadHardcore = false;
+        let bossKills = 0;
+        let slainInZone = '';
+        try {
+          const eq = JSON.parse(r.equipment_json || '{}');
+          for (const it of Object.values(eq)) {
+            if (it) {
+              eqCount++;
+              if (it.rarity === 'unique') uniqueCount++;
+            }
+          }
+        } catch {}
+        try {
+          const cur = JSON.parse(r.currencies_json || '{}');
+          if (cur && cur._league === 'Hardcore') league = 'Hardcore';
+          deadHardcore = !!(cur && cur._deadHardcore);
+          bossKills = Math.max(0, Math.floor(cur._bossKills || 0));
+          slainInZone = cur._slainInZone || '';
+        } catch {}
+        return {
+          id: r.id,
+          name: r.name,
+          classId: r.class_id,
+          league,
+          deadHardcore,
+          level: r.level,
+          xp: r.xp,
+          xpNext: r.xp_next,
+          bossKills,
+          equippedCount: eqCount,
+          uniqueCount,
+          slainInZone,
+          updatedAt: r.updated_at
+        };
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ leaderboard: rows }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message, leaderboard: [] }));
     }
     return;
   }

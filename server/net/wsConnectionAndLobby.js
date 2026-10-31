@@ -49,7 +49,10 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    if (msg.type === 'join' || msg.type === 'join_room') {
+    if (msg.type === 'join' || msg.type === 'join_room' || msg.type === 'switch_character') {
+      if (msg.type === 'switch_character' && !msg.roomCode && connState.currentRoom) {
+        msg.roomCode = connState.currentRoom.code;
+      }
       switchPlayerRoom(ws, msg, connState);
       return;
     }
@@ -196,6 +199,15 @@ wss.on('connection', (ws) => {
         }));
         return;
       }
+      if (currentPlayer.deadHardcore) {
+        ws.send(JSON.stringify({
+          type: 'announcement',
+          title: '💀 Fallen Hardcore Exile',
+          subtitle: 'Fallen Hardcore characters cannot enter Atlas Maps. Switch characters or create a new Exile!',
+          color: '#ff4d4d'
+        }));
+        return;
+      }
       currentPlayer.ready = !currentPlayer.ready;
       sendPrivateProfile(currentPlayer);
       addRoomChat(
@@ -206,7 +218,7 @@ wss.on('connection', (ws) => {
       );
       // If all players in the Hideout are ready, launch the selected Atlas Map automatically!
       if (currentRoom.state === 'HIDEOUT' && currentRoom.players.size > 0) {
-        const allReady = Array.from(currentRoom.players.values()).every(p => p.ready);
+        const allReady = Array.from(currentRoom.players.values()).every(p => p.ready && !p.deadHardcore);
         if (allReady) {
           startAtlasRun(currentRoom, currentRoom.selectedMapId);
         }
@@ -231,8 +243,39 @@ wss.on('connection', (ws) => {
         }));
         return;
       }
+      if (currentPlayer.deadHardcore) {
+        ws.send(JSON.stringify({
+          type: 'announcement',
+          title: '💀 Fallen Hardcore Exile',
+          subtitle: 'Fallen Hardcore characters cannot enter Atlas Maps. Switch characters or create a new Exile!',
+          color: '#ff4d4d'
+        }));
+        return;
+      }
       if (currentRoom.state === 'HIDEOUT') {
         startAtlasRun(currentRoom, msg.mapId || currentRoom.selectedMapId || 'strand');
+      }
+    } else if (msg.type === 'start_raid') {
+      if (currentRoom.code === 'ORIATH') {
+        ws.send(JSON.stringify({
+          type: 'announcement',
+          title: 'Oriath Public Town Hub',
+          subtitle: 'Pinnacle Raids cannot be opened in Oriath Town! Travel to your Personal Hideout to launch raids.',
+          color: '#ffd43b'
+        }));
+        return;
+      }
+      if (currentPlayer.deadHardcore) {
+        ws.send(JSON.stringify({
+          type: 'announcement',
+          title: '💀 Fallen Hardcore Exile',
+          subtitle: 'Fallen Hardcore characters cannot enter Pinnacle Boss Raids!',
+          color: '#ff4d4d'
+        }));
+        return;
+      }
+      if (currentRoom.state === 'HIDEOUT') {
+        startPinnacleBossRaid(currentRoom, msg.raidId);
       }
     } else if (msg.type === 'return_hideout') {
       if (currentRoom.state === 'RUN') {

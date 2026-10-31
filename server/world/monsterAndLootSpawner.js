@@ -4,7 +4,7 @@ const GameData = global.GameData || require('../../public/shared/gameData.js');
 // =========================================================================
 // COHESIVE PACK SPAWNING, MONSTER CREATION & ANTI-AFK HAZARDS
 // =========================================================================
-const MAX_ACTIVE_ENEMIES = 150;
+const MAX_ACTIVE_ENEMIES = 90;
 
 function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = null, forceBase = null, isBreachMob = false) {
   const alivePlayers = Array.from(room.players.values()).filter(p => !p.dead);
@@ -322,26 +322,10 @@ function pickupGroundFlask(room, player, drop) {
     player.flaskBelt[emptySlotIdx] = fDef.id;
     player.flaskSlotCharges[emptySlotIdx] = fDef.maxCharges;
     recalcPlayer(player, false);
-    if (room.fxEvents.length < 28) {
-      room.fxEvents.push({
-        kind: 'dmg_num', x: Math.round(player.x), y: Math.round(player.y - 30),
-        val: `EQUIPPED: ${fDef.name.toUpperCase()} [SLOT ${emptySlotIdx + 1}]!`,
-        text: `FLASK EQUIPPED: ${fDef.name.toUpperCase()} [KEY ${emptySlotIdx + 1}]!`,
-        color: '#38d9a9', size: 18, crit: true, dtype: 'loot'
-      });
-    }
     addRoomChat(room, 'Flask', `${player.name} equipped ${fDef.name} into Belt Slot ${emptySlotIdx + 1}! (Customize belt slots in Inventory [I])`, '#38d9a9');
   } else if (player.inventory.length < 32) {
     const flaskItem = buildFlaskItem(fDef.id);
     player.inventory.push(flaskItem);
-    if (room.fxEvents.length < 28) {
-      room.fxEvents.push({
-        kind: 'dmg_num', x: Math.round(player.x), y: Math.round(player.y - 26),
-        val: `+1 ${fDef.name.toUpperCase()} (BAG [I])`,
-        text: `LOOTED: ${fDef.name.toUpperCase()} (EQUIP IN BELT [I])`,
-        color: '#38d9a9', size: 16, crit: false, dtype: 'loot'
-      });
-    }
   } else {
     player.hp = Math.min(player.maxHp, player.hp + Math.round(player.maxHp * 0.25));
   }

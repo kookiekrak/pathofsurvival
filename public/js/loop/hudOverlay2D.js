@@ -9,38 +9,23 @@
     interactableHitBoxes = [];
     upgradeChestHitBoxes = [];
 
-    // Helper: returns true ONLY when the element exists in the DOM and does NOT have the 'hidden' class
     const isElVisible = (id) => {
       const el = document.getElementById(id);
       return Boolean(el && !el.classList.contains('hidden'));
     };
+    if (isElVisible('loginModal') || isElVisible('lobbyModal') || isElVisible('passiveTreeModal') || isElVisible('mapDeviceModal')) return;
 
-    // Skip 2D world overlay plates when any fullscreen modal is open
-    const modalOpen =
-      isElVisible('loginModal') ||
-      isElVisible('lobbyModal') ||
-      isElVisible('passiveTreeModal') ||
-      isElVisible('mapDeviceModal');
-    if (modalOpen) return;
-
-    // Helper to prevent 2D world plates from drawing over or bleeding behind HUD panels & open drawers
     const gemsDrawerOpen = isElVisible('gemsDrawer');
     const rightDrawerOpen = isElVisible('inventoryDrawer');
     const draftBannerOpen = isElVisible('gemDraftBanner');
 
     const isPlateInHudZone = (rx, ry, tw, bh) => {
-      // Top-left Party & Gold HUD
       if (rx < 305 && ry < 154) return true;
-      // Top-right Zone & Minimap HUD
       if (rx + tw > w - 210 && ry < 310) return true;
       if (rx + tw > w - 340 && ry < 95) return true;
-      // Top-center Boss Health Plaque area
       if (rx + tw > w / 2 - 250 && rx < w / 2 + 250 && ry < 64) return true;
-      // Top-center Gem Draft Banner when active
       if (draftBannerOpen && rx + tw > w / 2 - 430 && rx < w / 2 + 430 && ry < 330) return true;
-      // Bottom Globes, Flasks, Skills & XP Bar HUD
       if (ry + bh > h - 185) return true;
-      // Open Left / Right Drawers
       if (gemsDrawerOpen && rx < 450) return true;
       if (rightDrawerOpen && rx + tw > w - 495) return true;
       return false;
@@ -101,13 +86,46 @@
       }
     }
 
-    // Telegraphed Ground Hazard Labels (Vaal Flameblast / Molten Mortar)
+    // Telegraphed Ground Hazard Labels (Vaal Flameblast / Molten Mortar / Raid Soak)
     for (const haz of (worldState.hazards || [])) {
       const pos = projectToScreen(haz.x, 10, haz.y);
       if (!pos) continue;
       overlayCtx.font = '700 14px Cinzel, serif';
       overlayCtx.textAlign = 'center';
-      drawStrokedText(overlayCtx, haz.title.toUpperCase(), pos.x, pos.y, '#ff6b6b', '#000000', 3.5);
+      drawStrokedText(overlayCtx, (haz.title || 'HAZARD').toUpperCase(), pos.x, pos.y, haz.kind === 'soak' ? '#ffd43b' : '#ff6b6b', '#000000', 3.5);
+    }
+
+    // Rotating Boss Raid Laser Beams (worldState.raidBeams)
+    for (const bm of (worldState.raidBeams || [])) {
+      const cPos = projectToScreen(bm.x, 12, bm.y);
+      if (!cPos) continue;
+      const arms = bm.arms || 4;
+      const baseAng = bm.angle ?? bm.ang ?? 0;
+      const len = bm.length || 520;
+      overlayCtx.save();
+      for (let a = 0; a < arms; a++) {
+        const armAng = baseAng + (Math.PI * 2 * a) / arms;
+        const ePos = projectToScreen(bm.x + Math.cos(armAng) * len, 12, bm.y + Math.sin(armAng) * len);
+        if (!ePos) continue;
+        overlayCtx.strokeStyle = bm.color || '#f03e3e';
+        overlayCtx.lineWidth = 6;
+        overlayCtx.beginPath(); overlayCtx.moveTo(cPos.x, cPos.y); overlayCtx.lineTo(ePos.x, ePos.y); overlayCtx.stroke();
+        overlayCtx.strokeStyle = '#ffffff';
+        overlayCtx.lineWidth = 2;
+        overlayCtx.beginPath(); overlayCtx.moveTo(cPos.x, cPos.y); overlayCtx.lineTo(ePos.x, ePos.y); overlayCtx.stroke();
+      }
+      overlayCtx.restore();
+    }
+
+    // Golden Sanctuary Safe Dome (worldState.raidSanctuary)
+    if (worldState.raidSanctuary) {
+      const s = worldState.raidSanctuary;
+      const sPos = projectToScreen(s.x, 18, s.y);
+      if (sPos) {
+        overlayCtx.font = '700 15px Cinzel, serif';
+        overlayCtx.textAlign = 'center';
+        drawStrokedText(overlayCtx, `⚜ GOLDEN SANCTUARY SAFE ZONE (${s.rem}S — STAND HERE!)`, sPos.x, sPos.y, '#ffd43b', '#000000', 4);
+      }
     }
 
     // Active Expanding Breach Rings World Plate
@@ -155,16 +173,7 @@
       overlayCtx.fillRect(rx, ry, tw, bh);
       overlayCtx.strokeRect(rx, ry, tw, bh);
       overlayCtx.textAlign = 'center';
-      drawStrokedText(
-        overlayCtx,
-        text,
-        cx,
-        ry + 17,
-        isBreach ? '#f3d9fa' : '#f4e4b8',
-        '#000000',
-        3.5
-      );
-
+      drawStrokedText(overlayCtx, text, cx, ry + 17, isBreach ? '#f3d9fa' : '#f4e4b8', '#000000', 3.5);
       interactableHitBoxes.push({ x: rx, y: ry, w: tw, h: bh, it });
     }
 
@@ -276,37 +285,56 @@
       overlayCtx.strokeRect(bx - 1, by - 1, bw + 2, bh + 2);
     }
 
-    // Authentic PoE 1 Top-Center Monster Nameplate & Modifier Plaque
+    // Authentic PoE 1 Top-Center Monster Nameplate, Raid Phases & WoW Boss Cast Bar
     if (featuredEnemy) {
-      const barW = featuredEnemy.rarity === 'boss' ? 380 : 300;
+      const isBoss = featuredEnemy.rarity === 'boss';
+      const barW = isBoss ? 410 : 300;
       const barH = 24;
       const bx = Math.round(w / 2 - barW / 2);
       const by = 8;
       const hpRatio = Math.max(0, featuredEnemy.hp / Math.max(1, featuredEnemy.maxHp));
-
-      const nameColor = featuredEnemy.rarity === 'boss'
-        ? '#ff922b'
-        : featuredEnemy.rarity === 'rare'
-          ? '#ffff77'
-          : featuredEnemy.rarity === 'magic'
-            ? '#99b4ff'
-            : '#f0eae1';
+      const nameColor = isBoss ? '#ff922b' : featuredEnemy.rarity === 'rare' ? '#ffff77' : featuredEnemy.rarity === 'magic' ? '#99b4ff' : '#f0eae1';
 
       overlayCtx.fillStyle = 'rgba(6, 4, 4, 0.94)';
       overlayCtx.fillRect(bx, by, barW, barH);
-      overlayCtx.fillStyle = '#7d0f0a';
+      overlayCtx.fillStyle = featuredEnemy.invuln ? '#1098ad' : '#7d0f0a';
       overlayCtx.fillRect(bx + 1, by + 1, Math.round((barW - 2) * hpRatio), barH - 2);
+      if (isBoss) {
+        overlayCtx.strokeStyle = 'rgba(255, 212, 59, 0.75)';
+        overlayCtx.lineWidth = 1.5;
+        for (const pct of [0.35, 0.70]) {
+          const tx = Math.round(bx + barW * pct);
+          overlayCtx.beginPath(); overlayCtx.moveTo(tx, by + 1); overlayCtx.lineTo(tx, by + barH - 1); overlayCtx.stroke();
+        }
+      }
       overlayCtx.strokeStyle = '#8b6f43';
       overlayCtx.lineWidth = 1.8;
       overlayCtx.strokeRect(bx, by, barW, barH);
 
       overlayCtx.font = '700 15px Cinzel, serif';
       overlayCtx.textAlign = 'center';
-      drawStrokedText(overlayCtx, featuredEnemy.name.toUpperCase(), w / 2, by + 17, nameColor, '#000000', 3.5);
+      const titleTxt = isBoss ? `${featuredEnemy.name.toUpperCase()} — PHASE ${featuredEnemy.phase || 1}/3` : featuredEnemy.name.toUpperCase();
+      drawStrokedText(overlayCtx, titleTxt, w / 2, by + 17, nameColor, '#000000', 3.5);
 
+      let subY = by + barH + 16;
       if (featuredEnemy.mods && featuredEnemy.mods.length > 0) {
         overlayCtx.font = '700 13px Cinzel, serif';
-        drawStrokedText(overlayCtx, featuredEnemy.mods.join(' • '), w / 2, by + barH + 16, '#a5d8ff', '#000000', 3.5);
+        drawStrokedText(overlayCtx, featuredEnemy.mods.join(' • '), w / 2, subY, '#a5d8ff', '#000000', 3.5);
+        subY += 18;
+      }
+      if (featuredEnemy.castName) {
+        const cbY = subY - 10;
+        const cbH = 18;
+        const cProg = Math.max(0, Math.min(1, featuredEnemy.castProg || 0));
+        overlayCtx.fillStyle = 'rgba(10, 6, 16, 0.94)';
+        overlayCtx.fillRect(bx, cbY, barW, cbH);
+        overlayCtx.fillStyle = '#d9480f';
+        overlayCtx.fillRect(bx + 1, cbY + 1, Math.round((barW - 2) * cProg), cbH - 2);
+        overlayCtx.strokeStyle = '#ffd43b';
+        overlayCtx.lineWidth = 1.4;
+        overlayCtx.strokeRect(bx, cbY, barW, cbH);
+        overlayCtx.font = '700 12px Cinzel, serif';
+        drawStrokedText(overlayCtx, `⚠ CASTING: ${featuredEnemy.castName.toUpperCase()}`, w / 2, cbY + 13, '#fff3bf', '#000000', 3);
       }
     }
 
@@ -326,52 +354,29 @@
       const tw = overlayCtx.measureText(nameStr).width + 14;
       overlayCtx.fillStyle = 'rgba(5, 4, 4, 0.78)';
       overlayCtx.fillRect(pos.x - tw / 2, pos.y - 13, tw, 18);
-      drawStrokedText(
-        overlayCtx,
-        nameStr,
-        pos.x,
-        pos.y + 1,
-        p.id === myPlayerId ? '#f4e4b8' : '#e0e0e0',
-        '#000000',
-        3.5
-      );
-
+      drawStrokedText(overlayCtx, nameStr, pos.x, pos.y + 1, p.id === myPlayerId ? '#f4e4b8' : '#e0e0e0', '#000000', 3.5);
       if (p.dead) {
-        drawStrokedText(
-          overlayCtx,
-          `SLAIN — REVIVING (${Math.round(p.reviveProgress * 100)}%)`,
-          pos.x,
-          pos.y + 18,
-          '#ff6b6b',
-          '#000000',
-          3.5
-        );
+        drawStrokedText(overlayCtx, `SLAIN — REVIVING (${Math.round(p.reviveProgress * 100)}%)`, pos.x, pos.y + 18, '#ff6b6b', '#000000', 3.5);
       }
     }
 
-    // Floating Damage Numbers (Large, High-Contrast with Thick Outlines)
+    // Floating Damage Numbers (Strictly in HIDEOUT mode for Target Dummy DPS testing!)
+    if (worldState.mode !== 'HIDEOUT') {
+      floatingTexts.length = 0;
+      return;
+    }
     for (let i = floatingTexts.length - 1; i >= 0; i--) {
       const ft = floatingTexts[i];
       ft.life -= dt;
       ft.yOffset += 36 * dt;
-      if (ft.life <= 0) {
-        floatingTexts.splice(i, 1);
-        continue;
-      }
+      if (ft.life <= 0) { floatingTexts.splice(i, 1); continue; }
       const pos = projectToScreen(ft.x, ft.yOffset, ft.z);
       if (!pos || isPlateInHudZone(pos.x - 20, pos.y - 16, 40, 20)) continue;
-
       overlayCtx.save();
       overlayCtx.globalAlpha = ft.life / ft.maxLife;
       overlayCtx.font = ft.crit ? '800 22px Cinzel, serif' : '700 16px Cinzel, serif';
       overlayCtx.textAlign = 'center';
-      const color = ft.dtype === 'player_hit'
-        ? '#ff5252'
-        : ft.dtype === 'evade'
-          ? '#dfcf99'
-          : ft.crit
-            ? '#ffe066'
-            : '#ffffff';
+      const color = ft.dtype === 'player_hit' ? '#ff5252' : ft.dtype === 'evade' ? '#dfcf99' : ft.crit ? '#ffe066' : '#ffffff';
       drawStrokedText(overlayCtx, ft.crit ? `${ft.text}!` : `${ft.text}`, pos.x, pos.y, color, '#000000', 4);
       overlayCtx.restore();
     }

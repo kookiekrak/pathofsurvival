@@ -240,6 +240,22 @@
           <circle cx="24" cy="24" r="15" fill="none" stroke="#38d9a9" stroke-width="1.8" stroke-dasharray="10 5"/>
           <polygon points="24,8 30,20 40,24 28,28 24,40 18,28 8,24 18,20" fill="#20c997" stroke="#e6fcf5" stroke-width="1.2"/>
         </svg>`;
+      case 'ball_lightning':
+        return `<svg width="46" height="46" viewBox="0 0 48 48"><rect width="48" height="48" fill="#050d1c"/><circle cx="24" cy="24" r="13" fill="#1864ab" stroke="#74c0fc" stroke-width="2.4"/><polyline points="10,24 19,16 24,26 30,14 38,24" fill="none" stroke="#fff9db" stroke-width="2"/><circle cx="24" cy="24" r="6" fill="#d0ebff"/></svg>`;
+      case 'glacial_cascade':
+        return `<svg width="46" height="46" viewBox="0 0 48 48"><rect width="48" height="48" fill="#04111d"/><polygon points="8,40 14,22 20,40" fill="#339af0" stroke="#d0ebff" stroke-width="1.2"/><polygon points="18,40 25,14 32,40" fill="#4dabf7" stroke="#ffffff" stroke-width="1.4"/><polygon points="29,40 37,8 43,40" fill="#74c0fc" stroke="#ffffff" stroke-width="1.4"/></svg>`;
+      case 'toxic_rain':
+        return `<svg width="46" height="46" viewBox="0 0 48 48"><rect width="48" height="48" fill="#091606"/><g stroke="#82c91e" stroke-width="2"><line x1="14" y1="8" x2="14" y2="30"/><line x1="24" y1="6" x2="24" y2="28"/><line x1="34" y1="10" x2="34" y2="32"/></g><circle cx="14" cy="36" r="4.5" fill="#94d82d"/><circle cx="24" cy="34" r="5.5" fill="#a9e34b"/><circle cx="34" cy="37" r="4.5" fill="#94d82d"/></svg>`;
+      case 'volcanic_fissure':
+        return `<svg width="46" height="46" viewBox="0 0 48 48"><rect width="48" height="48" fill="#180602"/><path d="M6,38 L18,26 L24,30 L34,18 L42,22" fill="none" stroke="#ff922b" stroke-width="3"/><circle cx="18" cy="18" r="4.5" fill="#ff6b35"/><circle cx="28" cy="12" r="5" fill="#ffd43b"/><circle cx="38" cy="16" r="4" fill="#ff6b35"/></svg>`;
+      case 'flicker_strike':
+        return `<svg width="46" height="46" viewBox="0 0 48 48"><rect width="48" height="48" fill="#140914"/><line x1="6" y1="38" x2="42" y2="10" stroke="#f783ac" stroke-width="3"/><line x1="10" y1="12" x2="38" y2="36" stroke="#ffd8a8" stroke-width="2.2"/><circle cx="24" cy="24" r="5" fill="#ffffff"/></svg>`;
+      case 'eye_of_winter':
+        return `<svg width="46" height="46" viewBox="0 0 48 48"><rect width="48" height="48" fill="#041220"/><ellipse cx="24" cy="24" rx="17" ry="10" fill="#1864ab" stroke="#a5d8ff" stroke-width="2"/><circle cx="24" cy="24" r="6" fill="#e7f5ff"/><circle cx="24" cy="24" r="2.5" fill="#041220"/></svg>`;
+      case 'ethereal_knives':
+        return `<svg width="46" height="46" viewBox="0 0 48 48"><rect width="48" height="48" fill="#071512"/><g fill="#63e6be" stroke="#e6fcf5" stroke-width="1"><polygon points="24,6 27,22 24,40 21,22"/><polygon points="11,10 19,24 22,40 14,24"/><polygon points="37,10 34,24 26,40 29,24"/></g></svg>`;
+      case 'divine_ire':
+        return `<svg width="46" height="46" viewBox="0 0 48 48"><rect width="48" height="48" fill="#181204"/><polygon points="24,4 29,19 44,24 29,29 24,44 19,29 4,24 19,19" fill="#fab005" stroke="#fff9db" stroke-width="1.6"/><circle cx="24" cy="24" r="6" fill="#ffffff"/></svg>`;
       default: // Flame Dash
         return `<svg width="46" height="46" viewBox="0 0 48 48">
           <rect width="48" height="48" fill="#170804"/>

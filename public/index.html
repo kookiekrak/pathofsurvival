@@ -38,7 +38,10 @@
             <div id="selectedCharPreview" class="poe-char-spotlight" style="flex:1"></div>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
               <span class="char-create-hint">Creates your own instance by default, or click Party Gateway to join a public lobby.</span>
-              <button id="openLobbyFromSelectBtn" class="poe-chisel-btn lobby-gateway-btn" type="button">PARTY GATEWAY: <span id="selectTargetRoomBadge">SOLO</span></button>
+              <div style="display:flex;gap:6px;flex-shrink:0">
+                <button id="openLeaderboardFromSelectBtn" class="poe-chisel-btn lobby-gateway-btn" style="color:#ff8787;border-color:#9e2a2b" type="button">💀 HC LADDER</button>
+                <button id="openLobbyFromSelectBtn" class="poe-chisel-btn lobby-gateway-btn" type="button">PARTY GATEWAY: <span id="selectTargetRoomBadge">SOLO</span></button>
+              </div>
             </div>
           </div>
 
@@ -70,6 +73,7 @@
             <label for="playerNameInput" style="margin:0;white-space:nowrap;flex-shrink:0">CHARACTER NAME:</label>
             <input id="playerNameInput" type="text" maxlength="16" placeholder="Enter Exile Name..." value="" style="flex:1;min-width:180px" />
           </div>
+          <button id="leagueToggleBtn" class="poe-chisel-btn lobby-gateway-btn" style="flex-shrink:0;color:#78c2ad;border-color:#3b7a68" type="button">LEAGUE: STANDARD</button>
           <div id="charCreateError" class="delete-confirm-error hidden" style="margin:0;flex-shrink:0"></div>
           <button id="enterWraeclastBtn" class="poe-gold-btn" style="width:auto;flex-shrink:0;padding:9px 28px;font-size:0.96rem" type="button">OK (CREATE CHARACTER)</button>
         </div>
@@ -136,15 +140,15 @@
         <button id="readyToggleBtn" class="poe-chisel-btn ready-chisel" title="Toggle Party Ready State (F4)">READY UP [F4]</button>
         <button id="switchClassBtn" class="poe-chisel-btn switch-class-btn" title="Switch or Create Persisted Exile Character">CHARACTERS</button>
         <button id="openLobbyHudBtn" class="poe-chisel-btn lobby-hud-btn" title="Open Multiplayer Party &amp; Instance Lobby (Key: L)">PARTY LOBBY [L]</button>
+        <button id="openLeaderboardHudBtn" class="poe-chisel-btn lobby-hud-btn" style="color:#ff8787;border-color:#9e2a2b" title="Open Hardcore League Leaderboard (Key: H)">💀 HC LADDER [H]</button>
       </div>
       <div class="poe-gold-chest-bar">
-        <div class="poe-gold-pill" title="In-Run Gold is spent on Golden Chests &amp; Draft Rerolls; unspent earned Gold banks to your Hideout Stash!">
-          <span class="gold-coin-icon">🪙</span><span id="hudGoldVal" class="gold-val-num">0</span><span id="hudGoldLbl" class="gold-lbl">STASH GOLD</span>
+        <div class="poe-gold-pill" title="In-Run Gold is spent on Golden Chests &amp; Draft Rerolls inside maps!">
+          <span class="gold-coin-icon">🪙</span><span id="hudGoldVal" class="gold-val-num">0</span><span id="hudGoldLbl" class="gold-lbl">RUN GOLD</span>
         </div>
         <div id="buyChestBtn" class="poe-chisel-btn buy-chest-btn hidden" style="cursor:default" title="Walk up to a Golden Chest in the arena and press [E] or Left-Click it to open (+25% Heal &amp; Gem/Boon Draft)">
           NEXT CHEST: <span id="hudChestCost">50</span>g [E NEAR CHEST]
         </div>
-        <button id="openBlackMarketBtn" class="poe-chisel-btn buy-chest-btn can-afford" type="button" title="Open Black Market Panel on Left [Key: V] to Gamble Gear &amp; Sell/Buyback Items">BLACK MARKET [V]</button>
       </div>
       <div id="partyRoster" class="party-portraits-stack"></div>
     </div>
@@ -279,7 +283,7 @@
     <div class="poe-window-header"><span class="header-ornament">◆</span><h2>INVENTORY &amp; EQUIPMENT</h2><button class="window-close" data-close="inventoryDrawer">✕</button></div>
     <div class="poe-inventory-body">
       <div class="poe-paperdoll-stage"><div id="equippedSlotsContainer" class="poe-paperdoll-canvas"></div></div>
-      <div class="poe-sub-header"><span>5-SLOT FLASK BELT [KEYS 1–5]</span><span id="flaskBeltHint" class="craft-hint-inline">Click 2 Slots to Swap • R-Click: Unequip to Bag</span></div>
+      <div class="poe-sub-header"><span>5-SLOT AUTO-FLASK BELT [1–5]</span><span id="flaskBeltHint" class="craft-hint-inline">Auto-Drinks in Combat • Click 2 Slots to Swap</span></div>
       <div id="invFlaskBeltRow" class="inv-flask-belt-row"></div>
       <div class="poe-sub-header"><span>CURRENCY ORB BENCH</span><span id="craftStatusBanner" class="craft-hint-inline">Right-Click Orb, then Left-Click Gear</span></div>
       <div id="currencyBar" class="poe-currency-row"></div>
@@ -288,16 +292,31 @@
     </div>
   </div>
 
-  <!-- POE 1 LEFT-DOCKED BLACK MARKET GAMBLER & BUYBACK PANEL (KEY: V) -->
-  <div id="blackMarketDrawer" class="poe-dock-panel left-dock-panel hidden">
-    <div class="poe-window-header"><span class="header-ornament">◆</span><h2>BLACK MARKET GAMBLER</h2><button class="window-close" data-close="blackMarketDrawer">✕</button></div>
-    <div class="poe-gems-body">
-      <div class="poe-sub-header"><span>MYSTERY GAMBLE <strong id="bmStashGoldVal" style="color:#ffd43b">(0 GOLD)</strong></span><span id="bmTierIlvlLabel" class="craft-hint-inline">Scales with Character Level</span></div>
-      <div style="font-size:0.8rem;color:#b8a68e;margin-bottom:4px;line-height:1.3">Spend Stash Gold to gamble mystery Magic, Rare, or Unique equipment scaled to your Character Level.</div>
-      <div id="blackMarketBar" class="bm-gamble-grid"></div>
-      <div class="poe-sub-header" style="margin-top:10px"><span>SELL &amp; BUYBACK</span><span class="craft-hint-inline" style="color:#ffd43b">R-Click Inventory [I] Items to Sell</span></div>
-      <div style="font-size:0.8rem;color:#b8a68e;margin-bottom:4px;line-height:1.3">While this Black Market panel is open, Right-Click any item in your Inventory [I] to sell it for Gold. Sold items appear below for Buyback:</div>
-      <div id="buybackList" class="bm-buyback-list"></div>
+  <!-- HARDCORE LEAGUE LEADERBOARD MODAL (KEY: H) -->
+  <div id="leaderboardModal" class="modal-backdrop hidden">
+    <div class="poe-frame lobby-modal-box" style="width:min(880px,95vw)">
+      <div class="frame-rivet tl"></div><div class="frame-rivet tr"></div><div class="frame-rivet bl"></div><div class="frame-rivet br"></div>
+      <div class="poe-window-header lobby-modal-header">
+        <span class="header-ornament">◆</span><h2>💀 HARDCORE LEAGUE LADDER &amp; HALL OF THE FALLEN</h2>
+        <button id="closeLeaderboardModalBtn" class="window-close" data-close="leaderboardModal" title="Close Ladder">✕</button>
+      </div>
+      <div class="lobby-modal-body">
+        <div class="poe-section-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button id="lbTabHcAll" class="poe-chisel-btn sm-btn" style="color:#ff8787;border-color:#c92a2a" type="button">💀 HARDCORE LADDER</button>
+            <button id="lbTabHcAlive" class="poe-chisel-btn sm-btn" type="button">🟢 LIVING HC EXILES</button>
+            <button id="lbTabHcFallen" class="poe-chisel-btn sm-btn" type="button">⚰️ HALL OF THE FALLEN</button>
+            <button id="lbTabStandard" class="poe-chisel-btn sm-btn" type="button">⚔️ STANDARD LADDER</button>
+          </div>
+          <button id="refreshLeaderboardBtn" class="poe-chisel-btn sm-btn" type="button">REFRESH</button>
+        </div>
+        <div class="room-browser-table-wrap" style="max-height:56vh;overflow-y:auto">
+          <table class="room-browser-table">
+            <thead><tr><th>RANK</th><th>EXILE</th><th>CLASS</th><th>LEVEL &amp; XP</th><th>BOSS KILLS</th><th>STATUS / EPITAPH</th></tr></thead>
+            <tbody id="leaderboardTableBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 

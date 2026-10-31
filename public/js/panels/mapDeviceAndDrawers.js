@@ -2,13 +2,17 @@
 (function () {
   with (window.__POS_CTX__) {
   // Atlas Map Device Modal
+  window.__POS_CTX__.selectedRaidId = null;
+
   function initMapDeviceModal() {
     const grid = document.getElementById('atlasMapGrid');
+    if (!grid) return;
     grid.innerHTML = '';
 
     for (const m of GameData.ATLAS_MAPS) {
+      const isSel = !selectedRaidId && m.id === selectedMapId;
       const card = document.createElement('div');
-      card.className = `map-card ${m.id === selectedMapId ? 'selected' : ''}`;
+      card.className = `map-card ${isSel ? 'selected' : ''}`;
       const hpMult = (m.monsterScale || 1).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
       const dmgMult = (m.dmgScale || 1).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
       const armorVal = m.monsterArmor || 0;
@@ -30,17 +34,52 @@
       `;
       card.addEventListener('click', () => {
         selectedMapId = m.id;
+        selectedRaidId = null;
         if (ws) ws.send(JSON.stringify({ type: 'select_map', mapId: m.id }));
         initMapDeviceModal();
       });
       grid.appendChild(card);
     }
+
+    for (const r of (GameData.PINNACLE_RAID_BOSSES || [])) {
+      const isSel = selectedRaidId === r.id;
+      const card = document.createElement('div');
+      card.className = `map-card ${isSel ? 'selected' : ''}`;
+      card.style.borderColor = isSel ? '#ffd43b' : '#c92a2a';
+      card.style.background = isSel
+        ? 'linear-gradient(180deg, #3b1212 0%, #170606 100%)'
+        : 'linear-gradient(180deg, #240a0a 0%, #0d0404 100%)';
+      const dropBonus = (r.lootQuantity || 100) - 100;
+      const rarityBonus = r.lootRarityBonus || 0;
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div class="map-tier-badge" style="margin:0;background:#5c1111;border-color:#ff6b6b;color:#ffe3e3">PINNACLE RAID • T${r.tier}</div>
+          <span style="font-size:0.74rem;color:#ffd43b;font-weight:700">${r.recGear || 'Pinnacle Raid'}</span>
+        </div>
+        <h3 style="margin:0 0 4px;font-size:0.98rem;color:#ffa8a8">${r.name} <span style="font-size:0.72rem;color:#e8c26b;font-weight:400">• 3-Phase Boss</span></h3>
+        <div class="map-stat-line" style="margin-bottom:3px;color:#ffd8a8;font-size:0.76rem">
+          ${r.mechanicsDesc || 'Multi-Phase Pinnacle Raid Mechanics'}
+        </div>
+        <div class="map-stat-line" style="margin:0;color:#69db7c;font-size:0.78rem">
+          Drops: +${dropBonus}% Qty • +${rarityBonus}% Rarity • Guaranteed Unique/Orbs
+        </div>
+      `;
+      card.addEventListener('click', () => {
+        selectedRaidId = r.id;
+        selectedMapId = null;
+        initMapDeviceModal();
+      });
+      grid.appendChild(card);
+    }
+
     const launchBtn = document.getElementById('launchMapBtn');
     if (launchBtn) {
       const isTown = worldState && worldState.roomCode === 'ORIATH';
       launchBtn.textContent = isTown
         ? 'TRAVEL TO PERSONAL HIDEOUT (MAPS DISABLED IN ORIATH TOWN)'
-        : 'ACTIVATE MAP DEVICE';
+        : selectedRaidId
+          ? 'LAUNCH PINNACLE BOSS RAID'
+          : 'ACTIVATE MAP DEVICE';
     }
   }
   initMapDeviceModal();
@@ -51,9 +90,6 @@
       return;
     }
     if (ws) ws.send(JSON.stringify({ type: 'toggle_ready' }));
-  });
-  document.getElementById('openBlackMarketBtn')?.addEventListener('click', () => {
-    toggleDrawer('blackMarketDrawer');
   });
   document.getElementById('rerollDraftBtn')?.addEventListener('click', (ev) => {
     ev.stopPropagation();
@@ -67,7 +103,11 @@
       setTimeout(() => showBanner('Sanctuary Hideout', 'Click the Map Device [M] to open Atlas Portals!', '#69db7c'), 350);
       return;
     }
-    ws.send(JSON.stringify({ type: 'start_map', mapId: selectedMapId }));
+    if (selectedRaidId) {
+      ws.send(JSON.stringify({ type: 'start_raid', raidId: selectedRaidId }));
+    } else {
+      ws.send(JSON.stringify({ type: 'start_map', mapId: selectedMapId || 'strand' }));
+    }
     document.getElementById('mapDeviceModal').classList.add('hidden');
   });
   document.getElementById('extractHideoutBtn')?.addEventListener('click', () => {
@@ -101,7 +141,7 @@
 
     document.getElementById('inventoryDrawer').classList.add('hidden');
     document.getElementById('gemsDrawer').classList.add('hidden');
-    document.getElementById('blackMarketDrawer')?.classList.add('hidden');
+    document.getElementById('leaderboardModal')?.classList.add('hidden');
     document.getElementById('passiveTreeModal').classList.add('hidden');
     document.getElementById('mapDeviceModal').classList.add('hidden');
     document.getElementById('lobbyModal')?.classList.add('hidden');
@@ -115,11 +155,95 @@
         renderPassiveTree();
       } else if (id === 'lobbyModal') {
         fetchActiveRooms();
+      } else if (id === 'leaderboardModal') {
+        fetchLeaderboard();
       } else if (id === 'mapDeviceModal') {
         initMapDeviceModal();
       }
     }
   }
+
+  let leaderboardFilter = 'hc_all';
+  let cachedLeaderboardRows = [];
+
+  function renderLeaderboardRows() {
+    const tbody = document.getElementById('leaderboardTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const tabIds = {
+      hc_all: 'lbTabHcAll',
+      hc_alive: 'lbTabHcAlive',
+      hc_fallen: 'lbTabHcFallen',
+      standard: 'lbTabStandard'
+    };
+    for (const [k, btnId] of Object.entries(tabIds)) {
+      const btn = document.getElementById(btnId);
+      if (btn) {
+        const active = leaderboardFilter === k;
+        btn.style.borderColor = active ? '#ffd43b' : '#4a3b28';
+        btn.style.color = active ? '#ffd43b' : (k.startsWith('hc') ? '#ff8787' : '#d8ccb8');
+      }
+    }
+
+    const filtered = cachedLeaderboardRows.filter(r => {
+      if (leaderboardFilter === 'hc_all') return r.league === 'Hardcore';
+      if (leaderboardFilter === 'hc_alive') return r.league === 'Hardcore' && !r.deadHardcore;
+      if (leaderboardFilter === 'hc_fallen') return r.league === 'Hardcore' && r.deadHardcore;
+      return r.league !== 'Hardcore';
+    });
+
+    if (filtered.length === 0) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="6" style="text-align:center;color:#9e8d73;padding:18px">No Exiles recorded in this ladder bracket yet. Create a Hardcore character to claim Rank #1!</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+
+    filtered.forEach((r, idx) => {
+      const rank = idx + 1;
+      const rankBadge = rank === 1 ? '👑 #1' : rank === 2 ? '🥈 #2' : rank === 3 ? '🥉 #3' : `#${rank}`;
+      const xpPct = r.xpNext > 0 ? Math.min(99, Math.floor((r.xp / r.xpNext) * 100)) : 0;
+      const clsDef = (GameData.CLASSES && GameData.CLASSES[r.classId]) || { color: '#e8c26b' };
+      const statusHtml = r.league === 'Hardcore'
+        ? (r.deadHardcore
+          ? `<span style="color:#ff4d4d;font-weight:700">💀 FALLEN${r.slainInZone ? ` (${r.slainInZone})` : ''}</span>`
+          : `<span style="color:#69db7c;font-weight:700">🟢 ALIVE (HC)</span>`)
+        : `<span style="color:#78c2ad">⚔️ STANDARD</span>`;
+      const tr = document.createElement('tr');
+      if (r.deadHardcore) tr.style.opacity = '0.78';
+      tr.innerHTML = `
+        <td><strong style="color:${rank <= 3 ? '#ffd43b' : '#c8b38a'}">${rankBadge}</strong></td>
+        <td><strong style="color:${r.deadHardcore ? '#ff8787' : '#f4ece1'}">${r.name}</strong></td>
+        <td><span style="color:${clsDef.color || '#e8c26b'}">${r.classId}</span></td>
+        <td><strong>Lv. ${r.level}</strong> <span style="font-size:0.76rem;color:#9e8d73">(${xpPct}% XP)</span></td>
+        <td><span style="color:#ffd43b">${r.bossKills || 0} Bosses</span> <span style="font-size:0.74rem;color:#9e8d73">• ${r.uniqueCount || 0} Uniques</span></td>
+        <td>${statusHtml}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function fetchLeaderboard(filterOverride) {
+    if (filterOverride) leaderboardFilter = filterOverride;
+    try {
+      const res = await fetch('/api/leaderboard');
+      const data = await res.json();
+      cachedLeaderboardRows = Array.isArray(data.leaderboard) ? data.leaderboard : [];
+      renderLeaderboardRows();
+    } catch {}
+  }
+
+  document.getElementById('openLeaderboardFromSelectBtn')?.addEventListener('click', () => {
+    document.getElementById('leaderboardModal')?.classList.remove('hidden');
+    fetchLeaderboard('hc_all');
+  });
+  document.getElementById('openLeaderboardHudBtn')?.addEventListener('click', () => toggleDrawer('leaderboardModal'));
+  document.getElementById('refreshLeaderboardBtn')?.addEventListener('click', () => fetchLeaderboard());
+  document.getElementById('lbTabHcAll')?.addEventListener('click', () => { leaderboardFilter = 'hc_all'; renderLeaderboardRows(); });
+  document.getElementById('lbTabHcAlive')?.addEventListener('click', () => { leaderboardFilter = 'hc_alive'; renderLeaderboardRows(); });
+  document.getElementById('lbTabHcFallen')?.addEventListener('click', () => { leaderboardFilter = 'hc_fallen'; renderLeaderboardRows(); });
+  document.getElementById('lbTabStandard')?.addEventListener('click', () => { leaderboardFilter = 'standard'; renderLeaderboardRows(); });
 
   document.getElementById('toggleInventoryBtn').addEventListener('click', () => toggleDrawer('inventoryDrawer'));
   document.getElementById('toggleGemsBtn').addEventListener('click', () => toggleDrawer('gemsDrawer'));

@@ -238,10 +238,6 @@
         s.heraldAsh += 2;
         s.aoeDmgPct += 35;
         s.areaPct += 25;
-      } else if (player.shrineBuffType === 'gloom') {
-        s.profaneBloom += 2;
-        s.globalDmgMulti += 25;
-        s.lifeOnHit += 4;
       }
     }
 

@@ -4,110 +4,22 @@
   // 6. BALANCED MONSTER ARCHETYPES, RARE MODS & 6 ATLAS MAPS (TIERS 1-6)
   // ============================================================================
   const MONSTER_TYPES = [
-    {
-      id: 'skeleton',
-      name: 'Brittle Emperor Guard',
-      role: 'swarmer',
-      minWave: 1,
-      hp: 46,
-      speed: 138,
-      radius: 14,
-      damage: 18,
-      xp: 18,
-      color: '#d9d2c5',
-      behavior: 'melee'
-    },
-    {
-      id: 'scarab',
-      name: 'Vaal Blood Swarmer',
-      role: 'swarmer',
-      minWave: 1,
-      hp: 36,
-      speed: 154,
-      radius: 13,
-      damage: 16,
-      xp: 16,
-      color: '#e03131',
-      behavior: 'melee'
-    },
-    {
-      id: 'archer',
-      name: 'Undying Vaal Archer',
-      role: 'ranged',
-      minWave: 1,
-      hp: 54,
-      speed: 128,
-      radius: 15,
-      damage: 20,
-      xp: 20,
-      color: '#74c0fc',
-      behavior: 'ranged_kite'
-    },
-    {
-      id: 'rhoa',
-      name: 'Albino Bone Rhoa',
-      role: 'charger',
-      minWave: 3,
-      hp: 98,
-      speed: 162,
-      radius: 16,
-      damage: 28,
-      xp: 26,
-      color: '#a89f91',
-      behavior: 'charge'
-    },
-    {
-      id: 'goatman',
-      name: 'Molten Goatman Shaman',
-      role: 'caster',
-      minWave: 3,
-      hp: 110,
-      speed: 134,
-      radius: 17,
-      damage: 26,
-      xp: 28,
-      color: '#a65332',
-      behavior: 'mortar_leap'
-    },
-    {
-      id: 'cultist',
-      name: 'Atziri Blood Cultist',
-      role: 'caster',
-      minWave: 5,
-      hp: 120,
-      speed: 132,
-      radius: 16,
-      damage: 30,
-      xp: 30,
-      color: '#c92a2a',
-      behavior: 'flameblast_caster'
-    },
-    {
-      id: 'devourer',
-      name: 'Abyssal Executioner',
-      role: 'tank',
-      minWave: 5,
-      hp: 195,
-      speed: 136,
-      radius: 20,
-      damage: 38,
-      xp: 36,
-      color: '#5c940d',
-      behavior: 'melee'
-    },
-    {
-      id: 'kitava_herald',
-      name: 'Herald of Kitava',
-      role: 'tank',
-      minWave: 7,
-      hp: 280,
-      speed: 142,
-      radius: 23,
-      damage: 46,
-      xp: 48,
-      color: '#f03e3e',
-      behavior: 'mortar_leap'
-    }
+    { id: 'skeleton', name: 'Brittle Emperor Guard', role: 'swarmer', minWave: 1, hp: 46, speed: 138, radius: 14, damage: 18, xp: 18, color: '#d9d2c5', behavior: 'melee' },
+    { id: 'scarab', name: 'Vaal Blood Swarmer', role: 'swarmer', minWave: 1, hp: 36, speed: 154, radius: 13, damage: 16, xp: 16, color: '#e03131', behavior: 'melee' },
+    { id: 'archer', name: 'Undying Vaal Archer', role: 'ranged', minWave: 1, hp: 54, speed: 128, radius: 15, damage: 20, xp: 20, color: '#74c0fc', behavior: 'ranged_kite' },
+    { id: 'frost_sentinel', name: 'Kalguuran Frost Weaver', role: 'caster', minWave: 2, hp: 82, speed: 132, radius: 16, damage: 24, xp: 25, color: '#74c0fc', behavior: 'frost_caster' },
+    { id: 'volatile_imp', name: 'Volatile Magma Bearer', role: 'kamikaze', minWave: 2, hp: 58, speed: 174, radius: 14, damage: 34, xp: 24, color: '#ff922b', behavior: 'volatile_kamikaze' },
+    { id: 'gilded_goblin', name: 'Perandus Treasure Hoarder', role: 'goblin', minWave: 2, hp: 210, speed: 178, radius: 15, damage: 10, xp: 85, color: '#fcc419', behavior: 'treasure_goblin' },
+    { id: 'rhoa', name: 'Albino Bone Rhoa', role: 'charger', minWave: 3, hp: 98, speed: 162, radius: 16, damage: 28, xp: 26, color: '#a89f91', behavior: 'charge' },
+    { id: 'goatman', name: 'Molten Goatman Shaman', role: 'caster', minWave: 3, hp: 110, speed: 134, radius: 17, damage: 26, xp: 28, color: '#a65332', behavior: 'mortar_leap' },
+    { id: 'necromancer', name: 'Undying Soul Weaver', role: 'support', minWave: 3, hp: 135, speed: 122, radius: 17, damage: 24, xp: 34, color: '#be4bdb', behavior: 'necromancer' },
+    { id: 'blight_spitter', name: 'Toxic Blight Spore', role: 'ranged', minWave: 3, hp: 92, speed: 126, radius: 16, damage: 27, xp: 26, color: '#82c91e', behavior: 'toxic_mortar' },
+    { id: 'storm_herald', name: 'Templar Stormcaller', role: 'caster', minWave: 4, hp: 128, speed: 136, radius: 17, damage: 32, xp: 32, color: '#4dabf7', behavior: 'storm_caller' },
+    { id: 'void_stalker', name: 'Shadow Blink Stalker', role: 'assassin', minWave: 4, hp: 105, speed: 158, radius: 15, damage: 33, xp: 30, color: '#9775fa', behavior: 'blink_ambush' },
+    { id: 'cultist', name: 'Atziri Blood Cultist', role: 'caster', minWave: 5, hp: 120, speed: 132, radius: 16, damage: 30, xp: 30, color: '#c92a2a', behavior: 'flameblast_caster' },
+    { id: 'devourer', name: 'Abyssal Executioner', role: 'tank', minWave: 5, hp: 195, speed: 136, radius: 20, damage: 38, xp: 36, color: '#5c940d', behavior: 'melee' },
+    { id: 'shield_juggernaut', name: 'Eternal Phalanx Guard', role: 'tank', minWave: 6, hp: 240, speed: 128, radius: 21, damage: 42, xp: 42, color: '#ffd43b', behavior: 'phalanx_tank' },
+    { id: 'kitava_herald', name: 'Herald of Kitava', role: 'tank', minWave: 7, hp: 280, speed: 142, radius: 23, damage: 46, xp: 48, color: '#f03e3e', behavior: 'mortar_leap' }
   ];
 
   const RARE_MODS = [
@@ -116,7 +28,81 @@
     { id: 'soul_eater', name: 'Soul Conduit', color: '#da77f2', hpMulti: 1.8, dmgMulti: 1.3, speedMulti: 1.2 },
     { id: 'flameweaver', name: 'Flameweaver', color: '#ff6b6b', hpMulti: 1.7, dmgMulti: 1.4 },
     { id: 'frost_strider', name: 'Frost Strider', color: '#66d9e8', hpMulti: 1.7, speedMulti: 1.22, dmgMulti: 1.25 },
-    { id: 'steel_infused', name: 'Steel-Infused', color: '#ced4da', hpMulti: 1.95, dmgMulti: 1.35, radiusMulti: 1.18 }
+    { id: 'steel_infused', name: 'Steel-Infused', color: '#ced4da', hpMulti: 1.95, dmgMulti: 1.35, radiusMulti: 1.18 },
+    { id: 'temporal_bubble', name: 'Temporal Bubble', color: '#3bc9db', hpMulti: 1.85, dmgMulti: 1.25, proxShield: 165 },
+    { id: 'magma_barrier', name: 'Magma Barrier', color: '#ff922b', hpMulti: 1.9, dmgMulti: 1.35, deathVolatile: true },
+    { id: 'storm_strider', name: 'Storm Herald', color: '#4dabf7', hpMulti: 1.75, dmgMulti: 1.35, lightningCalls: true },
+    { id: 'vampiric', name: 'Vampiric', color: '#e03131', hpMulti: 1.85, dmgMulti: 1.3, leechPct: 0.15 },
+    { id: 'mirror_image', name: 'Mirror Image', color: '#cc5de8', hpMulti: 1.65, dmgMulti: 1.25, splitClone: true },
+    { id: 'executioner', name: 'Executioner', color: '#c92a2a', hpMulti: 1.9, dmgMulti: 1.45, radiusMulti: 1.22 }
+  ];
+
+  // 4 WoW-Style Multi-Phase Pinnacle Boss Raids (Selectable in the Map Device)
+  const PINNACLE_RAID_BOSSES = [
+    {
+      id: 'raid_searing_exarch',
+      name: 'The Searing Exarch',
+      subtitle: 'Pinnacle Raid I • Cataclysm of Ash',
+      bossName: 'The Searing Exarch',
+      mapId: 'vaal_pyramid',
+      tier: 2,
+      recGear: 'Lv 6+ • Multi-Phase Raid',
+      hpBase: 14500,
+      dmgBase: 68,
+      armor: 65,
+      lootQuantity: 280,
+      lootRarityBonus: 120,
+      goldMult: 1.6,
+      mechanicsDesc: 'Meteor Soak Circles • Rolling Magma Wall • Solar Pylon Intermission Shield'
+    },
+    {
+      id: 'raid_eater_of_worlds',
+      name: 'The Eater of Worlds',
+      subtitle: 'Pinnacle Raid II • Tentacles of the Deep',
+      bossName: 'The Eater of Worlds',
+      mapId: 'fetid_pool',
+      tier: 4,
+      recGear: 'Lv 14+ • Multi-Phase Raid',
+      hpBase: 95000,
+      dmgBase: 145,
+      armor: 210,
+      lootQuantity: 420,
+      lootRarityBonus: 210,
+      goldMult: 2.0,
+      mechanicsDesc: 'Inescapable Doom Soak Orbs • Sweeping Cosmos Beam • Golden Sanctuary Safe Dome'
+    },
+    {
+      id: 'raid_maven_crucible',
+      name: "The Maven's Crucible",
+      subtitle: 'Pinnacle Raid III • Memory & Cascade',
+      bossName: 'The Maven, Progenitor',
+      mapId: 'defiled_cathedral',
+      tier: 5,
+      recGear: 'Lv 22+ • Multi-Phase Raid',
+      hpBase: 280000,
+      dmgBase: 260,
+      armor: 520,
+      lootQuantity: 580,
+      lootRarityBonus: 310,
+      goldMult: 2.4,
+      mechanicsDesc: 'Rotating Void Lasers • Safe Quadrant Cascade • Brain Synapse Shield Pylons'
+    },
+    {
+      id: 'raid_sirus_awakener',
+      name: 'Sirus, Awakener of Worlds',
+      subtitle: 'Uber Pinnacle Raid IV • Eye of the Storm',
+      bossName: 'Sirus, Awakener of Worlds',
+      mapId: 'shaper_realm',
+      tier: 6,
+      recGear: 'Lv 30+ • Uber Raid Boss',
+      hpBase: 760000,
+      dmgBase: 440,
+      armor: 1250,
+      lootQuantity: 850,
+      lootRarityBonus: 480,
+      goldMult: 3.0,
+      mechanicsDesc: '4-Way Spinning Corruption Cross • "DIE!" Tracking Beam • Meteor Ring Maze & Pylons'
+    }
   ];
 
   const ATLAS_MAPS = [
@@ -236,5 +222,5 @@
     }
   ];
 
-  Object.assign(exports, { MONSTER_TYPES, RARE_MODS, ATLAS_MAPS });
+  Object.assign(exports, { MONSTER_TYPES, RARE_MODS, PINNACLE_RAID_BOSSES, ATLAS_MAPS });
 })(typeof exports === "undefined" ? (window.GameData = window.GameData || {}) : (global.GameData = global.GameData || exports));

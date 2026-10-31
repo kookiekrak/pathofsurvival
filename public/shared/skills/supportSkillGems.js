@@ -267,6 +267,103 @@
         bonusCritMulti: 20
       },
       description: 'Supported Hit Skills gain +8% Critical Strike Chance and +20% Critical Strike Multiplier.'
+    },
+    unleash: {
+      id: 'unleash',
+      name: 'Unleash Support',
+      short: 'UNL',
+      type: 'support',
+      color: 'B',
+      tags: ['Spell'],
+      requireTags: ['Spell'],
+      excludeTags: ['Aura', 'Attack'],
+      mods: {
+        repeatCount: 2,
+        cooldownMulti: 1.06,
+        damageMulti: 0.78
+      },
+      description: 'Supported Spells build Arcane Seals and unleash +2 additional cast waves in rapid succession.'
+    },
+    returning_proj: {
+      id: 'returning_proj',
+      name: 'Returning Projectiles',
+      short: 'RET',
+      type: 'support',
+      color: 'G',
+      tags: ['Projectile'],
+      requireTags: ['Projectile'],
+      excludeTags: ['Aura'],
+      mods: {
+        returnProj: 1,
+        extraPierce: 2,
+        damageMulti: 0.90
+      },
+      description: 'Supported Projectiles Pierce +2 targets and return to you at the end of their flight.'
+    },
+    pulverise: {
+      id: 'pulverise',
+      name: 'Pulverise Support',
+      short: 'PLV',
+      type: 'support',
+      color: 'R',
+      tags: ['Melee', 'Slam', 'AoE'],
+      requireTags: ['Melee', 'Slam', 'AoE'],
+      excludeTags: ['Spell', 'Bow'],
+      mods: {
+        areaMulti: 1.28,
+        damageMulti: 1.22,
+        cooldownMulti: 1.10
+      },
+      description: 'Supported Area & Slam Skills have 28% More Area Radius and 22% MORE Damage (10% slower cooldown).'
+    },
+    volley: {
+      id: 'volley',
+      name: 'Arrow Nova & Volley',
+      short: 'VOL',
+      type: 'support',
+      color: 'G',
+      tags: ['Projectile', 'Bow'],
+      requireTags: ['Projectile'],
+      excludeTags: ['Aura', 'Melee'],
+      mods: {
+        extraProjectiles: 2,
+        cooldownMulti: 0.90,
+        damageMulti: 0.84
+      },
+      description: 'Supported Projectile Skills fire +2 Volley Projectiles and recover cooldown 10% faster.'
+    },
+    trinity: {
+      id: 'trinity',
+      name: 'Trinity Resonance Support',
+      short: 'TRI',
+      type: 'support',
+      color: 'B',
+      tags: ['Fire', 'Cold', 'Lightning'],
+      requireTags: ['Fire', 'Cold', 'Lightning'],
+      excludeTags: [],
+      mods: {
+        flatBonusDamage: 4,
+        damageMulti: 1.19,
+        shockChance: 25,
+        chillEffect: 1
+      },
+      description: 'Supported Elemental Skills deal 19% MORE Damage, +4 flat Elemental Damage, and inflict Chill & Shock.'
+    },
+    spell_cascade: {
+      id: 'spell_cascade',
+      name: 'Awakened Cascade Support',
+      short: 'CSC',
+      type: 'support',
+      color: 'B',
+      tags: ['AoE', 'Spell'],
+      requireTags: ['AoE', 'Spell'],
+      excludeTags: ['Aura'],
+      mods: {
+        repeatCount: 1,
+        areaMulti: 1.12,
+        damageMulti: 0.92
+      },
+      description: 'Supported Area & Spell Skills trigger an echoed Cascade wave with +12% Area of Effect.'
     }
   };
 

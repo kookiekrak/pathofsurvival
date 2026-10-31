@@ -14,8 +14,18 @@ function onEnemyKilled(room, enemy, killer) {
     }
   }
 
+  // Volatile Magma Bearer & Archnemesis Magma Barrier On-Death Explosion Hazard
+  if (enemy.typeId === 'volatile_imp' || (Array.isArray(enemy.mods) && enemy.mods.includes('Magma Barrier'))) {
+    if (room.hazards.length <= 5) {
+      spawnGroundHazard(room, enemy.x, enemy.y, 68, 1.35, Math.round((enemy.damage || 30) * 1.45), 'Volatile Flameblood');
+    }
+  }
+  if ((room.deliriumTimer || 0) > 0 && !enemy.isRaidPylon) {
+    room.deliriumKills = (room.deliriumKills || 0) + 1;
+  }
+
   // Advance Kill-Driven Wave Progress (10 Waves)
-  if (room.state === 'RUN') {
+  if (room.state === 'RUN' && !room.isRaidEncounter && !enemy.isRaidPylon) {
     const waveGain = enemy.rarity === 'boss' ? 100 : enemy.rarity === 'rare' ? 8.5 : enemy.rarity === 'magic' ? 3.0 : 1.1;
     room.waveProgress = Math.min(100, (room.waveProgress || 0) + waveGain);
   }
@@ -26,11 +36,13 @@ function onEnemyKilled(room, enemy, killer) {
   const goldMult = mapDef ? (mapDef.goldMult || 1.0) : 1.0;
   const baseGoldGain = (enemy.rarity === 'boss' || enemy.rarity === 'unique')
     ? 32 + mapTier * 8
-    : enemy.rarity === 'rare'
-      ? 6 + Math.round(mapTier * 1.5)
-      : enemy.rarity === 'magic'
-        ? 2 + Math.floor(mapTier * 0.4)
-        : (Math.random() < 0.65 ? 1 : 0);
+    : enemy.typeId === 'gilded_goblin'
+      ? 65 + mapTier * 10
+      : enemy.rarity === 'rare'
+        ? 6 + Math.round(mapTier * 1.5)
+        : enemy.rarity === 'magic'
+          ? 2 + Math.floor(mapTier * 0.4)
+          : (Math.random() < 0.65 ? 1 : 0);
   const goldGain = baseGoldGain > 0 ? Math.max(1, Math.round(baseGoldGain * goldMult)) : 0;
 
   // Un-inflated In-Run Rogue-lite XP (tier-independent so entering higher-tier maps NEVER grants 10 levels instantly!)
@@ -42,15 +54,23 @@ function onEnemyKilled(room, enemy, killer) {
         ? 18
         : 9;
 
-  const soulGain = enemy.rarity === 'boss' || enemy.rarity === 'rare' ? 8 : enemy.rarity === 'magic' ? 3 : 1;
+  // Balanced Vaal Soul Gain: Respects 8s Soul Gain Prevention (vaalLockTimer), Vaal Kill Exclusion, and Density Budget Cap!
+  const rawSoulGain = enemy.rarity === 'boss' ? 10 : enemy.rarity === 'rare' ? 4 : enemy.rarity === 'magic' ? 2 : (Math.random() < 0.65 ? 1 : 0);
   for (const p of room.players.values()) {
     if (!p.dead) {
       const pGoldGain = goldGain > 0 ? Math.max(1, Math.round(goldGain * (1 + ((p.stats && p.stats.goldGainPct) || 0) / 100))) : 0;
-      const pSoulGain = Math.max(1, Math.round(soulGain * (1 + ((p.stats && p.stats.vaalSoulGainPct) || 0) / 100)));
       p.runGold = (p.runGold || 0) + pGoldGain;
       p.earnedRunGold = (p.earnedRunGold || 0) + pGoldGain;
       p.nextChestCost = getNextChestCost(p, room);
-      p.vaalSouls = Math.min(45, (p.vaalSouls || 0) + pSoulGain);
+
+      if (!enemy.killedByVaal && (p.vaalLockTimer || 0) <= 0 && rawSoulGain > 0) {
+        const budget = typeof p.soulGainBudget === 'number' ? p.soulGainBudget : 10;
+        if (budget > 0) {
+          const pSoulGain = Math.min(budget, Math.max(1, Math.round(rawSoulGain * (1 + ((p.stats && p.stats.vaalSoulGainPct) || 0) / 100))));
+          p.soulGainBudget = Math.max(0, budget - pSoulGain);
+          p.vaalSouls = Math.min(60, (p.vaalSouls || 0) + pSoulGain);
+        }
+      }
 
       const baseCharge = enemy.rarity === 'boss' ? 8 : enemy.rarity === 'rare' ? 3 : enemy.rarity === 'magic' ? 1 : (Math.random() < 0.35 ? 1 : 0);
       const chargeGain = Math.round(baseCharge * (1 + ((p.stats && p.stats.flaskChargeGainPct) || 0) / 100));
@@ -77,6 +97,8 @@ function onEnemyKilled(room, enemy, killer) {
       if (enemy.rarity === 'boss' || enemy.rarity === 'unique') {
         const bossStashBounty = Math.round((35 + mapTier * 10) * goldMult);
         p.gold = (p.gold || 0) + bossStashBounty;
+        p.bossKills = (p.bossKills || (p.currencies && p.currencies._bossKills) || 0) + 1;
+        if (p.currencies) p.currencies._bossKills = p.bossKills;
         sendPrivateProfile(p);
       }
 
@@ -125,17 +147,6 @@ function onEnemyKilled(room, enemy, killer) {
             x: Math.round(p.x),
             y: Math.round(p.y)
           });
-          room.fxEvents.push({
-            kind: 'dmg_num',
-            x: Math.round(p.x),
-            y: Math.round(p.y - 36),
-            val: `CHAR LV. ${p.level}! (+1 TREE POINT [P])`,
-            text: `CHARACTER LEVEL ${p.level}! (+1 PASSIVE POINT [P])`,
-            color: '#ffd43b',
-            size: 19,
-            crit: true,
-            dtype: 'lightning'
-          });
         }
       }
     }
@@ -165,9 +176,8 @@ function onEnemyKilled(room, enemy, killer) {
       const uniqueChance = 0.08 + (mapTier - 1) * 0.03;
       spawnGroundDrop(room, enemy.x + 20 + i * 18, enemy.y, 'gear', Math.random() < uniqueChance ? 'unique' : 'rare', bossIlvl);
     }
-    // Map Bosses guarantee a Utility Flask drop if any player is missing one (or 35% chance otherwise)
-    const anyMissingFlask = Array.from(room.players.values()).some(p => !p.dead && (p.unlockedFlasks || ['life']).length < 5);
-    if (anyMissingFlask || Math.random() < 0.35) {
+    // Map Bosses have a 6% chance to drop a Flask
+    if (Math.random() < 0.06) {
       spawnGroundDrop(room, enemy.x, enemy.y + 24, 'flask');
     }
 
@@ -182,8 +192,18 @@ function onEnemyKilled(room, enemy, killer) {
     return;
   }
 
-  // Rare monsters have a chance to drop a Utility Flask!
-  if (enemy.rarity === 'rare' && Math.random() < 0.14 * breachMult) {
+  if (enemy.isRaidPylon) return;
+  if (enemy.typeId === 'gilded_goblin') {
+    for (let k = 0; k < 3; k++) {
+      spawnGroundDrop(room, enemy.x + randInt(-24, 24), enemy.y + randInt(-24, 24), 'currency');
+    }
+    spawnGroundDrop(room, enemy.x, enemy.y, 'gear', Math.random() < 0.22 ? 'unique' : 'rare', baseIlvl + 2);
+    addRoomChat(room, 'Perandus', `🪙 ${killer ? killer.name : 'The party'} slayed the Perandus Treasure Hoarder — Jackpot Loot Explosion!`, '#fcc419');
+    return;
+  }
+
+  // Rare monsters have a rare chance (0.8%) to drop a Flask!
+  if (enemy.rarity === 'rare' && Math.random() < 0.008 * breachMult) {
     spawnGroundDrop(room, enemy.x, enemy.y - 16, 'flask');
   }
 

@@ -220,13 +220,10 @@
     grid.innerHTML = '';
     const inv = myProfile.inventory || [];
     document.getElementById('invCountLabel').textContent = `(${inv.length}/32)`;
-    const isBmOpen = !document.getElementById('blackMarketDrawer')?.classList.contains('hidden');
     const hintEl = document.getElementById('invActionHint');
     if (hintEl) {
-      hintEl.textContent = isBmOpen
-        ? 'L-Click: Equip • R-Click: Sell to Black Market (Buyback)'
-        : 'L-Click: Equip • R-Click: Drop on Ground';
-      hintEl.style.color = isBmOpen ? '#ffd43b' : '#a3937c';
+      hintEl.textContent = 'L-Click: Equip • R-Click: Drop on Ground';
+      hintEl.style.color = '#a3937c';
     }
 
     for (let idx = 0; idx < 32; idx++) {
@@ -325,20 +322,11 @@
             renderCurrencyBench();
             return;
           }
-          const bmCurrentlyOpen = !document.getElementById('blackMarketDrawer')?.classList.contains('hidden');
-          if (bmCurrentlyOpen) {
-            ws.send(JSON.stringify({
-              type: 'sell_item',
-              itemId: entry.id,
-              invIdx: idx
-            }));
-          } else {
-            ws.send(JSON.stringify({
-              type: 'drop_item',
-              itemId: entry.id,
-              invIdx: idx
-            }));
-          }
+          ws.send(JSON.stringify({
+            type: 'drop_inventory_item',
+            itemId: entry.id,
+            invIdx: idx
+          }));
         });
       }
       grid.appendChild(cell);

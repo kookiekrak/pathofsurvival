@@ -52,9 +52,49 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
             damageEnemy(room, m, dmg, isCrit, owner, prj.exec ? prj.exec.lifeOnHit : 0, 'fire');
           }
         }
+      } else if (prj.behavior === 'eye_of_winter') {
+        room.fxEvents.push({ kind: 'nova', sub: 'ice_nova', x: Math.round(prj.x), y: Math.round(prj.y), r: 78, color: '#74c0fc' });
+        for (let s = 0; s < 8; s++) {
+          const ang = (Math.PI * 2 * s) / 8;
+          room.projectiles.push({
+            ...prj, id: uid('prj'), behavior: 'standard', vx: Math.cos(ang) * 480, vy: Math.sin(ang) * 480,
+            radius: 10, duration: 0.36, maxDuration: 0.36, hitIds: new Set()
+          });
+        }
       }
       room.projectiles.splice(i, 1);
       continue;
+    }
+
+    if (prj.behavior === 'ball_lightning' || prj.behavior === 'eye_of_winter') {
+      prj.pulseCd = (prj.pulseCd || 0.22) - dt;
+      if (prj.pulseCd <= 0) {
+        prj.pulseCd = 0.24;
+        const owner = room.players.get(prj.ownerId);
+        if (prj.behavior === 'ball_lightning') {
+          let zaps = 0;
+          const zapR = prj.aoeRadius || 125;
+          for (const m of room.enemies.values()) {
+            if (dist(prj.x, prj.y, m.x, m.y) <= zapR + m.radius) {
+              const { dmg, isCrit } = rollSkillDamage(prj.exec);
+              damageEnemy(room, m, dmg, isCrit, owner, prj.exec ? prj.exec.lifeOnHit : 0, 'lightning');
+              if (room.fxEvents.length < 22) {
+                room.fxEvents.push({ kind: 'chain', x1: Math.round(prj.x), y1: Math.round(prj.y), x2: Math.round(m.x), y2: Math.round(m.y), color: '#74c0fc' });
+              }
+              if (++zaps >= 4) break;
+            }
+          }
+        } else {
+          prj.spiralAng = (prj.spiralAng || 0) + 0.85;
+          for (let k = 0; k < 2; k++) {
+            const sAng = prj.spiralAng + k * Math.PI;
+            room.projectiles.push({
+              ...prj, id: uid('prj'), behavior: 'standard', vx: Math.cos(sAng) * 440, vy: Math.sin(sAng) * 440,
+              radius: 9, duration: 0.28, maxDuration: 0.28, hitIds: new Set()
+            });
+          }
+        }
+      }
     }
 
     if (prj.behavior === 'boomerang') {
@@ -87,6 +127,7 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
     }
 
     const owner = room.players.get(prj.ownerId);
+    const isVaalHit = !!(prj.isVaalProj || (prj.exec && prj.exec.isVaal));
     for (const m of room.enemies.values()) {
       if (prj.hitIds.has(m.id)) continue;
       const hitR = prj.radius + m.radius;
@@ -94,7 +135,7 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
       if (dist(prj.x, prj.y, m.x, m.y) <= hitR) {
         prj.hitIds.add(m.id);
         const { dmg, isCrit } = rollSkillDamage(prj.exec);
-        damageEnemy(room, m, dmg, isCrit, owner, prj.exec.lifeOnHit, prj.damageType);
+        damageEnemy(room, m, dmg, isCrit, owner, prj.exec.lifeOnHit, prj.damageType, false, isVaalHit);
 
         if ((prj.behavior === 'fireball_explode' || prj.behavior === 'molten_lob') && prj.hitIds.size <= 2) {
           if (room.fxEvents.length < 22) {
@@ -226,133 +267,120 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
 
     m.actionTimer -= dt;
 
-    // 1. MAP BOSS 4-PHASE CHOREOGRAPHED ATTACK CYCLE
-    if ((m.rarity === 'boss' || m.rarity === 'unique' || m.behavior === 'boss') && m.actionTimer <= 0 && bestD < 640) {
-      m.actionTimer = 3.6;
-      m.bossAttackIndex = ((m.bossAttackIndex || 0) + 1) % 4;
-
-      if (m.bossAttackIndex === 0) {
-        // Phase 0: Bullet-Hell Spiral Nova (10-orb 360 ring + 5-projectile aimed cone)
-        for (let k = 0; k < 10; k++) {
-          const bAng = (Math.PI * 2 * k) / 10;
-          pushEnemyBolt(room, m.x, m.y, bAng, 180, 11, Math.round(m.damage * 0.85), 'fire', 3.4);
-        }
-        for (let c = -2; c <= 2; c++) {
-          const cAng = ang + c * 0.14;
-          pushEnemyBolt(room, m.x, m.y, cAng, 230, 10, Math.round(m.damage * 0.9), 'lightning', 2.8);
-        }
-      } else if (m.bossAttackIndex === 1) {
-        // Phase 1: Cascading Sunder Slam (4 staggered shockwaves along player line)
-        m.pauseTimer = 0.8;
-        const steps = [{ d: 80, fuse: 0.7 }, { d: 155, fuse: 0.95 }, { d: 230, fuse: 1.2 }, { d: 305, fuse: 1.45 }];
-        for (const st of steps) {
-          spawnGroundHazard(room, m.x + Math.cos(ang) * st.d, m.y + Math.sin(ang) * st.d, 52, st.fuse, Math.round(m.damage * 1.35), 'Boss Sunder Slam');
-        }
-        room.fxEvents.push({
-          kind: 'dmg_num', x: Math.round(m.x), y: Math.round(m.y - 30),
-          val: 'SUNDER SLAM!', text: 'SUNDER SLAM!', color: '#ff6b4a', size: 18, crit: true, dtype: 'fire'
-        });
-      } else if (m.bossAttackIndex === 2) {
-        // Phase 2: Telegraphed Boss Leap Slam
-        m.pauseTimer = 1.0;
-        const leapX = Math.max(-ARENA_HALF + 80, Math.min(ARENA_HALF - 80, Math.round(target.x)));
-        const leapY = Math.max(-ARENA_HALF + 80, Math.min(ARENA_HALF - 80, Math.round(target.y)));
-        room.hazards.push({
-          id: uid('haz'), x: leapX, y: leapY, r: 85, fuse: 1.25, maxFuse: 1.25,
-          damage: Math.round(m.damage * 1.5), title: `${m.name} Leap Slam`, leapBossId: m.id, color: '#ff4d4d'
-        });
-      } else {
-        // Phase 3: Summon Royal Guard + 8-Bolt Spiral
-        for (let g = 0; g < 3; g++) {
-          const gAng = (Math.PI * 2 * g) / 3;
-          spawnMonster(room, false, { x: m.x + Math.cos(gAng) * 75, y: m.y + Math.sin(gAng) * 75, exact: true }, g === 0 ? 'magic' : 'normal', 'skeleton');
-        }
-        for (let k = 0; k < 8; k++) {
-          const bAng = (Math.PI * 2 * k) / 8 + 0.2;
-          pushEnemyBolt(room, m.x, m.y, bAng, 170, 10, Math.round(m.damage * 0.8), 'cold', 3.0);
-        }
+    // 1. MULTI-PHASE RAID & ATLAS BOSS AI (Delegated to bossRaidEngine.js)
+    if (m.rarity === 'boss' || m.rarity === 'unique' || m.behavior === 'boss') {
+      if (typeof updateSingleBossAI === 'function') {
+        updateSingleBossAI(room, m, dt, target, bestD, ang, livingPlayers);
       }
     } else if (m.rarity === 'rare' && m.actionTimer <= 0 && bestD < 380) {
-      // 2. RARE MONSTER SIGNATURE SKILLS (Every 5.0s: 8-Orb Ring, 3-Step Sunder Wave, or Frost Nova Self-Pulse)
-      m.actionTimer = 5.0;
+      // 2. RARE MONSTER SIGNATURE SKILLS & ARCHNEMESIS MODS
+      m.actionTimer = 4.8;
+      if (Array.isArray(m.mods) && m.mods.includes('Mirror Image') && !m.clonedOnce && m.hp < m.maxHp * 0.55) {
+        m.clonedOnce = true;
+        spawnMonster(room, false, { x: m.x + 36, y: m.y, exact: true }, 'magic', m.typeId);
+        room.fxEvents.push({ kind: 'nova', x: Math.round(m.x), y: Math.round(m.y), r: 65, color: '#cc5de8' });
+      }
+      if (Array.isArray(m.mods) && m.mods.includes('Storm Herald') && room.hazards.length <= 3) {
+        spawnGroundHazard(room, target.x + randInt(-35, 35), target.y + randInt(-35, 35), 54, 0.95, Math.round(m.damage * 1.2), 'Storm Herald Bolt');
+      }
       m.rareSkillIdx = ((m.rareSkillIdx || 0) + 1) % 3;
       if (m.rareSkillIdx === 0) {
         for (let k = 0; k < 8; k++) {
-          const bAng = (Math.PI * 2 * k) / 8;
-          pushEnemyBolt(room, m.x, m.y, bAng, 155, 9, Math.round(m.damage * 0.85), 'fire', 3.2);
+          pushEnemyBolt(room, m.x, m.y, (Math.PI * 2 * k) / 8, 155, 9, Math.round(m.damage * 0.85), 'fire', 3.2);
         }
       } else if (m.rareSkillIdx === 1 && room.hazards.length <= 2) {
-        const steps = [{ d: 70, fuse: 0.6 }, { d: 140, fuse: 0.9 }, { d: 210, fuse: 1.2 }];
-        for (const st of steps) {
+        for (const st of [{ d: 70, fuse: 0.6 }, { d: 140, fuse: 0.9 }, { d: 210, fuse: 1.2 }]) {
           spawnGroundHazard(room, m.x + Math.cos(ang) * st.d, m.y + Math.sin(ang) * st.d, 42, st.fuse, Math.round(m.damage * 1.15), 'Rare Sunder Cascade');
         }
       } else {
         spawnGroundHazard(room, m.x, m.y, 90, 1.1, Math.round(m.damage * 1.2), 'Frost Nova Pulse');
       }
     } else if (m.actionTimer <= 0) {
-      // 3. NORMAL / MAGIC ARCHETYPE SKILLS (NO ground mortars or orbital flameblasts!)
-      if (m.behavior === 'charge' && bestD >= 110 && bestD <= 300) {
-        // Charger (Rhoa): 0.5s windup lock, then linear dash!
+      // 3. 16 VARIED MONSTER ARCHETYPE SKILLS
+      if (m.behavior === 'treasure_goblin') {
+        m.actionTimer = 2.6;
+        target.runGold = (target.runGold || 0) + 3;
+        target.earnedRunGold = (target.earnedRunGold || 0) + 3;
+      } else if (m.behavior === 'blink_ambush' && bestD >= 120 && bestD <= 320) {
+        m.actionTimer = 4.6;
+        room.fxEvents.push({ kind: 'nova', x: Math.round(m.x), y: Math.round(m.y), r: 42, color: '#9775fa' });
+        m.x = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(target.x - Math.cos(ang) * 58)));
+        m.y = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(target.y - Math.sin(ang) * 58)));
+        room.fxEvents.push({ kind: 'nova', x: Math.round(m.x), y: Math.round(m.y), r: 48, color: '#9775fa' });
+      } else if (m.behavior === 'storm_caller' && bestD < 340 && room.hazards.length <= 3) {
+        m.actionTimer = 4.2;
+        m.pauseTimer = 0.5;
+        spawnGroundHazard(room, target.x + randInt(-30, 30), target.y + randInt(-30, 30), 52, 1.0, Math.round(m.damage * 1.15), 'Stormcaller Strike');
+      } else if (m.behavior === 'frost_caster' && bestD < 340) {
+        m.actionTimer = 3.9;
+        m.pauseTimer = 0.4;
+        for (const offset of [-0.24, 0, 0.24]) {
+          pushEnemyBolt(room, m.x, m.y, ang + offset, 195, 9, Math.round(m.damage * 0.85), 'cold', 2.6);
+        }
+      } else if (m.behavior === 'necromancer' && bestD < 380) {
+        m.actionTimer = 4.5;
+        m.pauseTimer = 0.55;
+        let healed = 0;
+        for (const ally of room.enemies.values()) {
+          if (ally.id !== m.id && ally.rarity !== 'boss' && dist(m.x, m.y, ally.x, ally.y) <= 160) {
+            ally.hp = Math.min(ally.maxHp, ally.hp + Math.round(ally.maxHp * 0.22));
+            ally.buffTimer = 4.0;
+            if (++healed >= 3) break;
+          }
+        }
+        room.fxEvents.push({ kind: 'nova', x: Math.round(m.x), y: Math.round(m.y), r: 72, color: '#be4bdb' });
+        if (healed === 0 && room.enemies.size < 85) {
+          spawnMonster(room, false, { x: m.x + Math.cos(ang) * 45, y: m.y + Math.sin(ang) * 45, exact: true }, 'normal', 'skeleton');
+        }
+      } else if (m.behavior === 'toxic_mortar' && bestD < 340) {
+        m.actionTimer = 4.0;
+        m.pauseTimer = 0.35;
+        for (const offset of [-0.28, 0, 0.28]) {
+          pushEnemyBolt(room, m.x, m.y, ang + offset, 180, 9, Math.round(m.damage * 0.82), 'physical', 2.5);
+        }
+      } else if (m.behavior === 'charge' && bestD >= 110 && bestD <= 300) {
         m.actionTimer = 4.5;
         m.chargeWindup = 0.5;
         m.chargeAngle = ang;
-        room.fxEvents.push({
-          kind: 'dmg_num', x: Math.round(m.x), y: Math.round(m.y - 22),
-          val: 'CHARGING!', text: 'CHARGING!', color: '#fbbf24', size: 14, crit: false, dtype: 'physical'
-        });
       } else if (m.behavior === 'flameblast_caster' && bestD < 340) {
-        // Cultist Caster: Alternates 3-Bolt Fan Volley and Unholy Ally Empowerment (NO ground Flameblast!)
         m.actionTimer = 4.0;
         m.pauseTimer = 0.45;
-        m.casterAlt = !m.casterAlt;
-        if (m.casterAlt) {
-          for (const offset of [-0.31, 0, 0.31]) {
-            pushEnemyBolt(room, m.x, m.y, ang + offset, 175, 9, Math.round(m.damage * 0.85), 'fire', 2.8);
-          }
-        } else {
-          let buffed = 0;
-          for (const ally of room.enemies.values()) {
-            if (ally.id !== m.id && dist(m.x, m.y, ally.x, ally.y) <= 140) {
-              ally.buffTimer = 4.0;
-              buffed++;
-              if (buffed >= 3) break;
-            }
-          }
-          room.fxEvents.push({ kind: 'nova', x: Math.round(m.x), y: Math.round(m.y), r: 65, color: '#a855f7' });
-          if (buffed === 0 && room.enemies.size < 85) {
-            spawnMonster(room, false, { x: m.x + Math.cos(ang) * 42, y: m.y + Math.sin(ang) * 42, exact: true }, 'normal', 'skeleton');
-          }
+        for (const offset of [-0.31, 0, 0.31]) {
+          pushEnemyBolt(room, m.x, m.y, ang + offset, 175, 9, Math.round(m.damage * 0.85), 'fire', 2.8);
         }
-      } else if ((m.typeId === 'devourer' || m.typeId === 'kitava_herald') && bestD <= 95) {
-        // Tank (Devourer / Herald): Close-range Frontal Heavy Smash 45 units in front of the tank
+      } else if ((m.typeId === 'devourer' || m.typeId === 'kitava_herald' || m.behavior === 'phalanx_tank') && bestD <= 95) {
         m.actionTimer = 4.2;
         m.pauseTimer = 0.8;
         if (room.hazards.length <= 3) {
           spawnGroundHazard(room, m.x + Math.cos(ang) * 45, m.y + Math.sin(ang) * 45, 65, 0.95, Math.round(m.damage * 1.25), 'Heavy Slam');
         }
       } else if ((m.behavior === 'ranged_kite' || m.behavior === 'mortar_leap') && bestD < 320) {
-        // Ranged (Archer / Goatman): Stops briefly and fires aimed shot or 2-arrow V-split (NO ground mortars!)
         m.actionTimer = 3.8 + Math.random() * 1.2;
         m.pauseTimer = 0.35;
         if (m.behavior === 'mortar_leap') {
-          for (const offset of [-0.16, 0.16]) {
-            pushEnemyBolt(room, m.x, m.y, ang + offset, 215, 8, Math.round(m.damage * 0.8), 'fire', 2.4);
-          }
+          for (const offset of [-0.16, 0.16]) pushEnemyBolt(room, m.x, m.y, ang + offset, 215, 8, Math.round(m.damage * 0.8), 'fire', 2.4);
         } else {
           pushEnemyBolt(room, m.x, m.y, ang, 230, 8, Math.round(m.damage * 0.85), 'cold', 2.3);
         }
       }
     }
 
+    if (m.behavior === 'treasure_goblin' && bestD < 260) {
+      moveAng = ang + Math.PI + Math.sin((room.runTimer || 0) * 2.4) * 0.7;
+    }
+
     m.x += Math.cos(moveAng) * m.speed * chillMult * buffSpeedMult * moveMult * dt;
     m.y += Math.sin(moveAng) * m.speed * chillMult * buffSpeedMult * moveMult * dt;
 
     // Individual Monster Contact Strike (Every monster hits independently!)
-    if (m.hitTimer <= 0) {
+    if (m.hitTimer <= 0 && !m.shielded) {
       const contactDmg = m.buffTimer > 0 ? Math.round(m.damage * 1.2) : m.damage;
       for (const p of livingPlayers) {
         if (dist(m.x, m.y, p.x, p.y) <= m.radius + 17) {
           m.hitTimer = 0.72;
+          if (Array.isArray(m.mods) && m.mods.includes('Vampiric')) {
+            m.hp = Math.min(m.maxHp, m.hp + Math.round(m.maxHp * 0.08));
+          }
           applyDamageToPlayer(room, p, contactDmg, 'physical');
           break;
         }

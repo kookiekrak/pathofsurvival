@@ -109,15 +109,21 @@
         updateProfileUI();
       } else if (msg.type === 'state') {
         worldState = msg;
-        rebuildBiomeEnvironment(worldState.mode, worldState.mapId);
+        worldState.raidBeams = msg.raidBeams || [];
+        worldState.raidSanctuary = msg.raidSanctuary || null;
+        worldState.deliriumRem = msg.deliriumRem || 0;
+        worldState.deliriumKills = msg.deliriumKills || 0;
+        rebuildBiomeEnvironment(worldState.mode, worldState.mapId, msg.mapSeed || 1);
         if (msg.fx && msg.fx.length > 0) {
           for (const f of msg.fx) {
             if (f.kind === 'dmg_num') {
-              if (floatingTexts.length >= 32) floatingTexts.shift();
-              floatingTexts.push({
-                x: f.x, z: f.y, yOffset: 34, text: f.val,
-                crit: f.crit, dtype: f.dtype, life: 0.72, maxLife: 0.72
-              });
+              if (worldState.mode === 'HIDEOUT') {
+                if (floatingTexts.length >= 32) floatingTexts.shift();
+                floatingTexts.push({
+                  x: f.x, z: f.y, yOffset: 34, text: f.val,
+                  crit: f.crit, dtype: f.dtype, life: 0.72, maxLife: 0.72
+                });
+              }
             } else {
               spawn3DFxEvent(f);
             }
@@ -248,13 +254,17 @@
         }
       }
     }
+    let deathBursts = 0;
     for (const [id, ent] of enemyEntities.entries()) {
       if (!seenEnemies.has(id)) {
-        spawnDeathBurst3D(
-          ent.group.position.x,
-          ent.group.position.z,
-          ent.rarity === 'rare' ? 0xffd43b : 0xd93829
-        );
+        if (deathBursts < 2) {
+          deathBursts++;
+          spawnDeathBurst3D(
+            ent.group.position.x,
+            ent.group.position.z,
+            ent.rarity === 'rare' ? 0xffd43b : 0xd93829
+          );
+        }
         releaseEnemy3D(ent);
         enemyEntities.delete(id);
       }

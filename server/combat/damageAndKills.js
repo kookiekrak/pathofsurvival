@@ -52,6 +52,8 @@ function buildSkillExecution(player, setup) {
     }
     if (m.extraProjectiles) projCount += m.extraProjectiles + Math.floor((supLv - 1) * 0.5);
     if (m.extraChains) chains += m.extraChains + Math.floor((supLv - 1) * 0.5);
+    if (m.extraPierce) pierceCount += m.extraPierce + Math.floor((supLv - 1) * 0.5);
+    if (m.returnProj) setup._returnProj = true;
     if (m.cooldownMulti) cooldown *= Math.max(0.58, m.cooldownMulti - (supLv - 1) * 0.03);
     if (m.damageMulti) moreMulti *= m.damageMulti + (supLv - 1) * 0.06;
     if (m.physMulti) moreMulti *= m.physMulti + (supLv - 1) * 0.06;
@@ -87,18 +89,8 @@ function buildSkillExecution(player, setup) {
   const critMulti = (s.critMulti + bonusCritMulti) / 100;
 
   return {
-    active,
-    dmgMin,
-    dmgMax,
-    cooldown,
-    projCount,
-    chains,
-    pierceCount,
-    radius,
-    repeatCount,
-    lifeOnHit,
-    critChance,
-    critMulti
+    active, dmgMin, dmgMax, cooldown, projCount, chains, pierceCount,
+    returnProj: !!setup._returnProj, radius, repeatCount, lifeOnHit, critChance, critMulti
   };
 }
 
@@ -127,11 +119,18 @@ function findNearestEnemy(room, x, y, maxRange = 800, excludeIds = null) {
   return best;
 }
 
-function damageEnemy(room, enemy, dmg, isCrit, attacker, lifeOnHit = 0, damageType = 'physical', isShatterProc = false) {
+function damageEnemy(room, enemy, dmg, isCrit, attacker, lifeOnHit = 0, damageType = 'physical', isShatterProc = false, isVaalDamage = false) {
   if (!room.enemies.has(enemy.id)) return;
+  if (enemy.shielded) {
+    return;
+  }
+
+  // Archnemesis Temporal Bubble: 55% less damage taken from hits outside 175 units
+  if (attacker && Array.isArray(enemy.mods) && enemy.mods.includes('Temporal Bubble') && dist(attacker.x, attacker.y, enemy.x, enemy.y) > 175) {
+    dmg = Math.max(1, Math.round(dmg * 0.45));
+  }
 
   // Map Tier Monster Armor / Toughness Mitigation:
-  // Ungeared / under-leveled hits glance off high-tier monsters for 1 damage, while geared + tree builds pierce cleanly!
   if ((enemy.armor || 0) > 0 && enemy.id !== 'hideout_dummy') {
     const mArmor = enemy.armor;
     const afterFlat = Math.max(1, dmg - mArmor * 0.45);
@@ -139,10 +138,10 @@ function damageEnemy(room, enemy, dmg, isCrit, attacker, lifeOnHit = 0, damageTy
     dmg = Math.max(1, Math.round(afterFlat * pierceRatio));
   }
 
-  if ((enemy.shockTimer || 0) > 0) {
-    dmg = Math.round(dmg * 1.2);
-  }
+  if ((enemy.shockTimer || 0) > 0) dmg = Math.round(dmg * 1.2);
+  if ((enemy.vulnerableTimer || 0) > 0) dmg = Math.round(dmg * 1.5);
   enemy.hp -= dmg;
+  if (isVaalDamage && enemy.hp <= 0) enemy.killedByVaal = true;
 
   // Slayer's Execution (12% HP) or Windripper Culling Strike (15% HP)
   const cullPct = attacker && attacker.stats
@@ -187,9 +186,9 @@ function damageEnemy(room, enemy, dmg, isCrit, attacker, lifeOnHit = 0, damageTy
         attacker.es = Math.min(attacker.maxEs, attacker.es + Math.max(1, Math.round(attacker.maxEs * 0.03)));
       }
     }
-    // Mjölner Lightning Arc Proc on Hit (0.38s internal cooldown)
+    // Mjölner Lightning Arc Proc on Hit (0.55s internal cooldown)
     if (!isShatterProc && attacker.stats && attacker.stats.mjolnerProc > 0 && (attacker.mjolnerCd || 0) <= 0) {
-      attacker.mjolnerCd = 0.38;
+      attacker.mjolnerCd = 0.55;
       const arcDmg = Math.max(4, Math.round(dmg * 0.55));
       let chained = 0;
       for (const other of room.enemies.values()) {
@@ -208,13 +207,13 @@ function damageEnemy(room, enemy, dmg, isCrit, attacker, lifeOnHit = 0, damageTy
             });
           }
           chained++;
-          if (chained >= 2) break;
+          if (chained >= 4) break;
         }
       }
     }
-    // Cospri's Malice Frost Nova Proc on Critical Hit (0.42s internal cooldown)
+    // Cospri's Malice Frost Nova Proc on Critical Hit (0.55s internal cooldown)
     if (!isShatterProc && isCrit && attacker.stats && attacker.stats.cospriProc > 0 && (attacker.cospriCd || 0) <= 0) {
-      attacker.cospriCd = 0.42;
+      attacker.cospriCd = 0.55;
       const novaDmg = Math.max(5, Math.round(dmg * 0.6));
       if (room.fxEvents.length < 22) {
         room.fxEvents.push({
@@ -232,13 +231,13 @@ function damageEnemy(room, enemy, dmg, isCrit, attacker, lifeOnHit = 0, damageTy
         if (dist(enemy.x, enemy.y, other.x, other.y) <= hitR) {
           other.chillTimer = Math.max(other.chillTimer || 0, 2.5);
           damageEnemy(room, other, novaDmg, false, attacker, 0, 'cold', true);
-          if (++novaHits >= 8) break;
+          if (++novaHits >= 4) break;
         }
       }
     }
-    // Cast on Critical Strike Arcane Bolt Proc (0.35s internal cooldown)
+    // Cast on Critical Strike Arcane Bolt Proc (0.55s internal cooldown)
     if (!isShatterProc && isCrit && attacker.stats && attacker.stats.castOnCrit > 0 && (attacker.cocCd || 0) <= 0) {
-      attacker.cocCd = 0.35;
+      attacker.cocCd = 0.55;
       const cocDmg = Math.max(6, Math.round(dmg * (0.45 + attacker.stats.castOnCrit * 0.15)));
       if (room.fxEvents.length < 22) {
         room.fxEvents.push({ kind: 'nova', x: Math.round(enemy.x), y: Math.round(enemy.y), r: 68, color: '#38d9a9' });
@@ -249,12 +248,12 @@ function damageEnemy(room, enemy, dmg, isCrit, attacker, lifeOnHit = 0, damageTy
         if (Math.abs(enemy.x - other.x) > hitR || Math.abs(enemy.y - other.y) > hitR) continue;
         if (dist(enemy.x, enemy.y, other.x, other.y) <= hitR) {
           damageEnemy(room, other, cocDmg, false, attacker, 0, 'lightning', true);
-          if (++cocHits >= 5) break;
+          if (++cocHits >= 4) break;
         }
       }
     }
     if (enemy.id === 'hideout_dummy') {
-      attacker.vaalSouls = Math.min(45, (attacker.vaalSouls || 0) + 3);
+      attacker.vaalSouls = Math.min(60, (attacker.vaalSouls || 0) + 3);
     }
     // Subtle punchy knockback (8-16 units away from player)
     if (enemy.behavior !== 'dummy' && enemy.hp > 0) {
@@ -265,7 +264,7 @@ function damageEnemy(room, enemy, dmg, isCrit, attacker, lifeOnHit = 0, damageTy
     }
   }
 
-  if (isCrit || room.fxEvents.length < 18) {
+  if (room.state === 'HIDEOUT' && room.fxEvents.length < 18) {
     room.fxEvents.push({
       kind: 'dmg_num',
       x: Math.round(enemy.x + randInt(-10, 10)),
@@ -285,67 +284,60 @@ function damageEnemy(room, enemy, dmg, isCrit, attacker, lifeOnHit = 0, damageTy
     room.enemies.delete(enemy.id);
     onEnemyKilled(room, enemy, attacker);
 
-    // Herald of Ice Shatter Nova when a chilled/frozen enemy dies or player has Herald of Ice (capped at 3 procs/tick)!
-    const hasHeraldIce = Boolean(attacker && attacker.stats && attacker.stats.heraldIce > 0);
-    if ((wasChilled || hasHeraldIce) && !isShatterProc && (room.procCountThisTick || 0) < 3) {
-      room.procCountThisTick = (room.procCountThisTick || 0) + 1;
-      const nowT = room.runTimer || 0;
-      if (nowT - (room.lastShatterTime || 0) >= 0.16 && room.fxEvents.length < 22) {
-        room.lastShatterTime = nowT;
-        room.fxEvents.push({ kind: 'nova', x: Math.round(deathX), y: Math.round(deathY), r: 62, color: '#74c0fc' });
-      }
-      const shatterDmg = Math.max(5, Math.round(dmg * 0.35 + (hasHeraldIce ? enemyMaxHp * 0.14 : 0)));
-      let shHits = 0;
-      for (const other of room.enemies.values()) {
-        const hitR = 62 + other.radius;
-        if (Math.abs(deathX - other.x) > hitR || Math.abs(deathY - other.y) > hitR) continue;
-        if (dist(deathX, deathY, other.x, other.y) <= hitR) {
-          other.chillTimer = Math.max(other.chillTimer || 0, 2.2);
-          damageEnemy(room, other, shatterDmg, false, attacker, 0, 'cold', true);
-          if (++shHits >= 6) break;
-        }
-      }
-    }
+    const nowT = room.runTimer || 0;
+    if (nowT - (room.lastExplodeTime || 0) >= 0.38 && !isShatterProc && (room.procCountThisTick || 0) < 1) {
+      const hasHeraldIce = Boolean(attacker && attacker.stats && attacker.stats.heraldIce > 0);
+      const hasHeraldAsh = Boolean(attacker && attacker.stats && attacker.stats.heraldAsh > 0);
+      const hasInpulsa = Boolean(wasShocked && attacker && attacker.stats && attacker.stats.inpulsaExplode > 0);
 
-    // Herald of Ash / Profane Bloom / Gloom Shrine On-Kill Explosion (capped at 3 procs/tick)!
-    const hasHeraldAsh = Boolean(attacker && attacker.stats && attacker.stats.heraldAsh > 0);
-    const hasProfane = Boolean(attacker && attacker.stats && attacker.stats.profaneBloom > 0 && Math.random() < 0.45);
-    if ((hasHeraldAsh || hasProfane) && !isShatterProc && (room.procCountThisTick || 0) < 3) {
-      room.procCountThisTick = (room.procCountThisTick || 0) + 1;
-      const nowT = room.runTimer || 0;
-      const expColor = hasProfane ? '#cc5de8' : '#ff6b4a';
-      if (nowT - (room.lastAshTime || 0) >= 0.15 && room.fxEvents.length < 22) {
-        room.lastAshTime = nowT;
-        room.fxEvents.push({ kind: 'nova', x: Math.round(deathX), y: Math.round(deathY), r: 72, color: expColor });
-      }
-      const expDmg = Math.max(6, Math.round(enemyMaxHp * 0.22));
-      let expHits = 0;
-      for (const other of room.enemies.values()) {
-        const hitR = 72 + other.radius;
-        if (Math.abs(deathX - other.x) > hitR || Math.abs(deathY - other.y) > hitR) continue;
-        if (dist(deathX, deathY, other.x, other.y) <= hitR) {
-          damageEnemy(room, other, expDmg, false, attacker, 0, 'fire', true);
-          if (++expHits >= 6) break;
+      if (wasChilled || hasHeraldIce) {
+        room.procCountThisTick = (room.procCountThisTick || 0) + 1;
+        room.lastExplodeTime = nowT;
+        if (room.fxEvents.length < 22) {
+          room.fxEvents.push({ kind: 'nova', x: Math.round(deathX), y: Math.round(deathY), r: 62, color: '#74c0fc' });
         }
-      }
-    }
-
-    // Inpulsa's Broken Heart Shock Explosion when a shocked enemy dies (capped at 3 procs/tick)!
-    if (wasShocked && !isShatterProc && attacker && attacker.stats && attacker.stats.inpulsaExplode > 0 && (room.procCountThisTick || 0) < 3) {
-      room.procCountThisTick = (room.procCountThisTick || 0) + 1;
-      const nowT = room.runTimer || 0;
-      if (nowT - (room.lastInpulsaTime || 0) >= 0.16 && room.fxEvents.length < 22) {
-        room.lastInpulsaTime = nowT;
-        room.fxEvents.push({ kind: 'nova', x: Math.round(deathX), y: Math.round(deathY), r: 75, color: '#70b8ff' });
-      }
-      const inpulsaDmg = Math.max(6, Math.round(enemyMaxHp * 0.22));
-      let inpHits = 0;
-      for (const other of room.enemies.values()) {
-        const hitR = 75 + other.radius;
-        if (Math.abs(deathX - other.x) > hitR || Math.abs(deathY - other.y) > hitR) continue;
-        if (dist(deathX, deathY, other.x, other.y) <= hitR) {
-          damageEnemy(room, other, inpulsaDmg, false, attacker, 0, 'lightning', true);
-          if (++inpHits >= 6) break;
+        const shatterDmg = Math.max(5, Math.round(dmg * 0.35 + (hasHeraldIce ? enemyMaxHp * 0.14 : 0)));
+        let shHits = 0;
+        for (const other of room.enemies.values()) {
+          const hitR = 62 + other.radius;
+          if (Math.abs(deathX - other.x) > hitR || Math.abs(deathY - other.y) > hitR) continue;
+          if (dist(deathX, deathY, other.x, other.y) <= hitR) {
+            other.chillTimer = Math.max(other.chillTimer || 0, 2.2);
+            damageEnemy(room, other, shatterDmg, false, attacker, 0, 'cold', true);
+            if (++shHits >= 5) break;
+          }
+        }
+      } else if (hasHeraldAsh) {
+        room.procCountThisTick = (room.procCountThisTick || 0) + 1;
+        room.lastExplodeTime = nowT;
+        if (room.fxEvents.length < 22) {
+          room.fxEvents.push({ kind: 'nova', x: Math.round(deathX), y: Math.round(deathY), r: 72, color: '#ff6b4a' });
+        }
+        const expDmg = Math.max(6, Math.round(enemyMaxHp * 0.22));
+        let expHits = 0;
+        for (const other of room.enemies.values()) {
+          const hitR = 72 + other.radius;
+          if (Math.abs(deathX - other.x) > hitR || Math.abs(deathY - other.y) > hitR) continue;
+          if (dist(deathX, deathY, other.x, other.y) <= hitR) {
+            damageEnemy(room, other, expDmg, false, attacker, 0, 'fire', true);
+            if (++expHits >= 5) break;
+          }
+        }
+      } else if (hasInpulsa) {
+        room.procCountThisTick = (room.procCountThisTick || 0) + 1;
+        room.lastExplodeTime = nowT;
+        if (room.fxEvents.length < 22) {
+          room.fxEvents.push({ kind: 'nova', x: Math.round(deathX), y: Math.round(deathY), r: 75, color: '#70b8ff' });
+        }
+        const inpulsaDmg = Math.max(6, Math.round(enemyMaxHp * 0.22));
+        let inpHits = 0;
+        for (const other of room.enemies.values()) {
+          const hitR = 75 + other.radius;
+          if (Math.abs(deathX - other.x) > hitR || Math.abs(deathY - other.y) > hitR) continue;
+          if (dist(deathX, deathY, other.x, other.y) <= hitR) {
+            damageEnemy(room, other, inpulsaDmg, false, attacker, 0, 'lightning', true);
+            if (++inpHits >= 5) break;
+          }
         }
       }
     }

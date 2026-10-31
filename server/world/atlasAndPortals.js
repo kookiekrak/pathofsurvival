@@ -4,6 +4,8 @@ const GameData = global.GameData || require('../../public/shared/gameData.js');
 function startAtlasRun(room, mapId) {
   const mapDef = GameData.ATLAS_MAPS.find(m => m.id === mapId) || GameData.ATLAS_MAPS[0];
   room.selectedMapId = mapDef.id;
+  room.isRaidEncounter = false;
+  room.raidId = null;
   room.state = 'RUN';
   room.wave = 1;
   room.waveProgress = 0;
@@ -13,11 +15,15 @@ function startAtlasRun(room, mapId) {
   room.bossSpawned = false;
   room.lastBossWave = 0;
   room.portalsOpen = false;
+  room.deliriumTimer = 0;
+  room.deliriumKills = 0;
   room.enemies.clear();
   room.projectiles = [];
   room.groundDrops = [];
   room.hazards = [];
   room.activeBreaches = [];
+  room.raidBeams = [];
+  room.raidSanctuary = null;
   room.fxEvents = [];
   populateMapInteractables(room);
 
@@ -32,6 +38,7 @@ function startAtlasRun(room, mapId) {
     p.targetChestId = null;
     p.lohBudget = 6;
     p.vaalSouls = 0;
+    p.vaalLockTimer = 0;
     for (const f of GameData.FLASKS) {
       p.flaskCharges[f.id] = (p.unlockedFlasks || ['life']).includes(f.id) ? f.maxCharges : 0;
       p.activeFlasks[f.id] = 0;
@@ -70,17 +77,16 @@ function startAtlasRun(room, mapId) {
     spawnMonsterPack(room);
   }
 
-  addRoomChat(room, 'Atlas', `Opened portals to ${mapDef.name}! Spend Run Gold on Golden Chests [E] & Draft Rerolls — unspent earned Gold banks to your Hideout Stash!`, '#ffd147');
+  addRoomChat(room, 'Atlas', `Opened portals to ${mapDef.name}! Spend Run Gold on Golden Chests [E] & Draft Rerolls!`, '#ffd147');
   broadcastRoomEvent(room, {
     type: 'announcement',
     title: mapDef.name,
-    subtitle: `Wave 1 Started! Earn Run Gold for Golden Chests & Rerolls — Extract to Bank Gold to Stash!`,
+    subtitle: `Wave 1 Started! Earn Run Gold for Golden Chests & Rerolls!`,
     color: '#ffd147'
   });
 }
 
 function returnToHideout(room, reasonTitle, reasonSub) {
-  const wasPartyWipe = room.players.size > 0 && Array.from(room.players.values()).every(p => p.dead);
   room.state = 'HIDEOUT';
   room.wave = 1;
   room.waveProgress = 0;
@@ -91,23 +97,11 @@ function returnToHideout(room, reasonTitle, reasonSub) {
   room.interactables = [];
   room.upgradeChests = [];
   room.activeBreaches = [];
+  room.raidBeams = [];
+  room.raidSanctuary = null;
   room.fxEvents = [];
 
-  let totalBankedRoom = 0;
   for (const p of room.players.values()) {
-    // Bank earned unspent Run Gold into persistent Stash Gold (100% on Extraction, 50% on Party Wipe!)
-    const bankable = Math.max(0, Math.min(p.earnedRunGold || 0, p.runGold || 0));
-    const bankedGold = wasPartyWipe ? Math.round(bankable * 0.5) : bankable;
-    if (bankedGold > 0) {
-      p.gold = (p.gold || 0) + bankedGold;
-      totalBankedRoom = Math.max(totalBankedRoom, bankedGold);
-      addRoomChat(
-        room,
-        'Stash',
-        `${p.name} banked +${bankedGold} Run Gold into Stash Gold (${wasPartyWipe ? '50% Death Salvage' : '100% Extracted'})!`,
-        '#ffd43b'
-      );
-    }
     p.runGold = 0;
     p.startingRunGold = 0;
     p.earnedRunGold = 0;
@@ -138,11 +132,10 @@ function returnToHideout(room, reasonTitle, reasonSub) {
     sendPrivateProfile(p);
   }
 
-  const goldSuffix = totalBankedRoom > 0 ? ` (+${totalBankedRoom}G Banked to Stash!)` : '';
   broadcastRoomEvent(room, {
     type: 'announcement',
-    title: (reasonTitle || 'Returned to Sanctuary Hideout') + goldSuffix,
-    subtitle: reasonSub || 'Spend Stash Gold at the Black Market [I], craft Gear with Orbs, and allocate Skill Tree Points [P]!',
+    title: reasonTitle || 'Returned to Sanctuary Hideout',
+    subtitle: reasonSub || 'Craft Gear with Orbs [I], allocate Skill Tree Points [P], and prepare for your next Atlas Map!',
     color: '#63a4ff'
   });
 }

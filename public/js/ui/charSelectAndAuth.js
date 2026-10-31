@@ -56,6 +56,18 @@
   selectedCharacterId = null;
   savedCharactersCache = [];
   charFlowMode = 'select'; // 'select' | 'create'
+  window.__POS_CTX__.selectedLeague = 'Standard';
+
+  document.getElementById('leagueToggleBtn')?.addEventListener('click', () => {
+    selectedLeague = selectedLeague === 'Hardcore' ? 'Standard' : 'Hardcore';
+    const btn = document.getElementById('leagueToggleBtn');
+    if (btn) {
+      const isHc = selectedLeague === 'Hardcore';
+      btn.textContent = isHc ? 'LEAGUE: HARDCORE 💀 (PERMADEATH)' : 'LEAGUE: STANDARD';
+      btn.style.color = isHc ? '#ff6b6b' : '#78c2ad';
+      btn.style.borderColor = isHc ? '#9c2a2a' : '#3b7a68';
+    }
+  });
 
   function setCharFlowStage(stage) {
     charFlowMode = stage;
@@ -64,9 +76,12 @@
     const playBtn = document.getElementById('playSelectedCharBtn');
     const delBtn = document.getElementById('openDeleteCharModalBtn');
     const hasChars = savedCharactersCache.length > 0;
+    const selCh = savedCharactersCache.find(c => c.id === selectedCharacterId) || savedCharactersCache[0];
     if (playBtn) {
-      playBtn.disabled = !hasChars;
-      playBtn.style.opacity = hasChars ? '1' : '0.45';
+      const isDeadHc = Boolean(selCh && selCh.deadHardcore);
+      playBtn.disabled = !hasChars || isDeadHc;
+      playBtn.textContent = isDeadHc ? '💀 FALLEN IN HARDCORE' : 'PLAY';
+      playBtn.style.opacity = (!hasChars || isDeadHc) ? '0.45' : '1';
     }
     if (delBtn) {
       delBtn.disabled = !hasChars;
@@ -100,10 +115,23 @@
       return;
     }
     selectedCharacterId = ch.id;
+    const playBtn = document.getElementById('playSelectedCharBtn');
+    if (playBtn) {
+      const isDeadHc = Boolean(ch.deadHardcore);
+      playBtn.disabled = isDeadHc;
+      playBtn.textContent = isDeadHc ? '💀 FALLEN IN HARDCORE' : 'PLAY';
+      playBtn.style.opacity = isDeadHc ? '0.45' : '1';
+    }
     const allCls = getAllClasses();
     const cls = allCls.find(c => c.id === ch.classId) || allCls[0];
     const starterGem = (GameData.SKILL_GEMS && GameData.SKILL_GEMS[cls.starterSkill || cls.starterGem]) || { name: 'Attack' };
     const vaalDef = (GameData.VAAL_SKILLS && GameData.VAAL_SKILLS[cls.vaalSkill]) || { name: 'Vaal Skill' };
+    const isHc = ch.league === 'Hardcore';
+    const leagueLbl = ch.deadHardcore
+      ? '<span style="color:#ff4d4d;font-weight:700">💀 FALLEN IN HARDCORE (PERMANENT DEATH)</span>'
+      : isHc
+        ? '<span style="color:#ff6b6b;font-weight:700">HARDCORE LEAGUE 💀 • PERMADEATH</span>'
+        : '<span style="color:#78c2ad">STANDARD LEAGUE • CLASS LOCKED</span>';
     previewEl.innerHTML = `
       <div>
         <div class="class-head-left" style="gap:12px;margin-bottom:8px">
@@ -113,9 +141,7 @@
             <div style="color:#d8c198;font-family:var(--font-serif);font-size:0.9rem">
               Level ${ch.level} ${cls.name} • <span style="color:#a38d6d">${cls.title || 'Exile'}</span>
             </div>
-            <div style="color:#78c2ad;font-size:0.78rem;letter-spacing:0.6px;margin-top:2px">
-              STANDARD LEAGUE • CLASS LOCKED
-            </div>
+            <div style="font-size:0.78rem;letter-spacing:0.6px;margin-top:2px">${leagueLbl}</div>
           </div>
         </div>
         <div class="class-desc" style="font-size:0.86rem;line-height:1.35;margin-top:6px">${cls.description}</div>
@@ -123,7 +149,6 @@
       <div>
         <div class="class-attr-row" style="margin-bottom:8px;flex-wrap:wrap">
           <span class="attr-pill str">${ch.equippedCount || 0} GEAR EQUIPPED</span>
-          <span class="attr-pill dex">${ch.gold || 0} GOLD</span>
           <span class="attr-pill int">${ch.passivePoints || 0} UNSPENT PASSIVES</span>
         </div>
         <div class="class-attr-row" style="flex-wrap:wrap">
@@ -148,19 +173,21 @@
     }
     for (const ch of savedCharactersCache) {
       const isSel = ch.id === selectedCharacterId;
+      const isHc = ch.league === 'Hardcore';
+      const lgCol = ch.deadHardcore ? '#ff4d4d' : (isHc ? '#ff6b6b' : '#78c2ad');
+      const lgTxt = ch.deadHardcore ? '💀 Fallen HC' : (isHc ? 'Hardcore 💀' : 'Standard');
       const row = document.createElement('div');
       row.className = `poe-roster-row ${isSel ? 'selected' : ''}`;
       row.innerHTML = `
         <div class="class-head-left" style="gap:10px;min-width:0">
           <div class="class-emblem" style="width:32px;height:32px">${getClassEmblemSvg(ch.classId)}</div>
           <div style="min-width:0">
-            <div style="font-family:var(--font-serif);font-weight:700;font-size:0.95rem;color:var(--poe-gold-bright)">${ch.name}</div>
-            <div style="font-size:0.78rem;color:#c7b089">Level ${ch.level} ${ch.classId} • Standard League</div>
+            <div style="font-family:var(--font-serif);font-weight:700;font-size:0.95rem;color:${ch.deadHardcore ? '#999' : 'var(--poe-gold-bright)'}">${ch.name}</div>
+            <div style="font-size:0.78rem;color:#c7b089">Level ${ch.level} ${ch.classId} • <span style="color:${lgCol}">${lgTxt}</span></div>
           </div>
         </div>
         <div style="text-align:right;font-size:0.76rem;color:#9e8d73;flex-shrink:0">
           <div>${ch.equippedCount || 0} Equipped</div>
-          <div style="color:#ffd43b">${ch.gold || 0}g</div>
         </div>
       `;
       row.addEventListener('click', () => {
@@ -180,7 +207,7 @@
 
   function playSelectedCharacter() {
     const ch = savedCharactersCache.find(c => c.id === selectedCharacterId) || savedCharactersCache[0];
-    if (!ch) return;
+    if (!ch || ch.deadHardcore) return;
     selectedCharacterId = ch.id;
     selectedClassId = ch.classId;
     const roomCode = document.getElementById('roomCodeInput')?.value.trim().toUpperCase() || 'ORIATH';
@@ -226,10 +253,7 @@
     setCharFlowStage('select');
   });
 
-  document.getElementById('playSelectedCharBtn')?.addEventListener('click', () => {
-    playSelectedCharacter();
-  });
-
+  document.getElementById('playSelectedCharBtn')?.addEventListener('click', playSelectedCharacter);
   document.getElementById('openLobbyFromSelectBtn')?.addEventListener('click', () => {
     document.getElementById('loginModal')?.classList.add('hidden');
     openLobbyModal();
@@ -252,11 +276,7 @@
       const res = await fetch('/api/characters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accountId: myAccountId,
-          name,
-          classId: selectedClassId
-        })
+        body: JSON.stringify({ accountId: myAccountId, name, classId: selectedClassId, league: selectedLeague })
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -320,10 +340,7 @@
   });
 
   document.getElementById('playerNameInput')?.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter') {
-      ev.preventDefault();
-      submitCreateCharacter();
-    }
+    if (ev.key === 'Enter') { ev.preventDefault(); submitCreateCharacter(); }
   });
 
   function renderSelectedClassSummary() {
@@ -352,8 +369,7 @@
     `;
     const roomBadge = document.getElementById('createTargetRoomBadge');
     const selectBadge = document.getElementById('selectTargetRoomBadge');
-    const roomCodeInput = document.getElementById('roomCodeInput');
-    const codeTxt = (roomCodeInput?.value || 'ORIATH').trim().toUpperCase() || 'ORIATH';
+    const codeTxt = (document.getElementById('roomCodeInput')?.value || 'ORIATH').trim().toUpperCase() || 'ORIATH';
     if (roomBadge) roomBadge.textContent = codeTxt;
     if (selectBadge) selectBadge.textContent = codeTxt;
   }
@@ -363,13 +379,9 @@
     if (classGrid) {
       classGrid.innerHTML = '';
       for (const cls of getAllClasses()) {
-        const card = buildClassCardElement(cls, cls.id === selectedClassId, () => {
-          selectedClassId = cls.id;
-          selectedCharacterId = null;
-          charFlowMode = 'create';
-          initLoginScreen();
-        });
-        classGrid.appendChild(card);
+        classGrid.appendChild(buildClassCardElement(cls, cls.id === selectedClassId, () => {
+          selectedClassId = cls.id; selectedCharacterId = null; charFlowMode = 'create'; initLoginScreen();
+        }));
       }
     }
     renderSelectedClassSummary();

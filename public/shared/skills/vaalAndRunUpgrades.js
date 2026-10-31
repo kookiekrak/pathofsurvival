@@ -1,83 +1,90 @@
 // Shared GameData Module: Vaal Skills & In-Run Upgrades
 (function (exports) {
   // ============================================================================
-  // 3. 7 VAAL ULTIMATE SKILLS
+  // 3. 7 VAAL ULTIMATE SKILLS (WITH SOUL GAIN PREVENTION & DENSITY FALLOFF)
   // ============================================================================
   const VAAL_SKILLS = {
     vaal_ground_slam: {
       id: 'vaal_ground_slam',
       name: 'Vaal Ground Slam',
-      soulCost: 45,
+      soulCost: 60,
+      lockDuration: 8.0,
       damageType: 'physical',
-      baseDamage: [145, 210],
-      radius: 340,
+      baseDamage: [115, 165],
+      radius: 265,
       color: '#ff5c4d',
-      description: 'Unleashes a cataclysmic 360-degree Karui tectonic upheaval that stuns and obliterates surrounding hordes.'
+      description: 'Karui tectonic upheaval that stuns nearby monsters and sends 8 radial fault waves. (8s Soul Gain Prevention)'
     },
     vaal_rain_of_arrows: {
       id: 'vaal_rain_of_arrows',
       name: 'Vaal Rain of Arrows',
-      soulCost: 45,
+      soulCost: 60,
+      lockDuration: 8.0,
       damageType: 'physical',
-      baseDamage: [130, 195],
-      radius: 360,
-      projCount: 24,
+      baseDamage: [105, 155],
+      radius: 280,
+      projCount: 12,
       color: '#53f574',
-      description: 'Darkens the sky with an inescapable barrage of pinned arrows across a massive radius, maiming all foes.'
+      description: 'Pins nearby foes with a sky-darkening arrow volley and fires 12 piercing arrows. (8s Soul Gain Prevention)'
     },
     vaal_arc: {
       id: 'vaal_arc',
       name: 'Vaal Arc',
-      soulCost: 45,
+      soulCost: 60,
+      lockDuration: 8.0,
       damageType: 'lightning',
-      baseDamage: [120, 240],
-      radius: 420,
-      chains: 18,
+      baseDamage: [95, 185],
+      radius: 310,
+      chains: 10,
       color: '#63a4ff',
-      description: 'Releases a supercharged chain lightning tempest that arcs across up to 18 monsters with guaranteed Shock.'
+      description: 'Supercharged chain lightning tempest that arcs across up to 10 targets and grants Lucky Lightning. (8s Soul Gain Prevention)'
     },
     vaal_cyclone: {
       id: 'vaal_cyclone',
       name: 'Vaal Cyclone',
-      soulCost: 45,
+      soulCost: 60,
+      lockDuration: 8.0,
       damageType: 'physical',
-      baseDamage: [135, 200],
-      radius: 320,
-      duration: 3.0,
+      baseDamage: [110, 160],
+      radius: 250,
+      duration: 2.5,
       color: '#ffa94d',
-      description: 'Generates a gravitational blood-vacuum whirlwind that pulls nearby monsters inward and shreds them.'
+      description: 'Gravitational vacuum whirlwind that pulls nearby enemies inward and cleaves them. (8s Soul Gain Prevention)'
     },
     vaal_righteous_fire: {
       id: 'vaal_righteous_fire',
       name: 'Vaal Righteous Fire',
-      soulCost: 45,
+      soulCost: 60,
+      lockDuration: 8.0,
       damageType: 'fire',
-      baseDamage: [155, 225],
-      radius: 350,
+      baseDamage: [120, 175],
+      radius: 270,
       duration: 4.0,
       color: '#ffd43b',
-      description: 'Detonates a divine solar pillar of sacred flame around you and supercharges Spell & Burning damage.'
+      description: 'Sacrifices 15% of current Life/ES to detonate a solar pillar and empower Spell & Burning damage. (8s Soul Gain Prevention)'
     },
     vaal_blade_vortex: {
       id: 'vaal_blade_vortex',
       name: 'Vaal Blade Vortex',
-      soulCost: 45,
+      soulCost: 60,
+      lockDuration: 8.0,
       damageType: 'physical',
-      baseDamage: [140, 205],
-      radius: 310,
-      duration: 3.5,
+      baseDamage: [110, 165],
+      radius: 255,
+      duration: 3.0,
       color: '#3bc9db',
-      description: 'Unleashes a Relentless 10-blade autonomous razor storm that seeks and dices packs at extreme velocity.'
+      description: 'Unleashes an autonomous 8-blade whirling razor vortex that seeks and dices packs. (8s Soul Gain Prevention)'
     },
     vaal_flameblast: {
       id: 'vaal_flameblast',
       name: 'Vaal Flameblast',
-      soulCost: 45,
+      soulCost: 60,
+      lockDuration: 8.0,
       damageType: 'fire',
-      baseDamage: [165, 245],
-      radius: 360,
+      baseDamage: [130, 190],
+      radius: 275,
       color: '#ff922b',
-      description: 'Calls down an instant Stage-10 Atziri solar cataclysm that incinerates everything in a massive blast zone.'
+      description: 'Calls down a Stage-10 Atziri solar cataclysm at your target zone. (8s Soul Gain Prevention)'
     }
   };
 

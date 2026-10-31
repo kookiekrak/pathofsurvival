@@ -41,6 +41,12 @@ const stmtListCharacters = db.prepare(`
   ORDER BY updated_at DESC
   LIMIT 16
 `);
+const stmtListLeaderboard = db.prepare(`
+  SELECT id, name, class_id, level, xp, xp_next, equipment_json, currencies_json, updated_at
+  FROM characters
+  ORDER BY level DESC, xp DESC, updated_at ASC
+  LIMIT 120
+`);
 const stmtGetCharacterById = db.prepare(`SELECT * FROM characters WHERE id = ?`);
 const stmtGetCharacterByName = db.prepare(`SELECT * FROM characters WHERE account_id = ? AND lower(name) = lower(?) AND class_id = ?`);
 const stmtUpsertCharacter = db.prepare(`
@@ -75,6 +81,12 @@ function saveCharacterToDb(player) {
     player.currencies._flaskBelt = Array.isArray(player.flaskBelt) && player.flaskBelt.length === 5
       ? player.flaskBelt
       : ['life', null, null, null, null];
+    player.currencies._league = player.league === 'Hardcore' ? 'Hardcore' : 'Standard';
+    player.currencies._deadHardcore = !!player.deadHardcore;
+    player.currencies._bossKills = Math.max(0, Math.floor(player.bossKills || player.currencies._bossKills || 0));
+    if (player.slainInZone || player.currencies._slainInZone) {
+      player.currencies._slainInZone = player.slainInZone || player.currencies._slainInZone;
+    }
 
     stmtUpsertCharacter.run(
       player.characterId,
@@ -104,12 +116,6 @@ function flushAllCharactersToDb() {
     if (global.rooms && typeof global.rooms.values === 'function') {
       for (const room of global.rooms.values()) {
         for (const p of room.players.values()) {
-          if (room.state === 'RUN' && (p.earnedRunGold || 0) > 0 && (p.runGold || 0) > 0) {
-            const bankable = Math.max(0, Math.min(p.earnedRunGold || 0, p.runGold || 0));
-            p.gold = (p.gold || 0) + bankable;
-            p.earnedRunGold = 0;
-            p.runGold = 0;
-          }
           saveCharacterToDb(p);
         }
       }
@@ -143,6 +149,7 @@ const exportsObj = {
   DB_PATH,
   db,
   stmtListCharacters,
+  stmtListLeaderboard,
   stmtGetCharacterById,
   stmtGetCharacterByName,
   stmtUpsertCharacter,

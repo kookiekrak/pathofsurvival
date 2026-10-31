@@ -25,6 +25,7 @@ Object.assign(global, require('./server/combat/skillExecution.js'));
 Object.assign(global, require('./server/combat/playerDefense.js'));
 
 // 5. Authoritative 25Hz Room Simulation Loop & Snapshot Broadcaster
+Object.assign(global, require('./server/simulation/bossRaidEngine.js'));
 Object.assign(global, require('./server/simulation/playerAndAutoCastTick.js'));
 Object.assign(global, require('./server/simulation/roomWaveAndBossTick.js'));
 Object.assign(global, require('./server/simulation/enemyAndProjectileTick.js'));

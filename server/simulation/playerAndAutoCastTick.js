@@ -18,6 +18,9 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
     if ((p.heraldThunderCd || 0) > 0) p.heraldThunderCd = Math.max(0, p.heraldThunderCd - dt);
     if ((p.abberathCd || 0) > 0) p.abberathCd = Math.max(0, p.abberathCd - dt);
     if ((p.meteorShrineCd || 0) > 0) p.meteorShrineCd = Math.max(0, p.meteorShrineCd - dt);
+    if ((p.autoLifeFlaskCd || 0) > 0) p.autoLifeFlaskCd = Math.max(0, p.autoLifeFlaskCd - dt);
+    if ((p.vaalLockTimer || 0) > 0) p.vaalLockTimer = Math.max(0, p.vaalLockTimer - dt);
+    p.soulGainBudget = Math.min(10, (typeof p.soulGainBudget === 'number' ? p.soulGainBudget : 10) + 5.0 * dt);
 
     // Tick active utility flasks (both per-slot timers and legacy activeFlasks map) & shrine buffs
     let statBuffExpired = false;
@@ -80,6 +83,48 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
       } else if (p.esDelayTimer <= 0) {
         p.es = Math.min(p.maxEs, p.es + p.maxEs * 0.25 * dt);
       }
+    }
+
+    // Auto-Flask Triggering in Maps: Life Flasks trigger at < 72% HP; Utility Flasks trigger when enemies are nearby!
+    if (room.state === 'RUN' && Array.isArray(p.flaskBelt)) {
+      const hasNearbyEnemy = findNearestEnemy(room, p.x, p.y, 380) !== null;
+      let usedAnyFlask = false;
+      let usedUtilityFlask = false;
+      for (let sIdx = 0; sIdx < 5; sIdx++) {
+        const fId = p.flaskBelt[sIdx];
+        if (!fId) continue;
+        const fDef = GameData.FLASKS.find(fl => fl.id === fId);
+        if (!fDef) continue;
+        const useCost = fDef.useCost || fDef.cost || 5;
+        const curCharges = p.flaskSlotCharges[sIdx] ?? p.flaskCharges[fId] ?? 0;
+        if (curCharges < useCost) continue;
+
+        if (fId === 'life') {
+          if (p.hp < p.maxHp * 0.72 && (p.autoLifeFlaskCd || 0) <= 0) {
+            p.flaskSlotCharges[sIdx] = Math.max(0, curCharges - useCost);
+            p.flaskCharges[fId] = p.flaskSlotCharges[sIdx];
+            p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.45));
+            p.autoLifeFlaskCd = 1.25;
+            usedAnyFlask = true;
+          }
+        } else if (hasNearbyEnemy && (p.flaskSlotTimers[sIdx] || 0) <= 0 && (p.activeFlasks[fId] || 0) <= 0 && !(p.stats && p.stats.mageblood > 0)) {
+          p.flaskSlotCharges[sIdx] = Math.max(0, curCharges - useCost);
+          p.flaskCharges[fId] = p.flaskSlotCharges[sIdx];
+          const dur = fDef.duration || 5.0;
+          p.flaskSlotTimers[sIdx] = dur;
+          p.activeFlasks[fId] = dur;
+          if (fId === 'quartz') {
+            p.es = Math.min(p.maxEs, p.es + Math.round(p.maxEs * 0.4));
+          } else if (fId === 'amethyst') {
+            p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.2));
+            p.es = Math.min(p.maxEs, p.es + Math.round(p.maxEs * 0.2));
+          }
+          usedUtilityFlask = true;
+          usedAnyFlask = true;
+        }
+      }
+      if (usedUtilityFlask) recalcPlayer(p, false);
+      if (usedAnyFlask) sendPrivateProfile(p);
     }
 
     // Kaom's Heart Molten Caldera Aura (Pulses Fire Damage equal to 18% of Max Life/sec to nearby enemies)

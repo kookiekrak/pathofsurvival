@@ -93,8 +93,8 @@
   }
 
   function spawn3DFxEvent(f) {
-    // Hard-cap active 3D FX at 28 so massive AoE packs never cause WebGL memory/drawcall lag
-    while (active3DFx.length >= 28) {
+    // Hard-cap active 3D FX at 16 so massive AoE packs never cause WebGL memory/drawcall lag
+    while (active3DFx.length >= 16) {
       const oldest = active3DFx.shift();
       if (oldest) {
         fxGroup.remove(oldest.group);
@@ -252,7 +252,7 @@
   }
 
   function spawnDeathBurst3D(x, z, colorHex = 0xe03131) {
-    if (active3DFx.length >= 24) return;
+    if (active3DFx.length >= 14) return;
     const group = new THREE.Group();
     group.position.set(x, 14, z);
     const mat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.9 });

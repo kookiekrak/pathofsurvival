@@ -210,26 +210,28 @@ function generateGemDraftOptions(player) {
         title: `New Skill: ${act.name}`,
         subtitle: `NEW ${colorLabel(act.color)} ACTIVE SKILL GEM`,
         desc: act.description,
-        weight: 2.2
+        weight: 4.2
       });
     }
   }
 
-  // Add Link Expansion option if any active slot has < 5 support sockets (6-Link max)
-  const expandableSlot = player.gemLinks.find(s => s.activeGem && s.maxSupports < 5);
-  if (expandableSlot) {
-    const actDef = GameData.SKILL_GEMS[expandableSlot.activeGem.id];
-    activePool.push({
-      optionId: `link_exp_${expandableSlot.slotIndex}`,
-      optionType: 'link_expand',
-      kind: 'link_expand',
-      slotIndex: expandableSlot.slotIndex,
-      color: 'W',
-      title: `Orb of Fusing: ${actDef.name} (${expandableSlot.maxSupports + 2}-Link)`,
-      subtitle: 'SOCKET LINK EXPANSION',
-      desc: `Adds +1 Linked Support Socket to ${actDef.name} (up to ${expandableSlot.maxSupports + 2}-Link).`,
-      weight: 2.2
-    });
+  // Add Link Expansion option for ALL active slots that have < 5 support sockets (6-Link max) with high weight!
+  for (const s of player.gemLinks) {
+    if (s && s.activeGem && s.maxSupports < 5) {
+      const actDef = GameData.SKILL_GEMS[s.activeGem.id];
+      if (!actDef) continue;
+      activePool.push({
+        optionId: `link_exp_${s.slotIndex}`,
+        optionType: 'link_expand',
+        kind: 'link_expand',
+        slotIndex: s.slotIndex,
+        color: 'W',
+        title: `Orb of Fusing: ${actDef.name} (${s.maxSupports + 2}-Link)`,
+        subtitle: 'SOCKET LINK EXPANSION',
+        desc: `Adds +1 Linked Support Socket to ${actDef.name} (up to ${s.maxSupports + 2}-Link).`,
+        weight: 6.5
+      });
+    }
   }
 
   // 2. Compatible Support Gem Pool (ONLY Support Gems that work with your currently equipped Active Skills!)

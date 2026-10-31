@@ -20,10 +20,10 @@
 
     if (k === 'i' || k === 'b') toggleDrawer('inventoryDrawer');
     if (k === 'c' || k === 'g') toggleDrawer('gemsDrawer');
-    if (k === 'v') toggleDrawer('blackMarketDrawer');
     if (k === 'p') toggleDrawer('passiveTreeModal');
     if (k === 'm') toggleDrawer('mapDeviceModal');
     if (k === 'l' && myPlayerId) toggleDrawer('lobbyModal');
+    if (k === 'h') toggleDrawer('leaderboardModal');
     if (k === 'r' && ws) {
       ws.send(JSON.stringify({ type: 'use_vaal' }));
     }
@@ -93,7 +93,7 @@
       }
       document.getElementById('inventoryDrawer').classList.add('hidden');
       document.getElementById('gemsDrawer').classList.add('hidden');
-      document.getElementById('blackMarketDrawer')?.classList.add('hidden');
+      document.getElementById('leaderboardModal')?.classList.add('hidden');
       document.getElementById('passiveTreeModal').classList.add('hidden');
       document.getElementById('mapDeviceModal').classList.add('hidden');
       document.getElementById('classSwitchModal')?.classList.add('hidden');

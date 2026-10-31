@@ -37,14 +37,6 @@ function applyDamageToPlayer(room, player, rawDamage, dmgType, ignoreEvade = fal
   if (!ignoreEvade && !isNaked) {
     const evadeChance = Math.min(60, (s.dodgeChance || 0) + Math.floor(s.evasion / (s.evasion + 240) * 48));
     if (Math.random() * 100 < evadeChance) {
-      room.fxEvents.push({
-        kind: 'dmg_num',
-        x: Math.round(player.x),
-        y: Math.round(player.y - 20),
-        val: 'EVADE',
-        crit: false,
-        dtype: 'evade'
-      });
       return;
     }
   }
@@ -87,19 +79,27 @@ function applyDamageToPlayer(room, player, rawDamage, dmgType, ignoreEvade = fal
   }
   player.hp -= mitigated;
 
-  room.fxEvents.push({
-    kind: 'dmg_num',
-    x: Math.round(player.x),
-    y: Math.round(player.y - 24),
-    val: `-${rawDamage}`,
-    crit: false,
-    dtype: 'player_hit'
-  });
-
   if (player.hp <= 0) {
     player.hp = 0;
     player.dead = true;
     player.reviveProgress = 0;
+    if (player.league === 'Hardcore' && !player.deadHardcore) {
+      player.deadHardcore = true;
+      const zoneName = room.activeRaidDef
+        ? room.activeRaidDef.name
+        : ((GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId) || {}).name || 'Wraeclast');
+      player.slainInZone = zoneName;
+      if (player.currencies) player.currencies._slainInZone = zoneName;
+      saveCharacterToDb(player);
+      sendPrivateProfile(player);
+      addRoomChat(room, 'Hardcore', '💀 [HARDCORE] ' + player.name + ' (Lv.' + player.level + ' ' + player.classId + ') has fallen permanently in ' + zoneName + '!', '#ff4d4d');
+      broadcastRoomEvent(room, {
+        type: 'announcement',
+        title: '💀 HARDCORE EXILE FALLEN: ' + player.name.toUpperCase(),
+        subtitle: 'Level ' + player.level + ' ' + player.classId + ' perished permanently in ' + zoneName + '!',
+        color: '#ff3b3b'
+      });
+    }
   }
 }
 

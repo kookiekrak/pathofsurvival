@@ -18,6 +18,7 @@ function sendCraftFeedback(ws, ok, msg) {
 }
 
 function pushPlayerFloatingText(room, player, val, text, color, size = 16, crit = false, dtype = 'loot') {
+  if (!room || room.state !== 'HIDEOUT') return;
   room.fxEvents.push({
     kind: 'dmg_num', x: Math.round(player.x), y: Math.round(player.y - 28),
     val, text, color, size, crit, dtype

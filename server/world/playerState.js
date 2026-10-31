@@ -73,6 +73,10 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
   let equipment = starter.equipment;
   let inventory = starter.inventory;
   let currencies = starter.currencies;
+  let league = 'Standard';
+  let deadHardcore = false;
+  let bossKills = 0;
+  let slainInZone = '';
   let level = 1;
   let xp = 0;
   let xpNext = getCharXpForLevel(1);
@@ -129,6 +133,10 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
           flaskBelt = [0, 1, 2, 3, 4].map(idx => unlockedFlasks[idx] || null);
         }
         currencies = { ...starter.currencies, ...parsedCur };
+        league = parsedCur._league === 'Hardcore' ? 'Hardcore' : 'Standard';
+        deadHardcore = !!parsedCur._deadHardcore;
+        bossKills = Math.max(0, Math.floor(parsedCur._bossKills || 0));
+        slainInZone = parsedCur._slainInZone || '';
       }
     } catch {}
 
@@ -157,6 +165,8 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
   }
   currencies._unlockedFlasks = unlockedFlasks;
   currencies._flaskBelt = flaskBelt;
+  currencies._league = league;
+  currencies._deadHardcore = deadHardcore;
 
   const player = {
     id: uid('p'),
@@ -165,6 +175,10 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
     ws,
     name: resolvedName,
     classId: lockedClassId,
+    league,
+    deadHardcore,
+    bossKills,
+    slainInZone,
     ready: false,
     level,
     xp,
@@ -218,7 +232,8 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
     dashDirY: 0,
     skillTimers: {},
     vaalSouls: 0,
-    maxVaalSouls: 45,
+    maxVaalSouls: 60,
+    vaalLockTimer: 0,
     hhStacks: 0,
     hhTimer: 0,
     afkAnchorX: 0,
@@ -296,6 +311,8 @@ function sendPrivateProfile(player) {
     characterId: player.characterId,
     accountId: player.accountId,
     classId: player.classId,
+    league: player.league || 'Standard',
+    deadHardcore: !!player.deadHardcore,
     name: player.name,
     ready: player.ready,
     level: player.level,
@@ -330,7 +347,9 @@ function sendPrivateProfile(player) {
     flaskCharges: player.flaskCharges,
     activeFlasks: player.activeFlasks,
     vaalSouls: player.vaalSouls || 0,
-    maxVaalSouls: 45,
+    maxVaalSouls: 60,
+    vaalMaxSouls: 60,
+    vaalLockTimer: +(player.vaalLockTimer || 0).toFixed(1),
     vaalSkill: cls.vaalSkill || 'vaal_cyclone',
     stats: player.stats,
     skillSetups: GameData.getPlayerGemSetups(player.gemLinks)

@@ -8,9 +8,10 @@
     if (ent.model) {
       ent.model.scale.setScalar(rarityScale);
     }
-    if (ent.lastRarity !== m.rarity) {
+    if (ent.lastRarity !== m.rarity || ent.lastType !== m.t) {
       ent.lastRarity = m.rarity;
-      const emHex = m.rarity === 'boss' ? 0x661111 : m.rarity === 'rare' ? 0x4a3605 : m.rarity === 'magic' ? 0x0b2244 : 0x000000;
+      ent.lastType = m.t;
+      const emHex = m.t === 'raid_pylon' ? 0x1098ad : m.t === 'gilded_goblin' ? 0x8a6d0b : m.rarity === 'boss' ? 0x661111 : m.rarity === 'rare' ? 0x4a3605 : m.rarity === 'magic' ? 0x0b2244 : 0x000000;
       for (const mat of ent.materials) {
         if (mat.emissive) mat.emissive.setHex(emHex);
       }
@@ -54,29 +55,17 @@
     let shieldKey = 'wep_shield';
 
     if (m.b === 'dummy') {
-      modelKey = 'Knight';
-      wepKey = null;
-      shieldKey = null;
-    } else if (m.t === 'cultist') {
-      modelKey = 'Skeleton_Mage';
-      wepKey = 'wep_staff';
-      shieldKey = null;
-    } else if (m.t === 'goatman') {
-      modelKey = 'Skeleton_Rogue';
-      wepKey = 'wep_axe';
-      shieldKey = null;
-    } else if (m.t === 'rhoa') {
-      modelKey = 'Skeleton_Rogue';
-      wepKey = 'wep_blade';
-      shieldKey = 'wep_blade';
-    } else if (m.t === 'devourer') {
-      modelKey = 'Skeleton_Minion';
-      wepKey = 'wep_axe';
-      shieldKey = 'wep_blade';
-    } else if (m.t === 'kitava_herald' || m.rarity === 'boss') {
-      modelKey = 'Skeleton_Warrior';
-      wepKey = 'wep_axe';
-      shieldKey = 'wep_shield';
+      modelKey = 'Knight'; wepKey = null; shieldKey = null;
+    } else if (m.t === 'cultist' || m.t === 'frost_sentinel' || m.t === 'storm_herald' || m.t === 'necromancer' || m.t === 'raid_pylon') {
+      modelKey = 'Skeleton_Mage'; wepKey = 'wep_staff'; shieldKey = null;
+    } else if (m.t === 'goatman' || m.t === 'blight_spitter' || m.t === 'gilded_goblin') {
+      modelKey = 'Skeleton_Rogue'; wepKey = 'wep_axe'; shieldKey = null;
+    } else if (m.t === 'rhoa' || m.t === 'void_stalker') {
+      modelKey = 'Skeleton_Rogue'; wepKey = 'wep_blade'; shieldKey = 'wep_blade';
+    } else if (m.t === 'devourer' || m.t === 'volatile_imp') {
+      modelKey = 'Skeleton_Minion'; wepKey = 'wep_axe'; shieldKey = 'wep_blade';
+    } else if (m.t === 'kitava_herald' || m.t === 'shield_juggernaut' || m.rarity === 'boss') {
+      modelKey = 'Skeleton_Warrior'; wepKey = 'wep_axe'; shieldKey = 'wep_shield';
     }
 
     const poolKey = `${modelKey}_${wepKey || 'none'}_${shieldKey || 'none'}`;
@@ -186,23 +175,24 @@
     return ent;
   }
 
-  // Telegraphed Ground Hazards (Vaal Flameblast / Molten Mortar / Boss Slam)
+  // Telegraphed Ground Hazards (Vaal Flameblast / Molten Mortar / Boss Slam / Soak Circles)
   function getOrCreateHazard3D(haz) {
     let ent = hazardEntities.get(haz.id);
     if (ent) return ent;
 
     const group = new THREE.Group();
     group.position.set(haz.x, 1.5, haz.y);
+    const isSoak = haz.kind === 'soak';
 
     const outerRing = new THREE.Mesh(
       new THREE.RingGeometry(haz.r * 0.92, haz.r, 40),
-      new THREE.MeshBasicMaterial({ color: 0xff3b3b, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+      new THREE.MeshBasicMaterial({ color: isSoak ? 0xffd43b : 0xff3b3b, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
     );
     outerRing.rotation.x = -Math.PI / 2;
 
     const innerFill = new THREE.Mesh(
       new THREE.CircleGeometry(haz.r, 40),
-      new THREE.MeshBasicMaterial({ color: 0xff2222, side: THREE.DoubleSide, transparent: true, opacity: 0.42 })
+      new THREE.MeshBasicMaterial({ color: isSoak ? 0x51cf66 : 0xff2222, side: THREE.DoubleSide, transparent: true, opacity: 0.42 })
     );
     innerFill.rotation.x = -Math.PI / 2;
     innerFill.scale.setScalar(0.1);

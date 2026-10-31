@@ -31,9 +31,10 @@
       const secs = String(rem % 60).padStart(2, '0');
       modeBadge.textContent = `Monster Level ${67 + mapDef.tier}`;
       waveTitle.textContent = `${mapDef.name} — Wave ${worldState.wave}`;
-      waveSub.textContent = worldState.portalsOpen
+      const delSub = worldState.deliriumRem > 0 ? ` • DELIRIUM FOG (${worldState.deliriumRem}s • ${worldState.deliriumKills || 0} Slain)` : '';
+      waveSub.textContent = (worldState.portalsOpen
         ? `Boss Slain • Extraction Portal Open at (0,0) • Endless Waves Active`
-        : `${mapDef.bossName} • ${mins}:${secs} • +${mapDef.lootQuantity}% Item Quantity`;
+        : `${mapDef.bossName} • ${mins}:${secs} • +${mapDef.lootQuantity}% Item Quantity`) + delSub;
 
       if (waveProgWrap) {
         waveProgWrap.classList.remove('hidden');
@@ -100,6 +101,9 @@
     }
 
     if (me) {
+      if (me.league === 'Hardcore' && modeBadge && !modeBadge.textContent.includes('HARDCORE')) {
+        modeBadge.textContent += ' • HARDCORE 💀';
+      }
       const lifePct = Math.max(0, Math.min(100, (me.hp / Math.max(1, me.maxHp)) * 100));
       const esPct = me.maxEs > 0 ? Math.max(0, Math.min(100, (me.es / me.maxEs) * 100)) : 0;
       document.getElementById('lifeFill').style.height = `${lifePct}%`;
@@ -110,38 +114,34 @@
 
       // Vaal Ultimate Socket [R]
       const vaalSouls = me.vaalSouls ?? (myProfile && myProfile.vaalSouls) ?? 0;
-      const vaalMax = me.vaalMaxSouls ?? (myProfile && myProfile.vaalMaxSouls) ?? 45;
+      const vaalMax = me.maxVaalSouls ?? me.vaalMaxSouls ?? (myProfile && myProfile.maxVaalSouls) ?? 60;
+      const vaalLock = me.vaalLock || 0;
       const vaalPct = Math.max(0, Math.min(100, Math.round((vaalSouls / Math.max(1, vaalMax)) * 100)));
       const vaalBtn = document.getElementById('vaalBtn');
       const vaalFill = document.getElementById('vaalSoulFill');
       const vaalText = document.getElementById('vaalSoulText');
       if (vaalFill) vaalFill.style.height = `${vaalPct}%`;
-      if (vaalText) vaalText.textContent = vaalSouls >= vaalMax ? 'RDY!' : `${vaalSouls}/${vaalMax}`;
-      if (vaalBtn) vaalBtn.classList.toggle('vaal-ready', vaalSouls >= vaalMax);
+      if (vaalText) {
+        vaalText.textContent = vaalLock > 0 ? `LOCK ${Math.ceil(vaalLock)}s` : (vaalSouls >= vaalMax ? 'RDY!' : `${vaalSouls}/${vaalMax}`);
+      }
+      if (vaalBtn) vaalBtn.classList.toggle('vaal-ready', vaalLock <= 0 && vaalSouls >= vaalMax);
 
-      // Rogue-Lite Dual-Loop Gold Counter (Run Gold in Map vs Stash Gold in Hideout)
+      // In-Run Gold Counter (hidden in Hideout; Gold is strictly In-Run Gold for Golden Chests & Rerolls!)
       const isRunMode = worldState.mode === 'RUN';
-      const goldVal = isRunMode
-        ? (me.runGold ?? me.gold ?? (myProfile && myProfile.runGold) ?? 0)
-        : (me.stashGold ?? (myProfile && myProfile.gold) ?? me.gold ?? 0);
+      const goldBar = document.querySelector('.poe-gold-chest-bar');
+      if (goldBar) goldBar.classList.toggle('hidden', !isRunMode);
+      const goldVal = me.runGold ?? me.gold ?? (myProfile && myProfile.runGold) ?? 0;
       const chestCost = me.nextChestCost ?? (myProfile && myProfile.nextChestCost) ?? 50;
       const goldEl = document.getElementById('hudGoldVal');
       const goldLbl = document.getElementById('hudGoldLbl');
       const costEl = document.getElementById('hudChestCost');
       const buyBtn = document.getElementById('buyChestBtn');
-      const bmBtn = document.getElementById('openBlackMarketBtn');
       if (goldEl) goldEl.textContent = goldVal;
-      if (goldLbl) {
-        const stashAmt = me.stashGold ?? (myProfile && myProfile.gold) ?? 0;
-        goldLbl.textContent = isRunMode ? `RUN GOLD (STASH: ${stashAmt}g)` : 'STASH GOLD';
-      }
+      if (goldLbl) goldLbl.textContent = 'RUN GOLD';
       if (costEl) costEl.textContent = chestCost;
       if (buyBtn) {
         buyBtn.classList.toggle('can-afford', goldVal >= chestCost);
         buyBtn.classList.toggle('hidden', !isRunMode);
-      }
-      if (bmBtn) {
-        bmBtn.classList.toggle('hidden', isRunMode);
       }
 
       const readyBtn = document.getElementById('readyToggleBtn');
@@ -181,13 +181,13 @@
     const allocEl = document.getElementById('treeAllocatedCount');
     if (allocEl) allocEl.textContent = allocatedNodesCount;
 
-    const displayGold = isRunMode ? (myProfile.runGold ?? 0) : (myProfile.gold ?? 0);
+    const goldBar = document.querySelector('.poe-gold-chest-bar');
+    if (goldBar) goldBar.classList.toggle('hidden', !isRunMode);
+    const displayGold = myProfile.runGold ?? myProfile.gold ?? 0;
     const goldEl = document.getElementById('hudGoldVal');
     if (goldEl) goldEl.textContent = displayGold;
     const goldLbl = document.getElementById('hudGoldLbl');
-    if (goldLbl) {
-      goldLbl.textContent = isRunMode ? `RUN GOLD (STASH: ${myProfile.gold ?? 0}g)` : 'STASH GOLD';
-    }
+    if (goldLbl) goldLbl.textContent = 'RUN GOLD';
     if (typeof myProfile.nextChestCost === 'number') {
       const costEl = document.getElementById('hudChestCost');
       if (costEl) costEl.textContent = myProfile.nextChestCost;
