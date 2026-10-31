@@ -44,7 +44,7 @@
       dropWeight: 0.24,
       implicits: { maxLife: 40 },
       affixes: [
-        { stat: 'headhunter', val: 1, binary: true, text: 'Killing a Rare monster steals its Modifiers for 20s (Up to 8 Stacks: +10% MORE Damage, +8% Speed, +8% AoE & +35 Life/Ward per stack)' },
+        { stat: 'headhunter', val: 1, binary: true, text: 'Killing a Rare monster steals its Modifiers for 20s (Up to 8 Stacks: +4% MORE Damage, +4% Speed, +4% AoE & +15 Life/Ward per stack)' },
         { stat: 'str', min: 20, max: 38, val: 28, text: '+{val} to Strength' },
         { stat: 'dex', min: 20, max: 38, val: 28, text: '+{val} to Dexterity' },
         { stat: 'maxLife', min: 40, max: 70, val: 55, text: '+{val} to Maximum Life' },

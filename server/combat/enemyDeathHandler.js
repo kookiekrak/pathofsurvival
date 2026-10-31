@@ -56,14 +56,14 @@ function onEnemyKilled(room, enemy, killer) {
           : (Math.random() < 0.25 ? 1 : 0);
   const goldGain = baseGoldGain > 0 ? Math.max(1, Math.round(baseGoldGain * tierGoldMult)) : 0;
 
-  // Un-inflated In-Run Rogue-lite XP (tier-independent so entering higher-tier maps NEVER grants 10 levels instantly!)
+  // Un-inflated In-Run Rogue-lite XP (tier-independent, paced so players earn ~6-8 meaningful upgrades per map run!)
   const baseRunXpGain = (enemy.rarity === 'boss' || enemy.rarity === 'unique')
-    ? 190
+    ? 140
     : enemy.rarity === 'rare'
-      ? 42
+      ? 30
       : enemy.rarity === 'magic'
-        ? 18
-        : 9;
+        ? 13
+        : 6;
 
   // Balanced Vaal Soul Gain: Respects 8s Soul Gain Prevention (vaalLockTimer), Vaal Kill Exclusion, and Density Budget Cap!
   const rawSoulGain = enemy.rarity === 'boss' ? 10 : enemy.rarity === 'rare' ? 4 : enemy.rarity === 'magic' ? 2 : (Math.random() < 0.65 ? 1 : 0);
@@ -125,7 +125,7 @@ function onEnemyKilled(room, enemy, killer) {
         if (p.runXp >= p.runXpNext) {
           p.runXp -= p.runXpNext;
           p.runLevel++;
-          p.runXpNext = Math.round(p.runXpNext * 1.45 + 85);
+          p.runXpNext = Math.round(p.runXpNext * 1.58 + 115);
           // Clamp any overflow so a single kill never chains multiple instant levels
           if (p.runXp >= p.runXpNext) {
             p.runXp = p.runXpNext - 1;
@@ -179,16 +179,17 @@ function onEnemyKilled(room, enemy, killer) {
   const mobIIR = enemy.rarityBonusPct || (Array.isArray(enemy.mods) ? enemy.mods.length * 90 : 0);
   const totalRarityBonus = mapIIR + mobIIR;
   const iirMult = 1 + totalRarityBonus / 100;
-  const baseIlvl = (mapTier - 1) * 3 + Math.ceil((room.wave || 1) / 2);
+  // Strict PoE Map Tier Item Level: Normal = baseIlvl, Magic = +1, Rare = +2, Boss = +3 (never inflates by farming endless waves in T1!)
+  const baseIlvl = (mapTier - 1) * 3 + 1;
 
   if (enemy.rarity === 'boss' || enemy.rarity === 'unique') {
-    const bossIlvl = baseIlvl + 2;
+    const bossIlvl = baseIlvl + 3;
     const bossIIR = totalRarityBonus + (enemy.isPinnacleRaid ? 320 : 180);
     // Bosses drop 1 guaranteed high-rarity PoE 2 Currency Orb & 1 guaranteed high-rarity item (50% chance for a 2nd on Raid Boss)
     spawnCurrencyDrop(room, enemy.x - 18, enemy.y, null, bossIIR);
     const bossGearCount = (enemy.isPinnacleRaid && Math.random() < 0.5) ? 2 : 1;
     for (let i = 0; i < bossGearCount; i++) {
-      const uniqueChance = Math.min(0.18, (0.018 + (mapTier - 1) * 0.002) * Math.sqrt(iirMult));
+      const uniqueChance = Math.min(0.045, (0.008 + (mapTier - 1) * 0.0012) * Math.sqrt(iirMult));
       spawnGroundDrop(room, enemy.x + 18 + i * 20, enemy.y, 'gear', Math.random() < uniqueChance ? 'unique' : 'rare', bossIlvl, bossIIR);
     }
     if (Math.random() < 0.05) {
@@ -237,8 +238,21 @@ function onEnemyKilled(room, enemy, killer) {
       : 0.0012) * breachMult;
 
   if (Math.random() < gearChance) {
-    const dropIlvl = baseIlvl + (enemy.rarity === 'rare' ? 1 : 0);
-    spawnGroundDrop(room, enemy.x, enemy.y, 'gear', null, dropIlvl, totalRarityBonus);
+    const dropIlvl = baseIlvl + (enemy.rarity === 'rare' ? 2 : enemy.rarity === 'magic' ? 1 : 0);
+    let dropRarity = null;
+    if (enemy.rarity === 'rare') {
+      const uRoll = Math.min(0.0035, 0.0006 * iirMult);
+      const rRoll = Math.min(0.86, (0.48 + modCount * 0.08) * Math.pow(iirMult, 0.25));
+      const roll = Math.random();
+      dropRarity = roll < uRoll ? 'unique' : roll < uRoll + rRoll ? 'rare' : 'magic';
+    } else if (enemy.rarity === 'magic') {
+      dropRarity = Math.random() < Math.min(0.36, 0.14 * Math.sqrt(iirMult)) ? 'rare' : 'magic';
+    } else {
+      const roll = Math.random();
+      const rThresh = Math.min(0.14, 0.03 * Math.sqrt(iirMult));
+      dropRarity = roll < rThresh ? 'rare' : roll < rThresh + 0.42 ? 'magic' : 'normal';
+    }
+    spawnGroundDrop(room, enemy.x, enemy.y, 'gear', dropRarity, dropIlvl, totalRarityBonus);
   }
   if (Math.random() < currencyChance) {
     spawnCurrencyDrop(room, enemy.x + randInt(-14, 14), enemy.y + randInt(-14, 14), null, totalRarityBonus);

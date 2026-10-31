@@ -182,7 +182,9 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
     skillRings: [], runUpgrades: {}, gold, runGold: 0, startingRunGold: 0, earnedRunGold: 0,
     draftRerolls: 0, currentMapId: 'strand', chestsOpened: 0, nextChestCost: 50, targetChestId: null,
     pendingDrafts: [], inventory, accountStash, buybackItems: [],
-    vendorStock: Array.isArray(currencies._vendorStock) && currencies._vendorStock.length === 6 ? currencies._vendorStock : [],
+    vendorStock: Array.isArray(currencies._vendorStock) && currencies._vendorStock.length === 6
+      ? currencies._vendorStock.map(it => (it ? normalizeItemAffixRanges(it.rarity === 'unique' ? normalizeUniqueItem(it) : it) : it))
+      : [],
     currencies, x: randInt(-90, 90), y: randInt(50, 150), vx: 0, vy: 0, aimX: 0, aimY: -1,
     input: { up: false, down: false, left: false, right: false, firing: false },
     hp: 130, maxHp: 130, es: 0, maxEs: 0, esDelayTimer: 0, flaskCharges,

@@ -3,8 +3,8 @@ const GameData = global.GameData || require('../../public/shared/gameData.js');
 
 function buildUniqueFromTemplate(tpl, ilvl = 1, existingId = null) {
   const cleanIlvl = Math.max(1, Math.floor(ilvl || 1));
-  const flatScale = 1 + Math.max(0, cleanIlvl - 1) * 0.28 + Math.pow(Math.max(0, cleanIlvl - 1), 1.35) * 0.04;
-  const pctScale = 1 + Math.floor(Math.max(0, cleanIlvl - 1) / 8) * 0.08;
+  const flatScale = 1 + Math.max(0, cleanIlvl - 1) * 0.05;
+  const pctScale = 1.0;
   const flatKeys = new Set(['flatDmg', 'maxLife', 'maxEs', 'armor', 'evasion', 'lifeRegen', 'lifeOnHit']);
   const scaledImplicits = {};
   for (const [k, v] of Object.entries(tpl.implicits || {})) {
@@ -82,14 +82,6 @@ function normalizeUniqueItem(item) {
   if (!item || item.rarity !== 'unique') return item;
   const tpl = (GameData.UNIQUE_TEMPLATES || []).find(u => u.name === item.name) || GameData.UNIQUE_TEMPLATES[0];
   if (!tpl) return item;
-  if (Array.isArray(item.affixes) && item.affixes.some(a => a && typeof a.rollMin === 'number')) {
-    return {
-      ...item,
-      baseName: tpl.baseName || item.baseName,
-      slot: tpl.slot || item.slot,
-      flavor: tpl.flavor || item.flavor
-    };
-  }
   return buildUniqueFromTemplate(tpl, item.ilvl || item.itemLevel || 1, item.id);
 }
 
@@ -220,9 +212,9 @@ function generateGearItem(slotArg, rarityArg, itemLevel = 1, rarityBonusPct = 0)
   }
 
   const base = pick(GameData.GEAR_BASES[slot]);
-  // Scale flat implicits (flatDmg, maxLife, armor, evasion, maxEs) smoothly with ilvl across T1-T16!
-  const flatImplicitScale = 1 + Math.max(0, ilvl - 1) * 0.28 + Math.pow(Math.max(0, ilvl - 1), 1.35) * 0.04;
-  const pctImplicitScale = 1 + Math.floor(Math.max(0, ilvl - 1) / 8) * 0.08;
+  // Scale flat implicits (flatDmg, maxLife, armor, evasion, maxEs) moderately (+5.5% per ilvl) across T1-T16!
+  const flatImplicitScale = 1 + Math.max(0, ilvl - 1) * 0.055;
+  const pctImplicitScale = 1.0;
   const flatImplicitKeys = new Set(['flatDmg', 'maxLife', 'maxEs', 'armor', 'evasion', 'lifeRegen']);
   const scaledImplicits = {};
   for (const [k, v] of Object.entries(base.implicits || {})) {

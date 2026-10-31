@@ -9,25 +9,25 @@ function buildSkillExecution(player, setup) {
   const s = player.stats;
   const activeLv = (setup.activeLevel || 1) + (s.allGemLevels || 0);
 
-  // Gem Level Scaling: +20% MORE Damage, +3% Area & 3% Faster Cooldown per Gem Level above 1
-  const gemLevelMulti = Math.pow(1.20, activeLv - 1);
+  // Controlled Gem Level Scaling: +11% linear Damage, +2.5% Area & 1.5% Faster Cooldown per Gem Level above 1
+  const gemLevelMulti = 1 + (activeLv - 1) * 0.11;
 
   // Add flat base damage from Weapon + Skill Tree + Gear (scaled by cooldown effectiveness)
   const flatEffectiveness = (active.cooldown || 0.85) < 0.55 ? 0.55 : 1.0;
   const addedFlat = (s.flatDmg || 0) * flatEffectiveness;
   let dmgMin = (active.baseDamage[0] + addedFlat * 0.85) * gemLevelMulti;
   let dmgMax = (active.baseDamage[1] + addedFlat * 1.15) * gemLevelMulti;
-  let cooldown = active.cooldown * Math.pow(0.97, activeLv - 1);
+  let cooldown = active.cooldown * Math.pow(0.985, activeLv - 1);
   let projCount = (active.projCount || 1) + (s.extraProj || 0);
   let chains = (active.chains || 0) + (s.extraChain || 0);
   let pierceCount = (active.pierce || 0) + (s.pierceCount || 0);
-  let radius = (active.radius || 32) * (1 + (activeLv - 1) * 0.03);
-  let repeatCount = (s.mirageEcho > 0 && Math.random() < 0.55) ? 1 : 0;
+  let radius = (active.radius || 32) * (1 + (activeLv - 1) * 0.025);
+  let repeatCount = (s.mirageEcho > 0 && Math.random() < 0.50) ? 1 : 0;
   let lifeOnHit = s.lifeOnHit || 0;
   let bonusCritChance = 0;
   let bonusCritMulti = 0;
 
-  let moreMulti = 1 + (s.globalDmgMulti || 0) / 100;
+  let moreMulti = Math.min(2.2, 1 + (s.globalDmgMulti || 0) / 100);
   if (active.damageType !== 'physical' && s.eleMoreMulti > 0) {
     moreMulti *= 1 + s.eleMoreMulti / 100;
   }
@@ -46,22 +46,22 @@ function buildSkillExecution(player, setup) {
     const supLv = (sup.level || 1) + (s.supportLevelBonus || 0);
     const m = sup.mods || {};
     if (m.flatBonusDamage) {
-      const flat = m.flatBonusDamage * (1 + (supLv - 1) * 0.25);
+      const flat = m.flatBonusDamage * (1 + (supLv - 1) * 0.18);
       dmgMin += flat;
       dmgMax += flat;
     }
-    if (m.extraProjectiles) projCount += m.extraProjectiles + Math.floor((supLv - 1) * 0.5);
-    if (m.extraChains) chains += m.extraChains + Math.floor((supLv - 1) * 0.5);
-    if (m.extraPierce) pierceCount += m.extraPierce + Math.floor((supLv - 1) * 0.5);
+    if (m.extraProjectiles) projCount += m.extraProjectiles + Math.floor((supLv - 1) * 0.34);
+    if (m.extraChains) chains += m.extraChains + Math.floor((supLv - 1) * 0.34);
+    if (m.extraPierce) pierceCount += m.extraPierce + Math.floor((supLv - 1) * 0.34);
     if (m.returnProj) setup._returnProj = true;
-    if (m.cooldownMulti) cooldown *= Math.max(0.58, m.cooldownMulti - (supLv - 1) * 0.03);
-    if (m.damageMulti) moreMulti *= m.damageMulti + (supLv - 1) * 0.06;
-    if (m.physMulti) moreMulti *= m.physMulti + (supLv - 1) * 0.06;
-    if (m.areaMulti) areaScale *= m.areaMulti + (supLv - 1) * 0.05;
+    if (m.cooldownMulti) cooldown *= Math.max(0.68, m.cooldownMulti - (supLv - 1) * 0.015);
+    if (m.damageMulti) moreMulti *= m.damageMulti + (supLv - 1) * 0.03;
+    if (m.physMulti) moreMulti *= m.physMulti + (supLv - 1) * 0.03;
+    if (m.areaMulti) areaScale *= m.areaMulti + (supLv - 1) * 0.025;
     if (m.repeatCount) repeatCount += m.repeatCount;
-    if (m.lifeOnHit) lifeOnHit += m.lifeOnHit + (supLv - 1);
-    if (m.bonusCritChance) bonusCritChance += m.bonusCritChance + (supLv - 1) * 3;
-    if (m.bonusCritMulti) bonusCritMulti += m.bonusCritMulti + (supLv - 1) * 8;
+    if (m.lifeOnHit) lifeOnHit += m.lifeOnHit + Math.floor((supLv - 1) * 0.5);
+    if (m.bonusCritChance) bonusCritChance += m.bonusCritChance + (supLv - 1) * 1.5;
+    if (m.bonusCritMulti) bonusCritMulti += m.bonusCritMulti + (supLv - 1) * 4;
   }
 
   // Unarmed / Naked Penalties: Fighting without a weapon deals 82% LESS damage; completely naked deals 90% LESS!
@@ -75,14 +75,15 @@ function buildSkillExecution(player, setup) {
     gearPenaltyMulti *= 0.55;
   }
 
-  const levelScale = 1 + (player.level - 1) * 0.12;
-  const totalMulti = (1 + incPct / 100) * moreMulti * levelScale * gearPenaltyMulti;
+  const activeSkillCount = Math.max(1, (player.gemLinks || []).filter(g => g && g.activeGem).length);
+  const multiSkillNorm = 1 / (1 + (activeSkillCount - 1) * 0.24);
+  const levelScale = 1 + (player.level - 1) * 0.025;
+  const totalMulti = (1 + incPct / 100) * moreMulti * levelScale * gearPenaltyMulti * multiSkillNorm;
   dmgMin = Math.max(1, Math.round(dmgMin * totalMulti));
   dmgMax = Math.max(dmgMin, Math.round(dmgMax * totalMulti));
 
-  // Holding LMB (Focus-Fire) grants +25% Cooldown Recovery!
-  const firingCdrBonus = player.input && player.input.firing ? 25 : 0;
-  cooldown = Math.max(0.18, cooldown / (1 + ((s.cdrPct || 0) + firingCdrBonus) / 100));
+  const effCdr = Math.min(85, (s.cdrPct || 0) * 0.75);
+  cooldown = Math.max(0.28, cooldown / (1 + effCdr / 100));
   radius = Math.round(radius * areaScale);
 
   const critChance = s.resoluteTechnique ? 0 : Math.min(95, s.finalCritChance + bonusCritChance);

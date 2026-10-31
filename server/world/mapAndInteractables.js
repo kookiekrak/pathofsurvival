@@ -238,7 +238,7 @@ function activateInteractable(room, player, it) {
     addRoomChat(room, 'Shrine', `${player.name} activated ${it.label} for 28s!`, it.color);
     broadcastRoomEvent(room, { type: 'announcement', title: it.label, subtitle: '28s Party Shrine Boon Active!', color: it.color });
   } else if (it.kind === 'essence') {
-    const dropIlvl = (mapDef.tier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
+    const dropIlvl = (mapDef.tier - 1) * 3 + 3;
     room.fxEvents.push({ kind: 'nova', x: it.x, y: it.y, r: 120, color: '#3bc9db' });
     spawnMonster(room, false, { x: it.x + 55, y: it.y, exact: true }, 'rare');
     spawnMonster(room, false, { x: it.x - 55, y: it.y, exact: true }, 'rare');
@@ -287,7 +287,7 @@ function activateInteractable(room, player, it) {
       const gy = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(it.y + Math.sin(ang) * ambushDist)));
       spawnMonster(room, false, { x: gx, y: gy, exact: true }, k === 0 ? 'rare' : k === 1 ? 'magic' : 'normal');
     }
-    const dropIlvl = (mapDef.tier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 1;
+    const dropIlvl = (mapDef.tier - 1) * 3 + 2;
     const boxRarity = Math.random() < 0.005 ? 'unique' : (Math.random() < 0.55 ? 'rare' : 'magic');
     if (it.sub === 'arcanist' || Math.random() < 0.25) {
       spawnGroundDrop(room, it.x - 14, it.y, 'currency', null, 1, mapIIR + 140);

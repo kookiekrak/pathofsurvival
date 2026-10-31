@@ -179,65 +179,55 @@
   };
 
   const AFFIX_POOL = [
-    { id: 'flat_dmg', label: '+{val} to Base Skill & Weapon Damage', stat: 'flatDmg', min: 6, max: 24 },
-    { id: 'life', label: '+{val} to Maximum Life', stat: 'maxLife', min: 18, max: 58 },
-    { id: 'life_pct', label: '{val}% increased Maximum Life', stat: 'maxLifePct', min: 5, max: 16 },
-    { id: 'es', label: '+{val} to Maximum Energy Shield', stat: 'maxEs', min: 15, max: 48 },
-    { id: 'armor', label: '+{val} to Armour', stat: 'armor', min: 28, max: 96 },
-    { id: 'evasion', label: '+{val} to Evasion Rating', stat: 'evasion', min: 28, max: 96 },
-    { id: 'phys_dmg', label: '{val}% increased Physical Damage', stat: 'physDmgPct', min: 14, max: 36 },
-    { id: 'ele_dmg', label: '{val}% increased Elemental Damage', stat: 'eleDmgPct', min: 14, max: 36 },
-    { id: 'spell_dmg', label: '{val}% increased Spell Damage', stat: 'spellDmgPct', min: 14, max: 36 },
-    { id: 'proj_dmg', label: '{val}% increased Projectile Damage', stat: 'projDmgPct', min: 14, max: 34 },
-    { id: 'aoe_dmg', label: '{val}% increased Area Damage', stat: 'aoeDmgPct', min: 14, max: 34 },
-    { id: 'area_rad', label: '{val}% increased Area of Effect Radius', stat: 'areaPct', min: 6, max: 18 },
-    { id: 'atk_spd', label: '{val}% increased Skill Cooldown Recovery', stat: 'cdrPct', min: 5, max: 14 },
-    { id: 'crit_chance', label: '+{val}% to Critical Strike Chance', stat: 'critChance', min: 12, max: 30 },
-    { id: 'crit_multi', label: '+{val}% to Global Critical Strike Multiplier', stat: 'critMulti', min: 12, max: 28 },
-    { id: 'move_spd', label: '{val}% increased Movement Speed', stat: 'moveSpeedPct', min: 7, max: 18 },
-    { id: 'all_res', label: '+{val}% to all Elemental Resistances', stat: 'allRes', min: 7, max: 18 },
-    { id: 'life_regen', label: 'Regenerate {val} Life per second', stat: 'lifeRegen', min: 3, max: 10 },
-    { id: 'life_on_hit', label: '+{val} Life gained for each Enemy Hit', stat: 'lifeOnHit', min: 2, max: 5 },
-    { id: 'str', label: '+{val} to Strength', stat: 'str', min: 10, max: 28 },
-    { id: 'dex', label: '+{val} to Dexterity', stat: 'dex', min: 10, max: 28 },
-    { id: 'int', label: '+{val} to Intelligence', stat: 'int', min: 10, max: 28 }
+    { id: 'flat_dmg', label: '+{val} to Base Skill & Weapon Damage', stat: 'flatDmg', min: 3, max: 28 },
+    { id: 'life', label: '+{val} to Maximum Life', stat: 'maxLife', min: 15, max: 95 },
+    { id: 'life_pct', label: '{val}% increased Maximum Life', stat: 'maxLifePct', min: 4, max: 14 },
+    { id: 'es', label: '+{val} to Maximum Energy Shield', stat: 'maxEs', min: 12, max: 80 },
+    { id: 'armor', label: '+{val} to Armour', stat: 'armor', min: 24, max: 160 },
+    { id: 'evasion', label: '+{val} to Evasion Rating', stat: 'evasion', min: 24, max: 160 },
+    { id: 'phys_dmg', label: '{val}% increased Physical Damage', stat: 'physDmgPct', min: 10, max: 38 },
+    { id: 'ele_dmg', label: '{val}% increased Elemental Damage', stat: 'eleDmgPct', min: 10, max: 38 },
+    { id: 'spell_dmg', label: '{val}% increased Spell Damage', stat: 'spellDmgPct', min: 10, max: 38 },
+    { id: 'proj_dmg', label: '{val}% increased Projectile Damage', stat: 'projDmgPct', min: 10, max: 36 },
+    { id: 'aoe_dmg', label: '{val}% increased Area Damage', stat: 'aoeDmgPct', min: 10, max: 36 },
+    { id: 'area_rad', label: '{val}% increased Area of Effect Radius', stat: 'areaPct', min: 5, max: 16 },
+    { id: 'atk_spd', label: '{val}% increased Skill Cooldown Recovery', stat: 'cdrPct', min: 4, max: 14 },
+    { id: 'crit_chance', label: '+{val}% to Critical Strike Chance', stat: 'critChance', min: 10, max: 32 },
+    { id: 'crit_multi', label: '+{val}% to Global Critical Strike Multiplier', stat: 'critMulti', min: 10, max: 30 },
+    { id: 'move_spd', label: '{val}% increased Movement Speed', stat: 'moveSpeedPct', min: 5, max: 16 },
+    { id: 'all_res', label: '+{val}% to all Elemental Resistances', stat: 'allRes', min: 6, max: 20 },
+    { id: 'life_regen', label: 'Regenerate {val} Life per second', stat: 'lifeRegen', min: 2, max: 14 },
+    { id: 'life_on_hit', label: '+{val} Life gained for each Enemy Hit', stat: 'lifeOnHit', min: 1, max: 6 },
+    { id: 'str', label: '+{val} to Strength', stat: 'str', min: 8, max: 32 },
+    { id: 'dex', label: '+{val} to Dexterity', stat: 'dex', min: 8, max: 32 },
+    { id: 'int', label: '+{val} to Intelligence', stat: 'int', min: 8, max: 32 }
   ];
 
   const AFFIX_TIER_BRACKETS = [
-    { tierRank: 6, tierNum: 6, tierName: 'T6', minIlvl: 1,  minFrac: 0.00, maxFrac: 0.22 },
-    { tierRank: 5, tierNum: 5, tierName: 'T5', minIlvl: 6,  minFrac: 0.22, maxFrac: 0.44 },
-    { tierRank: 4, tierNum: 4, tierName: 'T4', minIlvl: 13, minFrac: 0.44, maxFrac: 0.68 },
-    { tierRank: 3, tierNum: 3, tierName: 'T3', minIlvl: 21, minFrac: 0.68, maxFrac: 0.92 },
-    { tierRank: 2, tierNum: 2, tierName: 'T2', minIlvl: 30, minFrac: 0.92, maxFrac: 1.18 },
-    { tierRank: 1, tierNum: 1, tierName: 'T1', minIlvl: 40, minFrac: 1.18, maxFrac: 1.48 }
+    { tierRank: 6, tierNum: 6, tierName: 'T6', minIlvl: 1,  minFrac: 0.00, maxFrac: 0.16 },
+    { tierRank: 5, tierNum: 5, tierName: 'T5', minIlvl: 6,  minFrac: 0.17, maxFrac: 0.34 },
+    { tierRank: 4, tierNum: 4, tierName: 'T4', minIlvl: 13, minFrac: 0.35, maxFrac: 0.54 },
+    { tierRank: 3, tierNum: 3, tierName: 'T3', minIlvl: 21, minFrac: 0.55, maxFrac: 0.76 },
+    { tierRank: 2, tierNum: 2, tierName: 'T2', minIlvl: 30, minFrac: 0.77, maxFrac: 1.00 },
+    { tierRank: 1, tierNum: 1, tierName: 'T1', minIlvl: 40, minFrac: 1.01, maxFrac: 1.28 }
   ];
 
-  function computeAffixTierRange(affix, ilvl = 1) {
+  function computeAffixTierRange(affix) {
     if (!affix) return null;
-    if (typeof affix.rollMin === 'number' && typeof affix.rollMax === 'number') {
-      return { rollMin: affix.rollMin, rollMax: affix.rollMax, baseTier: affix.baseTier || String(affix.tierName || 'T6').split(' ')[0] };
-    }
-    const cleanIlvl = Math.max(1, Math.floor(ilvl || 1));
     const poolDef = AFFIX_POOL.find(p => p.id === affix.id || p.stat === affix.stat);
-    if (!poolDef) return null;
+    if (!poolDef) {
+      if (typeof affix.rollMin === 'number' && typeof affix.rollMax === 'number') {
+        return { rollMin: affix.rollMin, rollMax: affix.rollMax, baseTier: affix.baseTier || String(affix.tierName || 'T6').split(' ')[0] };
+      }
+      return null;
+    }
     const rawTierStr = String(affix.baseTier || affix.tierName || (affix.tierNum ? `T${affix.tierNum}` : 'T6')).split(' ')[0];
     const bracket = AFFIX_TIER_BRACKETS.find(b => b.tierName === rawTierStr || b.tierRank === affix.tierRank || b.tierNum === affix.tierNum) || AFFIX_TIER_BRACKETS[0];
     const baseMin = typeof poolDef.min === 'number' ? poolDef.min : 10;
     const baseMax = typeof poolDef.max === 'number' ? poolDef.max : 30;
     const span = Math.max(1, baseMax - baseMin);
-    let tMin;
-    let tMax;
-    if (bracket.tierRank === 1) {
-      tMin = Math.max(baseMax, Math.round(baseMax * bracket.minFrac));
-      tMax = Math.max(tMin + 1, Math.round(baseMax * bracket.maxFrac));
-    } else {
-      tMin = Math.max(1, Math.round(baseMin + span * bracket.minFrac));
-      tMax = Math.max(tMin + 1, Math.round(baseMin + span * bracket.maxFrac));
-    }
-    const isFlatStat = ['flatDmg', 'maxLife', 'maxEs', 'armor', 'evasion', 'lifeRegen', 'lifeOnHit'].includes(poolDef.stat);
-    const flatIlvlMult = isFlatStat ? (1 + Math.max(0, cleanIlvl - 1) * 0.28 + Math.pow(Math.max(0, cleanIlvl - 1), 1.35) * 0.04) : (1 + Math.floor(Math.max(0, cleanIlvl - 1) / 8) * 0.08);
-    const rollMin = Math.max(1, Math.round(tMin * flatIlvlMult));
-    const rollMax = Math.max(rollMin + 1, Math.round(tMax * flatIlvlMult));
+    const rollMin = Math.max(1, Math.round(baseMin + span * bracket.minFrac));
+    const rollMax = Math.max(rollMin + 1, Math.round(baseMin + span * bracket.maxFrac));
     return { rollMin, rollMax, baseTier: bracket.tierName, labelTemplate: poolDef.label };
   }
 

@@ -73,10 +73,10 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
 
   // Compounding Wave & Map Tier HP, Armor, Speed + Damage Scaling
   const w = Math.max(1, room.wave || 1);
-  const waveHpMult = Math.pow(1.25, w - 1) * (1 + (w - 1) * 0.15);
+  const waveHpMult = Math.pow(1.28, w - 1) * (1 + (w - 1) * 0.18);
   const totalHpScale = mapDef.monsterScale * partyMult * waveHpMult * modHpMult;
   const tierDmgScale = mapDef.dmgScale || Math.pow(mapDef.monsterScale, 0.72);
-  const waveDmgMult = Math.pow(1.125, w - 1) * (1 + (w - 1) * 0.05) * tierDmgScale * modDmgMult;
+  const waveDmgMult = Math.pow(1.135, w - 1) * (1 + (w - 1) * 0.055) * tierDmgScale * modDmgMult;
   const waveSpeedMult = Math.min(1.55, 1 + (w - 1) * 0.032);
   const tierArmor = (mapDef.monsterArmor || 0) * modArmorMult;
   const tierSpeedScale = mapDef.speedScale || (1 + (mapTier - 1) * 0.12);
@@ -89,12 +89,12 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
       if (m.rarity !== 'boss') room.enemies.delete(id);
     }
     const bossId = uid('m');
-    const bossHp = Math.round(6400 * totalHpScale);
+    const bossHp = Math.round(5200 * totalHpScale);
     const bossObj = {
       id: bossId, name: mapDef.bossName, typeId: 'kitava_herald', rarity: 'boss',
       mods: ['Gargantuan', 'Flameweaver', 'Relentless'], x, y,
       hp: bossHp, maxHp: bossHp,
-      armor: Math.round(tierArmor * 1.45),
+      armor: Math.round(tierArmor * 1.25),
       speed: Math.min(275, Math.round(142 * tierSpeedScale * modSpdMult)),
       radius: 36, damage: Math.round(68 * waveDmgMult),
       xp: Math.round(360 * xpScale),
@@ -147,16 +147,16 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
     }
     // Each modifier on a Rare monster grants +90% Increased Item Rarity and scales HP & Damage!
     rarityBonusPct = chosenMods.length * 90;
-    hpMulti = 1 + chosenMods.length * 0.42;
-    dmgMulti = 1 + chosenMods.length * 0.16;
+    hpMulti = 1.45 + chosenMods.length * 0.52;
+    dmgMulti = 1.10 + chosenMods.length * 0.16;
     speedMulti = Math.min(1.32, speedMulti);
     color = '#ffd43b';
   } else if (rarity === 'magic') {
     const mod1 = pick(GameData.RARE_MODS);
     mods.push(mod1.name);
     rarityBonusPct = 45;
-    hpMulti = mod1.hpMulti || 1.45;
-    dmgMulti = mod1.dmgMulti || 1.15;
+    hpMulti = (mod1.hpMulti || 1.45) * 1.15;
+    dmgMulti = (mod1.dmgMulti || 1.15) * 1.08;
     speedMulti *= Math.min(1.18, mod1.speedMulti || 1.1);
     radiusMulti = mod1.radiusMulti || 1.12;
     color = '#4dabf7';

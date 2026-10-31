@@ -155,8 +155,9 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
         for (let k = 0; k < rewardOrbs; k++) {
           spawnCurrencyDrop(room, anchor.x + randInt(-28, 28), anchor.y + randInt(-28, 28), null, dTier * 140);
         }
-        const dropIlvl = (mapTier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
-        spawnGroundDrop(room, anchor.x, anchor.y, 'gear', null, dropIlvl, dTier * 150);
+        const dropIlvl = (mapTier - 1) * 3 + 3;
+        const delRarity = dTier >= 4 ? 'rare' : (Math.random() < 0.65 ? 'rare' : 'magic');
+        spawnGroundDrop(room, anchor.x, anchor.y, 'gear', delRarity, dropIlvl, dTier * 150);
         addRoomChat(room, 'Delirium', `The Delirium Fog dissipated — Tier ${dTier} Rewards dropped (${rewardOrbs} Orbs & High-Rarity Gear)!`, '#dee2e6');
         broadcastRoomEvent(room, {
           type: 'announcement',
@@ -195,9 +196,9 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
               sendPrivateProfile(p);
             }
           }
-          const dropIlvl = (mapTier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
+          const dropIlvl = (mapTier - 1) * 3 + 3;
           spawnCurrencyDrop(room, rit.x - 16, rit.y, null, 340 + mapTier * 25);
-          const ritRarity = Math.random() < 0.04 ? 'unique' : 'rare';
+          const ritRarity = Math.random() < 0.015 ? 'unique' : 'rare';
           spawnGroundDrop(room, rit.x + 16, rit.y + 12, 'gear', ritRarity, dropIlvl, 350 + mapTier * 30);
           addRoomChat(room, 'Ritual', 'Blood Ritual Complete! All 3 waves vanquished — Tribute Loot & Boon Draft unleashed!', '#ff4d6d');
           broadcastRoomEvent(room, {
@@ -277,7 +278,7 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
             kind: 'nova', x: Math.round(b.x), y: Math.round(b.y),
             r: Math.round(b.radius * 0.65), color: '#cc5de8'
           });
-          const dropIlvl = (mapTier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
+          const dropIlvl = (mapTier - 1) * 3 + 3;
           if (Math.random() < 0.45) {
             spawnCurrencyDrop(room, b.x - 14, b.y, null, 220 + mapTier * 20);
           }

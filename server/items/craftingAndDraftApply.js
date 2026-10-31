@@ -222,7 +222,7 @@ function applyCurrencyToItem(player, currencyId, targetLocation, slotOrIdx) {
 
 function generatePlayerVendorStock(player, mapTierOverride = null) {
   const tier = Math.max(1, mapTierOverride || (player && player.bestTier) || 1);
-  const baseIlvl = Math.max(1, Math.min(48, Math.max((player && player.level) || 1, (tier - 1) * 3 + 2)));
+  const baseIlvl = Math.max(1, Math.min(48, (tier - 1) * 3 + 2));
   const slotPlan = [
     'weapon',
     'body',

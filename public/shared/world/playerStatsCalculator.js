@@ -14,8 +14,8 @@
       str: base.str + (charLv - 1),
       dex: base.dex + (charLv - 1),
       int: base.int + (charLv - 1),
-      flatDmg: Math.floor((charLv - 1) * 1.2),
-      maxLife: base.maxLife + (charLv - 1) * 12,
+      flatDmg: Math.floor((charLv - 1) * 0.4),
+      maxLife: base.maxLife + (charLv - 1) * 8,
       maxEs: base.maxEs || 0,
       armor: base.armor || 0,
       evasion: base.evasion || 0,
@@ -104,7 +104,7 @@
       s.equippedCount++;
       const ilvl = Math.max(1, item.ilvl || item.itemLevel || 1);
       if (slot === 'weapon' && (!item.implicits || !item.implicits.flatDmg)) {
-        s.flatDmg += Math.round(15 * (1 + Math.max(0, ilvl - 1) * 0.45));
+        s.flatDmg += Math.round(15 * (1 + Math.max(0, ilvl - 1) * 0.055));
       }
       if (item.implicits) {
         for (const [k, v] of Object.entries(item.implicits)) {
@@ -267,12 +267,12 @@
     // Headhunter stacks (Up to 8 Stacks)
     const hhStacks = player.hhStacks || 0;
     if (hhStacks > 0) {
-      s.moveSpeedPct += Math.min(64, hhStacks * 8);
-      s.cdrPct += Math.min(64, hhStacks * 8);
-      s.areaPct += Math.min(64, hhStacks * 8);
-      s.globalDmgMulti += Math.min(80, hhStacks * 10);
-      s.maxLife += hhStacks * 35;
-      if (!s.noEs) s.maxEs += hhStacks * 35;
+      s.moveSpeedPct += Math.min(32, hhStacks * 4);
+      s.cdrPct += Math.min(32, hhStacks * 4);
+      s.areaPct += Math.min(32, hhStacks * 4);
+      s.globalDmgMulti += Math.min(32, hhStacks * 4);
+      s.maxLife += hhStacks * 20;
+      if (!s.noEs) s.maxEs += hhStacks * 20;
     }
 
     s.extraProj = Math.min(2, s.extraProj || 0);
@@ -292,7 +292,7 @@
     if (!item) return totals;
     const ilvl = Math.max(1, item.ilvl || item.itemLevel || 1);
     if (item.slot === 'weapon' && (!item.implicits || !item.implicits.flatDmg)) {
-      totals.flatDmg = Math.round(15 * (1 + Math.max(0, ilvl - 1) * 0.45));
+      totals.flatDmg = Math.round(15 * (1 + Math.max(0, ilvl - 1) * 0.055));
     }
     if (item.implicits) {
       for (const [k, v] of Object.entries(item.implicits)) {
