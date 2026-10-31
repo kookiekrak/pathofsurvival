@@ -128,19 +128,22 @@ wss.on('connection', (ws) => {
       if (!flaskId) return;
       const fDef = GameData.FLASKS.find(f => f.id === flaskId);
       if (!fDef) return;
+      const slotMeta = (Array.isArray(currentPlayer.flaskBeltItems) && currentPlayer.flaskBeltItems[slotIdx]) || null;
+      const useCost = (slotMeta && slotMeta.cost) || fDef.cost;
+      const dur = (slotMeta && slotMeta.duration) || fDef.duration;
       const curCharges = currentPlayer.flaskSlotCharges[slotIdx] ?? (currentPlayer.flaskCharges[flaskId] || 0);
-      if (curCharges < fDef.cost) return;
+      if (curCharges < useCost) return;
 
       if (flaskId === 'life') {
         if (currentPlayer.hp >= currentPlayer.maxHp) return;
-        currentPlayer.flaskSlotCharges[slotIdx] = Math.max(0, curCharges - fDef.cost);
+        currentPlayer.flaskSlotCharges[slotIdx] = Math.max(0, curCharges - useCost);
         currentPlayer.flaskCharges.life = currentPlayer.flaskSlotCharges[slotIdx];
         currentPlayer.hp = Math.min(currentPlayer.maxHp, currentPlayer.hp + Math.round(currentPlayer.maxHp * 0.45));
       } else {
-        currentPlayer.flaskSlotCharges[slotIdx] = Math.max(0, curCharges - fDef.cost);
+        currentPlayer.flaskSlotCharges[slotIdx] = Math.max(0, curCharges - useCost);
         currentPlayer.flaskCharges[flaskId] = currentPlayer.flaskSlotCharges[slotIdx];
-        currentPlayer.flaskSlotTimers[slotIdx] = fDef.duration;
-        currentPlayer.activeFlasks[flaskId] = fDef.duration;
+        currentPlayer.flaskSlotTimers[slotIdx] = dur;
+        currentPlayer.activeFlasks[flaskId] = dur;
         if (flaskId === 'quartz') {
           currentPlayer.es = Math.min(currentPlayer.maxEs, currentPlayer.es + Math.round(currentPlayer.maxEs * 0.4));
         } else if (flaskId === 'amethyst') {

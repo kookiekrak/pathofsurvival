@@ -141,6 +141,7 @@
         <button id="switchClassBtn" class="poe-chisel-btn switch-class-btn" title="Switch or Create Persisted Exile Character">CHARACTERS</button>
         <button id="openLobbyHudBtn" class="poe-chisel-btn lobby-hud-btn" title="Open Multiplayer Party &amp; Instance Lobby (Key: L)">PARTY LOBBY [L]</button>
         <button id="openLeaderboardHudBtn" class="poe-chisel-btn lobby-hud-btn" style="color:#ff8787;border-color:#9e2a2b" title="Open Hardcore League Leaderboard (Key: H)">💀 HC LADDER [H]</button>
+        <button id="toggleSfxMuteBtn" class="poe-chisel-btn lobby-hud-btn" style="color:#ffd43b" title="Toggle Skill &amp; Combat Sound Effects">🔊 SFX ON</button>
       </div>
       <div class="poe-gold-chest-bar">
         <div class="poe-gold-pill" title="In-Run Gold is spent on Golden Chests &amp; Draft Rerolls inside maps!">
@@ -240,6 +241,7 @@
           <div class="tray-divider"></div>
           <div class="poe-micro-menu">
             <button id="toggleInventoryBtn" class="poe-menu-btn" title="Inventory, Paper-Doll &amp; Currency Crafting (Key: I)"><span class="menu-key">I</span><span class="menu-lbl">INV</span></button>
+            <button id="toggleBlackMarketBtn" class="poe-menu-btn" title="Run Equipment Vendor &amp; Shard Salvage Bench (Key: V)"><span class="menu-key">V</span><span class="menu-lbl">VEND</span></button>
             <button id="toggleGemsBtn" class="poe-menu-btn" title="Character Sheet &amp; Skill Gem Links (Key: C or G)"><span class="menu-key">C</span><span class="menu-lbl">CHAR</span><span id="pendingDraftBadge" class="notify-pip hidden">!</span></button>
             <button id="toggleTreeBtn" class="poe-menu-btn" title="Passive Skill Tree (Key: P)"><span class="menu-key">P</span><span class="menu-lbl">TREE</span><span id="unspentPassiveBadge" class="notify-pip">2</span></button>
             <button id="toggleMapDeviceBtn" class="poe-menu-btn map-menu-btn" title="Atlas Map Device &amp; Party Staging (Key: M)"><span class="menu-key">M</span><span class="menu-lbl">MAP</span></button>
@@ -317,6 +319,19 @@
           </table>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- POE 1 LEFT-DOCKED RUN EQUIPMENT VENDOR & SHARD SALVAGE BENCH (KEY: V) -->
+  <div id="blackMarketDrawer" class="poe-dock-panel left-dock-panel hidden">
+    <div class="poe-window-header"><span class="header-ornament">◆</span><h2>RUN VENDOR &amp; SHARD SALVAGE</h2><button class="window-close" data-close="blackMarketDrawer">✕</button></div>
+    <div class="poe-gems-body">
+      <div class="poe-sub-header"><span>RUN EQUIPMENT STOCK <strong id="bmStashGoldVal">(0 GOLD)</strong></span><span id="bmTierIlvlLabel" class="craft-hint-inline">Refreshes Every Map Run</span></div>
+      <div id="blackMarketBar" class="bm-gamble-grid"></div>
+      <div class="poe-sub-header"><span>CRAFTING ORB SHARDS (10 SHARDS = +1 ORB)</span><span class="craft-hint-inline">R-Click Gear in Inv [I] to Salvage</span></div>
+      <div id="shardProgressBar" class="poe-stats-strip" style="grid-template-columns:repeat(3,1fr)"></div>
+      <div class="poe-sub-header"><span>RECENTLY SALVAGED BUYBACK</span><span class="craft-hint-inline">Reclaim Salvaged Gear</span></div>
+      <div id="buybackList" class="bm-buyback-list"></div>
     </div>
   </div>
 

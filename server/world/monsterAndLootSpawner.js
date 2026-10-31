@@ -59,24 +59,25 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
   const mapTier = mapDef.tier || 1;
   const partyMult = 1 + (room.players.size - 1) * 0.55;
   // Exponential Wave & Map Tier HP, Armor, Speed + Damage Scaling
-  const waveHpMult = Math.pow(1.26, room.wave - 1) * (1 + (room.wave - 1) * 0.12);
+  const waveHpMult = Math.pow(1.12, room.wave - 1) * (1 + (room.wave - 1) * 0.04);
   const totalHpScale = mapDef.monsterScale * partyMult * waveHpMult;
   const tierDmgScale = mapDef.dmgScale || Math.pow(mapDef.monsterScale, 0.72);
-  const waveDmgMult = Math.pow(1.14, room.wave - 1) * tierDmgScale;
+  const waveDmgMult = Math.pow(1.055, room.wave - 1) * tierDmgScale;
   const tierArmor = mapDef.monsterArmor || 0;
   const tierSpeedScale = mapDef.speedScale || (1 + (mapTier - 1) * 0.12);
   const tierEliteBonus = mapDef.eliteBonus || 0;
+  const xpScale = 1 + (mapTier - 1) * 0.55 + Math.pow(mapTier - 1, 1.4) * 0.18;
 
   if (isBoss) {
     const bossId = uid('m');
     room.enemies.set(bossId, {
       id: bossId, name: mapDef.bossName, typeId: 'kitava_herald', rarity: 'boss',
       mods: ['Gargantuan', 'Flameweaver', 'Relentless'], x, y,
-      hp: Math.round(2400 * totalHpScale), maxHp: Math.round(2400 * totalHpScale),
+      hp: Math.round(1650 * totalHpScale), maxHp: Math.round(1650 * totalHpScale),
       armor: Math.round(tierArmor * 1.35),
       speed: Math.min(265, Math.round((152 + (mapTier - 1) * 12) * tierSpeedScale)),
-      radius: 36, damage: Math.round(52 * waveDmgMult),
-      xp: Math.round(350 * (1 + (mapTier - 1) * 0.45)),
+      radius: 36, damage: Math.round(42 * waveDmgMult),
+      xp: Math.round(320 * xpScale),
       color: '#ff4d4d', behavior: 'boss', actionTimer: 2.2,
       hitTimer: 0, chillTimer: 0, shockTimer: 0, isBreachMob: false
     });
@@ -134,7 +135,7 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
     speed: Math.min(280, Math.round(base.speed * tierSpeedScale * (1 + (room.wave - 1) * 0.025) * speedMulti)),
     radius: Math.round(base.radius * radiusMulti),
     damage: Math.round(base.damage * waveDmgMult * dmgMulti),
-    xp: Math.round(base.xp * (1 + (mapTier - 1) * 0.35) * (rarity === 'rare' ? 3.2 : rarity === 'magic' ? 1.7 : 1)),
+    xp: Math.round(base.xp * xpScale * (rarity === 'rare' ? 3.2 : rarity === 'magic' ? 1.7 : 1)),
     color, behavior: base.behavior, actionTimer: randInt(16, 32) / 10,
     hitTimer: 0, chillTimer: 0, shockTimer: 0, isBreachMob: !!isBreachMob
   });
@@ -236,11 +237,12 @@ function spawnGroundDrop(room, x, y, dropCategory, forceRarity = null, itemLevel
     });
     const pool = (missingFlasks.length > 0 && Math.random() < 0.72) ? missingFlasks : allFlasks;
     const chosenFlask = pick(pool) || utilityFlasks[0];
+    const flaskItem = buildFlaskItem(chosenFlask.id);
     room.groundDrops.push({
       id: uid('drop'), x: Math.round(x + randInt(-18, 18)), y: Math.round(y + randInt(-18, 18)),
-      dropType: 'flask', kind: 'flask', flaskId: chosenFlask.id, label: chosenFlask.name, rarity: 'flask', ttl: 180
+      dropType: 'flask', kind: 'flask', flaskId: chosenFlask.id, item: flaskItem, label: flaskItem.name, rarity: 'flask', ttl: 180
     });
-    addRoomChat(room, 'Loot', `[FLASK] ${chosenFlask.name} dropped on the ground!`, '#38d9a9');
+    addRoomChat(room, 'Loot', `[FLASK] ${flaskItem.name} (${flaskItem.cost}/${flaskItem.maxCharges} Chg) dropped!`, '#38d9a9');
     return;
   }
 
@@ -291,14 +293,9 @@ function spawnGroundDrop(room, x, y, dropCategory, forceRarity = null, itemLevel
 }
 
 function pickupGroundFlask(room, player, drop) {
-  if (!drop || !player) return;
+  if (!drop || !player) return false;
   if (!Array.isArray(player.unlockedFlasks)) player.unlockedFlasks = ['life'];
-  if (!Array.isArray(player.flaskBelt) || player.flaskBelt.length !== 5) {
-    player.flaskBelt = ['life', null, null, null, null];
-  }
-  if (!Array.isArray(player.flaskSlotCharges) || player.flaskSlotCharges.length !== 5) {
-    player.flaskSlotCharges = [15, 0, 0, 0, 0];
-  }
+  if ((player.inventory || []).length >= 32) return false;
 
   const fId = drop.flaskId || (drop.item && drop.item.flaskId) || 'quicksilver';
   const fDef = GameData.FLASKS.find(f => f.id === fId) || GameData.FLASKS[1];
@@ -306,30 +303,10 @@ function pickupGroundFlask(room, player, drop) {
   if (!player.unlockedFlasks.includes(fDef.id)) {
     player.unlockedFlasks.push(fDef.id);
   }
-  player.flaskCharges[fDef.id] = fDef.maxCharges;
-
-  // Refill all currently equipped belt flasks on pickup
-  for (let i = 0; i < 5; i++) {
-    const bId = player.flaskBelt[i];
-    if (bId) {
-      const bDef = GameData.FLASKS.find(f => f.id === bId);
-      if (bDef) player.flaskSlotCharges[i] = bDef.maxCharges;
-    }
-  }
-
-  const emptySlotIdx = player.flaskBelt.findIndex(s => !s);
-  if (!drop.droppedByPlayer && emptySlotIdx >= 0 && !player.flaskBelt.includes(fDef.id)) {
-    player.flaskBelt[emptySlotIdx] = fDef.id;
-    player.flaskSlotCharges[emptySlotIdx] = fDef.maxCharges;
-    recalcPlayer(player, false);
-    addRoomChat(room, 'Flask', `${player.name} equipped ${fDef.name} into Belt Slot ${emptySlotIdx + 1}! (Customize belt slots in Inventory [I])`, '#38d9a9');
-  } else if (player.inventory.length < 32) {
-    const flaskItem = buildFlaskItem(fDef.id);
-    player.inventory.push(flaskItem);
-  } else {
-    player.hp = Math.min(player.maxHp, player.hp + Math.round(player.maxHp * 0.25));
-  }
+  const flaskItem = (drop.item && drop.item.slot === 'flask') ? drop.item : buildFlaskItem(fDef.id);
+  player.inventory.push(flaskItem);
   sendPrivateProfile(player);
+  return true;
 }
 
 const exportsObj = {

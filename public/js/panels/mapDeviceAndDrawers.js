@@ -252,6 +252,7 @@
   document.getElementById('lbTabStandard')?.addEventListener('click', () => { leaderboardFilter = 'standard'; renderLeaderboardRows(); });
 
   document.getElementById('toggleInventoryBtn').addEventListener('click', () => toggleDrawer('inventoryDrawer'));
+  document.getElementById('toggleBlackMarketBtn')?.addEventListener('click', () => toggleDrawer('blackMarketDrawer'));
   document.getElementById('toggleGemsBtn').addEventListener('click', () => toggleDrawer('gemsDrawer'));
   document.getElementById('toggleTreeBtn').addEventListener('click', () => toggleDrawer('passiveTreeModal'));
   document.getElementById('toggleMapDeviceBtn').addEventListener('click', () => toggleDrawer('mapDeviceModal'));

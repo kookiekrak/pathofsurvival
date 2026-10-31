@@ -21,6 +21,11 @@
       const found = animations.find((a) => a.name === name);
       if (found) return found;
     }
+    for (const name of preferredNames) {
+      const kw = name.toLowerCase();
+      const found = animations.find((a) => a.name.toLowerCase().includes(kw));
+      if (found) return found;
+    }
     return animations[0];
   }
 

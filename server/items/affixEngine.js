@@ -7,14 +7,14 @@ const GameData = global.GameData || require('../../public/shared/gameData.js');
 const RARE_PREFIXES = ['Havoc', 'Bramble', 'Gale', 'Vortex', 'Armageddon', 'Blood', 'Soul', 'Hypnotic', 'Dire', 'Loath', 'Cataclysm', 'Miracle'];
 const RARE_SUFFIXES = ['Roar', 'Bite', 'Song', 'Ward', 'Grasp', 'Spire', 'Tread', 'Heart', 'Edge', 'Bane', 'Weaver', 'Shell'];
 
-// Strict PoE Item Level (ilvl) -> Affix Tier Cap Brackets:
-// T5: minIlvl 1 | T4: minIlvl 3 | T3: minIlvl 6 | T2: minIlvl 10 | T1: minIlvl 15
+// Strict PoE Item Level (ilvl) -> Affix Tier Cap Brackets (T6–T1 across Map Tiers 1–16):
 const AFFIX_TIER_BRACKETS = [
-  { tierRank: 5, tierNum: 5, tierName: 'T5', minIlvl: 1, minFrac: 0.0, maxFrac: 0.25 },
-  { tierRank: 4, tierNum: 4, tierName: 'T4', minIlvl: 3, minFrac: 0.25, maxFrac: 0.50 },
-  { tierRank: 3, tierNum: 3, tierName: 'T3', minIlvl: 6, minFrac: 0.50, maxFrac: 0.78 },
-  { tierRank: 2, tierNum: 2, tierName: 'T2', minIlvl: 10, minFrac: 0.78, maxFrac: 1.00 },
-  { tierRank: 1, tierNum: 1, tierName: 'T1', minIlvl: 15, minFrac: 1.02, maxFrac: 1.30 }
+  { tierRank: 6, tierNum: 6, tierName: 'T6', minIlvl: 1,  minFrac: 0.00, maxFrac: 0.22 },
+  { tierRank: 5, tierNum: 5, tierName: 'T5', minIlvl: 6,  minFrac: 0.22, maxFrac: 0.44 },
+  { tierRank: 4, tierNum: 4, tierName: 'T4', minIlvl: 13, minFrac: 0.44, maxFrac: 0.68 },
+  { tierRank: 3, tierNum: 3, tierName: 'T3', minIlvl: 21, minFrac: 0.68, maxFrac: 0.92 },
+  { tierRank: 2, tierNum: 2, tierName: 'T2', minIlvl: 30, minFrac: 0.92, maxFrac: 1.18 },
+  { tierRank: 1, tierNum: 1, tierName: 'T1', minIlvl: 40, minFrac: 1.18, maxFrac: 1.48 }
 ];
 
 function getMaxTierForIlvl(ilvl = 1) {
@@ -55,9 +55,9 @@ function rollAffix(pool, existingIds = new Set(), ilvl = 1, preferHighTier = fal
     tMax = Math.max(tMin, Math.round(baseMin + span * chosenBracket.maxFrac));
   }
 
-  // Flat combat stats scale strongly with item level so higher Map Tier gear is required for T3-T6!
+  // Flat combat stats scale smoothly with item level across Map Tiers 1-16!
   const isFlatStat = ['flatDmg', 'maxLife', 'maxEs', 'armor', 'evasion', 'lifeRegen', 'lifeOnHit'].includes(chosen.stat);
-  const flatIlvlMult = isFlatStat ? (1 + Math.max(0, cleanIlvl - 1) * 0.24) : 1.0;
+  const flatIlvlMult = isFlatStat ? (1 + Math.max(0, cleanIlvl - 1) * 0.28 + Math.pow(Math.max(0, cleanIlvl - 1), 1.35) * 0.04) : (1 + Math.floor(Math.max(0, cleanIlvl - 1) / 8) * 0.08);
 
   const rollMin = Math.max(1, Math.round(tMin * flatIlvlMult));
   const rollMax = Math.max(rollMin + 1, Math.round(tMax * flatIlvlMult));

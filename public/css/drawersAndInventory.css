@@ -252,7 +252,7 @@
   width: 690px;
   max-width: 90vw;
   max-height: calc(100vh - 140px);
-  overflow-y: auto;
+  overflow: hidden;
   margin-top: 4px;
 }
 

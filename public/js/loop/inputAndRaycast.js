@@ -19,6 +19,7 @@
     if (k === 'd' || k === 'arrowright') keys.right = true;
 
     if (k === 'i' || k === 'b') toggleDrawer('inventoryDrawer');
+    if (k === 'v') toggleDrawer('blackMarketDrawer');
     if (k === 'c' || k === 'g') toggleDrawer('gemsDrawer');
     if (k === 'p') toggleDrawer('passiveTreeModal');
     if (k === 'm') toggleDrawer('mapDeviceModal');
@@ -92,6 +93,7 @@
         if (typeof renderCurrencyBench === 'function' && myProfile) renderCurrencyBench();
       }
       document.getElementById('inventoryDrawer').classList.add('hidden');
+      document.getElementById('blackMarketDrawer')?.classList.add('hidden');
       document.getElementById('gemsDrawer').classList.add('hidden');
       document.getElementById('leaderboardModal')?.classList.add('hidden');
       document.getElementById('passiveTreeModal').classList.add('hidden');
@@ -155,7 +157,7 @@
       }
     }
     hoveredGroundDrop = foundDrop;
-    if (foundDrop && foundDrop.dt === 'gear' && foundDrop.item) {
+    if (foundDrop && (foundDrop.dt === 'gear' || foundDrop.dt === 'flask') && foundDrop.item) {
       canvas.style.cursor = 'pointer';
       tooltipEl.innerHTML = renderItemTooltipHTML(foundDrop.item, true, 'Left-Click to Walk & Pick Up into Stash');
       tooltipEl.classList.remove('hidden');

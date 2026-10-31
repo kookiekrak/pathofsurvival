@@ -3,29 +3,11 @@ const GameData = global.GameData || require('../../public/shared/gameData.js');
 
 function createRoom(code, roomName) {
   const room = {
-    code,
-    roomName: roomName || `${code} Instance`,
-    state: 'HIDEOUT',
-    selectedMapId: 'strand',
-    players: new Map(),
-    enemies: new Map(),
-    projectiles: [],
-    groundDrops: [],
-    hazards: [],
-    interactables: [],
-    upgradeChests: [],
-    activeBreaches: [],
-    fxEvents: [],
-    chatLog: [
-      { sender: 'System', text: `Welcome to ${code}. Prepare your build and click READY to open Atlas Portals!`, color: '#f2c76e' }
-    ],
-    wave: 1,
-    waveProgress: 0,
-    runTimer: 0,
-    runDuration: 240,
-    spawnAccumulator: 0,
-    bossSpawned: false,
-    portalsOpen: false
+    code, roomName: roomName || `${code} Instance`, state: 'HIDEOUT', selectedMapId: 'strand',
+    players: new Map(), enemies: new Map(), projectiles: [], groundDrops: [], hazards: [],
+    interactables: [], upgradeChests: [], activeBreaches: [], fxEvents: [],
+    chatLog: [{ sender: 'System', text: `Welcome to ${code}. Prepare your build and click READY to open Atlas Portals!`, color: '#f2c76e' }],
+    wave: 1, waveProgress: 0, runTimer: 0, runDuration: 240, spawnAccumulator: 0, bossSpawned: false, portalsOpen: false
   };
   rooms.set(code, room);
   return room;
@@ -156,101 +138,51 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
     }
   }
 
-  const flaskSlotCharges = flaskBelt.map(fId => {
+  const flaskSlotCharges = flaskBelt.map((fId, idx) => {
     const fDef = fId ? GameData.FLASKS.find(f => f.id === fId) : null;
-    return fDef ? fDef.maxCharges : 0;
+    const meta = Array.isArray(currencies._flaskBeltItems) ? currencies._flaskBeltItems[idx] : null;
+    return (meta && meta.maxCharges) || (fDef ? fDef.maxCharges : 0);
   });
+  const flaskBeltItems = Array.isArray(currencies._flaskBeltItems) && currencies._flaskBeltItems.length === 5
+    ? currencies._flaskBeltItems
+    : [null, null, null, null, null];
   const flaskSlotTimers = [0, 0, 0, 0, 0];
 
   for (const f of GameData.FLASKS) {
     flaskCharges[f.id] = (unlockedFlasks.includes(f.id) || flaskBelt.includes(f.id)) ? f.maxCharges : 0;
   }
+  if (!currencies._shards || typeof currencies._shards !== 'object') {
+    currencies._shards = { transmute: 0, alteration: 0, alchemy: 0, chaos: 0, exalted: 0, divine: 0 };
+  }
   currencies._unlockedFlasks = unlockedFlasks;
   currencies._flaskBelt = flaskBelt;
+  currencies._flaskBeltItems = flaskBeltItems;
   currencies._league = league;
   currencies._deadHardcore = deadHardcore;
 
   const player = {
-    id: uid('p'),
-    characterId: resolvedCharId,
-    accountId: cleanAccountId,
-    ws,
-    name: resolvedName,
-    classId: lockedClassId,
-    league,
-    deadHardcore,
-    bestTier,
-    bossKills,
-    slainInZone,
-    ready: false,
-    level,
-    xp,
-    xpNext,
-    runLevel: 1,
-    runXp: 0,
-    runXpNext: 180,
-    passivePoints,
-    passives,
-    unlockedFlasks,
-    flaskBelt,
-    flaskSlotCharges,
-    flaskSlotTimers,
-    equipment,
-    gemLinks: starter.gemLinks,
-    supportReserve: starter.supportReserve,
-    skillRings: [],
-    runUpgrades: {},
-    gold,
-    runGold: 0,
-    startingRunGold: 0,
-    earnedRunGold: 0,
-    draftRerolls: 0,
-    currentMapId: 'strand',
-    chestsOpened: 0,
-    nextChestCost: 50,
-    targetChestId: null,
-    pendingDrafts: [],
-    inventory,
-    buybackItems: [],
-    currencies,
-    x: randInt(-90, 90),
-    y: randInt(50, 150),
-    vx: 0,
-    vy: 0,
-    aimX: 0,
-    aimY: -1,
+    id: uid('p'), characterId: resolvedCharId, accountId: cleanAccountId, ws, name: resolvedName,
+    classId: lockedClassId, league, deadHardcore, bestTier, bossKills, slainInZone, ready: false,
+    level, xp, xpNext, runLevel: 1, runXp: 0, runXpNext: 180, passivePoints, passives,
+    unlockedFlasks, flaskBelt, flaskBeltItems, flaskSlotCharges, flaskSlotTimers,
+    equipment, gemLinks: starter.gemLinks, supportReserve: starter.supportReserve,
+    skillRings: [], runUpgrades: {}, gold, runGold: 0, startingRunGold: 0, earnedRunGold: 0,
+    draftRerolls: 0, currentMapId: 'strand', chestsOpened: 0, nextChestCost: 50, targetChestId: null,
+    pendingDrafts: [], inventory, buybackItems: [],
+    vendorStock: Array.isArray(currencies._vendorStock) && currencies._vendorStock.length === 6 ? currencies._vendorStock : [],
+    currencies, x: randInt(-90, 90), y: randInt(50, 150), vx: 0, vy: 0, aimX: 0, aimY: -1,
     input: { up: false, down: false, left: false, right: false, firing: false },
-    hp: 130,
-    maxHp: 130,
-    es: 0,
-    maxEs: 0,
-    esDelayTimer: 0,
-    flaskCharges,
+    hp: 130, maxHp: 130, es: 0, maxEs: 0, esDelayTimer: 0, flaskCharges,
     activeFlasks: { quicksilver: 0, granite: 0, diamond: 0, quartz: 0 },
-    shrineBuffType: null,
-    shrineBuffTimer: 0,
-    dashCooldown: 0,
-    dashTimer: 0,
-    dashDirX: 0,
-    dashDirY: 0,
-    skillTimers: {},
-    vaalSouls: 0,
-    maxVaalSouls: 60,
-    vaalLockTimer: 0,
-    hhStacks: 0,
-    hhTimer: 0,
-    afkAnchorX: 0,
-    afkAnchorY: 0,
-    afkTimer: 0,
-    targetDropId: null,
-    kills: 0,
-    dead: false,
-    reviveProgress: 0,
-    atkSeq: 0,
-    lastAtkAngle: 0,
-    stats: null
+    shrineBuffType: null, shrineBuffTimer: 0, dashCooldown: 0, dashTimer: 0, dashDirX: 0, dashDirY: 0,
+    skillTimers: {}, vaalSouls: 0, maxVaalSouls: 60, vaalLockTimer: 0, hhStacks: 0, hhTimer: 0,
+    afkAnchorX: 0, afkAnchorY: 0, afkTimer: 0, targetDropId: null, kills: 0, dead: false,
+    reviveProgress: 0, atkSeq: 0, lastAtkAngle: 0, stats: null
   };
 
+  if (!Array.isArray(player.vendorStock) || player.vendorStock.length === 0) {
+    generatePlayerVendorStock(player, player.bestTier || 1);
+  }
   syncSkillRingsFromGemLinks(player);
   recalcPlayer(player, true);
   saveCharacterToDb(player);
@@ -285,9 +217,17 @@ function sendPrivateProfile(player) {
   if (!Array.isArray(player.flaskSlotTimers) || player.flaskSlotTimers.length !== 5) {
     player.flaskSlotTimers = [0, 0, 0, 0, 0];
   }
+  if (!Array.isArray(player.flaskBeltItems) || player.flaskBeltItems.length !== 5) {
+    player.flaskBeltItems = [null, null, null, null, null];
+  }
+  if (!Array.isArray(player.vendorStock) || player.vendorStock.length === 0) {
+    generatePlayerVendorStock(player, player.bestTier || 1);
+  }
   if (player.currencies) {
     player.currencies._unlockedFlasks = player.unlockedFlasks || ['life'];
     player.currencies._flaskBelt = player.flaskBelt;
+    player.currencies._flaskBeltItems = player.flaskBeltItems;
+    player.currencies._vendorStock = player.vendorStock;
   }
   const nowMs = Date.now();
   if (!player._lastDbSaveMs || nowMs - player._lastDbSaveMs >= 2500) {
@@ -329,6 +269,7 @@ function sendPrivateProfile(player) {
     passives: player.passives,
     unlockedFlasks: player.unlockedFlasks || ['life'],
     flaskBelt: player.flaskBelt,
+    flaskBeltItems: player.flaskBeltItems,
     flaskSlotCharges: player.flaskSlotCharges,
     flaskSlotTimers: player.flaskSlotTimers,
     equipment: player.equipment,
@@ -343,6 +284,8 @@ function sendPrivateProfile(player) {
     rerollCost: getDraftRerollCost(player),
     tomeCost: getSkillTomeCost(player),
     gambleCosts: getGambleCosts(null, player),
+    vendorStock: player.vendorStock || [],
+    shards: (player.currencies && player.currencies._shards) || {},
     supportReserve: player.supportReserve,
     pendingDrafts: player.pendingDrafts,
     inventory: player.inventory,

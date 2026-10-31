@@ -37,17 +37,21 @@
       } else {
         const isUtility = f.id !== 'life';
         const isMagebloodActive = hasMageblood && isUtility;
-        const rawChg = typeof slotCharges[i] === 'number' ? slotCharges[i] : (chargesById[f.id] ?? f.maxCharges);
-        const cur = isMagebloodActive ? f.maxCharges : rawChg;
-        const pct = isMagebloodActive ? 100 : Math.min(100, Math.round((cur / f.maxCharges) * 100));
+        const slotMeta = (Array.isArray(myProfile.flaskBeltItems) && myProfile.flaskBeltItems[i]) || null;
+        const maxChg = (slotMeta && slotMeta.maxCharges) || f.maxCharges;
+        const useCost = (slotMeta && slotMeta.cost) || f.cost;
+        const fName = (slotMeta && slotMeta.name) || f.name;
+        const rawChg = typeof slotCharges[i] === 'number' ? slotCharges[i] : (chargesById[f.id] ?? maxChg);
+        const cur = isMagebloodActive ? maxChg : rawChg;
+        const pct = isMagebloodActive ? 100 : Math.min(100, Math.round((cur / maxChg) * 100));
         const shortLabel = f.name.replace(' Flask', '').toUpperCase();
 
         cell.innerHTML = `
           <span class="inv-flask-slot-key">[${keyNum}]</span>
-          <div style="transform:scale(0.76);margin-top:-2px">${getFlaskSvg(f.id, pct, f.color)}</div>
+          <div style="transform:scale(0.68);margin-top:-3px">${getFlaskSvg(f.id, pct, f.color)}</div>
           <span class="inv-flask-slot-name">${shortLabel}</span>
         `;
-        cell.title = `Slot [${keyNum}] ${f.name}: ${f.desc}\n• Left-Click or Drag another Slot [1–5] to Swap\n• Right-Click to Unequip into Stash Grid`;
+        cell.title = `Slot [${keyNum}] ${fName} (${useCost}/${maxChg} Chg): ${f.desc}\n• Left-Click or Drag another Slot [1–5] to Swap\n• Right-Click to Unequip into Stash Grid`;
       }
 
       cell.addEventListener('click', () => handleBeltSlotClick(i, true));

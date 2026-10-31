@@ -108,6 +108,19 @@
     let ent = projEntities.get(prj.id);
     if (ent) return ent;
 
+    if (prj.s !== 'enemy_bolt' && typeof playSkillSfx === 'function') {
+      const sfxSub = (prj.s === 'tornado_shot' || prj.s === 'toxic_rain' || prj.s === 'lightning_arrow')
+        ? 'bow'
+        : (prj.dt === 'lightning' || prj.s === 'spark' || prj.s === 'ball_lightning')
+          ? 'lightning'
+          : (prj.dt === 'cold' || prj.s === 'glacial_cascade' || prj.s === 'eye_of_winter')
+            ? 'cold'
+            : (prj.s === 'spectral_throw' || prj.s === 'ethereal_knives')
+              ? 'cyclone'
+              : 'fire';
+      playSkillSfx('proj', sfxSub);
+    }
+
     const colorMap = {
       physical: 0xf4d58d,
       fire: 0xff6b35,
@@ -320,7 +333,7 @@
   }
 
   function playNeverSinkLootSound(drop) {
-    if (!drop) return;
+    if (!drop || window.__POS_CTX__.sfxMuted) return;
     let soundId = 0;
     let vol = 0.78;
     const cId = drop.currencyId || null;

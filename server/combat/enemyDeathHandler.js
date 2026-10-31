@@ -83,7 +83,9 @@ function onEnemyKilled(room, enemy, killer) {
             if (!fId) continue;
             const fDef = GameData.FLASKS.find(fl => fl.id === fId);
             if (fDef) {
-              p.flaskSlotCharges[sIdx] = Math.min(fDef.maxCharges, (p.flaskSlotCharges[sIdx] || 0) + chargeGain);
+              const slotMeta = (Array.isArray(p.flaskBeltItems) && p.flaskBeltItems[sIdx]) || null;
+              const maxChg = (slotMeta && slotMeta.maxCharges) || fDef.maxCharges;
+              p.flaskSlotCharges[sIdx] = Math.min(maxChg, (p.flaskSlotCharges[sIdx] || 0) + chargeGain);
               p.flaskCharges[fId] = p.flaskSlotCharges[sIdx];
             }
           }
@@ -163,23 +165,25 @@ function onEnemyKilled(room, enemy, killer) {
     activeB.duration = Math.min(activeB.maxDuration || 26, activeB.duration + 0.32);
     activeB.maxRadius = Math.min(560, (activeB.maxRadius || 480) + 2.5);
   }
-  const breachMult = enemy.isBreachMob ? 0.25 : 1.0;
-  const qtyMult = ((mapDef && mapDef.lootQuantity) || 100) / 100;
+  const breachMult = enemy.isBreachMob ? 0.22 : 1.0;
+  const rawQtyMult = ((mapDef && mapDef.lootQuantity) || 100) / 100;
+  // Dampen high-tier map quantity scaling so T10-T16 maps reward higher quality without flooding the screen with items!
+  const dropQtyMult = 1 + Math.pow(Math.max(0, rawQtyMult - 1), 0.55) * 0.32;
   const baseIlvl = (mapTier - 1) * 3 + Math.ceil((room.wave || 1) / 2);
 
   if (enemy.rarity === 'boss' || enemy.rarity === 'unique') {
-    const bossOrbs = 1 + Math.floor(mapTier / 2);
-    const bossGearCount = 1 + Math.floor(mapTier / 3);
+    const bossOrbs = 1 + Math.min(3, Math.floor(mapTier / 5));
+    const bossGearCount = 1 + Math.min(2, Math.floor(mapTier / 6));
     const bossIlvl = baseIlvl + 2;
     for (let i = 0; i < bossOrbs; i++) {
       spawnGroundDrop(room, enemy.x - 20 + i * 16, enemy.y, 'currency');
     }
     for (let i = 0; i < bossGearCount; i++) {
-      const uniqueChance = 0.08 + (mapTier - 1) * 0.03;
+      const uniqueChance = 0.08 + (mapTier - 1) * 0.02;
       spawnGroundDrop(room, enemy.x + 20 + i * 18, enemy.y, 'gear', Math.random() < uniqueChance ? 'unique' : 'rare', bossIlvl);
     }
-    // Map Bosses have a 6% chance to drop a Flask
-    if (Math.random() < 0.06) {
+    // Map Bosses have a 3.5% chance to drop a Flask
+    if (Math.random() < 0.035) {
       spawnGroundDrop(room, enemy.x, enemy.y + 24, 'flask');
     }
 
@@ -196,7 +200,7 @@ function onEnemyKilled(room, enemy, killer) {
 
   if (enemy.isRaidPylon) return;
   if (enemy.typeId === 'gilded_goblin') {
-    for (let k = 0; k < 3; k++) {
+    for (let k = 0; k < 2; k++) {
       spawnGroundDrop(room, enemy.x + randInt(-24, 24), enemy.y + randInt(-24, 24), 'currency');
     }
     spawnGroundDrop(room, enemy.x, enemy.y, 'gear', Math.random() < 0.22 ? 'unique' : 'rare', baseIlvl + 2);
@@ -204,14 +208,14 @@ function onEnemyKilled(room, enemy, killer) {
     return;
   }
 
-  // Rare monsters have a rare chance (0.8%) to drop a Flask!
-  if (enemy.rarity === 'rare' && Math.random() < 0.008 * breachMult) {
+  // Rare monsters have a very low chance (0.3%) to drop a Flask!
+  if (enemy.rarity === 'rare' && Math.random() < 0.003 * breachMult) {
     spawnGroundDrop(room, enemy.x, enemy.y - 16, 'flask');
   }
 
-  // Drop rates scale directly with Map Tier Item Quantity (qtyMult = 1.0x in T1 up to 3.8x in T6):
-  const gearChance = (enemy.rarity === 'rare' ? 0.018 : enemy.rarity === 'magic' ? 0.0012 : 0) * qtyMult * breachMult;
-  const currencyChance = (enemy.rarity === 'rare' ? 0.028 : enemy.rarity === 'magic' ? 0.0032 : 0.0006) * qtyMult * breachMult;
+  // Controlled drop rates across all map tiers (no loot flood at high tiers):
+  const gearChance = (enemy.rarity === 'rare' ? 0.0075 : enemy.rarity === 'magic' ? 0.00045 : 0) * dropQtyMult * breachMult;
+  const currencyChance = (enemy.rarity === 'rare' ? 0.015 : enemy.rarity === 'magic' ? 0.0016 : 0.00025) * dropQtyMult * breachMult;
 
   if (gearChance > 0 && Math.random() < gearChance) {
     const dropIlvl = baseIlvl + (enemy.rarity === 'rare' ? 1 : 0);

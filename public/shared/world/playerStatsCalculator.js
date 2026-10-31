@@ -9,13 +9,13 @@
     const cls = CLASSES[player.classId] || CLASSES.Marauder;
     const base = cls.baseStats;
 
-    const charLv = Math.max(1, Math.min(45, player.level || 1));
+    const charLv = Math.max(1, Math.min(100, player.level || 1));
     const s = {
       str: base.str + (charLv - 1),
       dex: base.dex + (charLv - 1),
       int: base.int + (charLv - 1),
-      flatDmg: Math.floor((charLv - 1) * 0.75),
-      maxLife: base.maxLife + (charLv - 1) * 5,
+      flatDmg: Math.floor((charLv - 1) * 1.2),
+      maxLife: base.maxLife + (charLv - 1) * 12,
       maxEs: base.maxEs || 0,
       armor: base.armor || 0,
       evasion: base.evasion || 0,
@@ -277,7 +277,7 @@
 
     s.finalMoveSpeed = Math.round(s.moveSpeed * (1 + s.moveSpeedPct / 100));
     s.finalCritChance = s.resoluteTechnique ? 0 : Math.min(95, +(s.critChance * (1 + s.critChanceInc / 100)).toFixed(1));
-    s.allRes = Math.min(75, s.allRes);
+    s.allRes = Math.min(78, s.allRes);
     s.maxHp = s.maxLife;
     s.aoePct = s.areaPct;
     s.chainCount = s.extraChain;

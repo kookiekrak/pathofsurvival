@@ -204,22 +204,23 @@
   ];
 
   const AFFIX_TIER_BRACKETS = [
-    { tierRank: 5, tierNum: 5, tierName: 'T5', minIlvl: 1, minFrac: 0.0, maxFrac: 0.25 },
-    { tierRank: 4, tierNum: 4, tierName: 'T4', minIlvl: 3, minFrac: 0.25, maxFrac: 0.50 },
-    { tierRank: 3, tierNum: 3, tierName: 'T3', minIlvl: 6, minFrac: 0.50, maxFrac: 0.78 },
-    { tierRank: 2, tierNum: 2, tierName: 'T2', minIlvl: 10, minFrac: 0.78, maxFrac: 1.00 },
-    { tierRank: 1, tierNum: 1, tierName: 'T1', minIlvl: 15, minFrac: 1.02, maxFrac: 1.30 }
+    { tierRank: 6, tierNum: 6, tierName: 'T6', minIlvl: 1,  minFrac: 0.00, maxFrac: 0.22 },
+    { tierRank: 5, tierNum: 5, tierName: 'T5', minIlvl: 6,  minFrac: 0.22, maxFrac: 0.44 },
+    { tierRank: 4, tierNum: 4, tierName: 'T4', minIlvl: 13, minFrac: 0.44, maxFrac: 0.68 },
+    { tierRank: 3, tierNum: 3, tierName: 'T3', minIlvl: 21, minFrac: 0.68, maxFrac: 0.92 },
+    { tierRank: 2, tierNum: 2, tierName: 'T2', minIlvl: 30, minFrac: 0.92, maxFrac: 1.18 },
+    { tierRank: 1, tierNum: 1, tierName: 'T1', minIlvl: 40, minFrac: 1.18, maxFrac: 1.48 }
   ];
 
   function computeAffixTierRange(affix, ilvl = 1) {
     if (!affix) return null;
     if (typeof affix.rollMin === 'number' && typeof affix.rollMax === 'number') {
-      return { rollMin: affix.rollMin, rollMax: affix.rollMax, baseTier: affix.baseTier || String(affix.tierName || 'T5').split(' ')[0] };
+      return { rollMin: affix.rollMin, rollMax: affix.rollMax, baseTier: affix.baseTier || String(affix.tierName || 'T6').split(' ')[0] };
     }
     const cleanIlvl = Math.max(1, Math.floor(ilvl || 1));
     const poolDef = AFFIX_POOL.find(p => p.id === affix.id || p.stat === affix.stat);
     if (!poolDef) return null;
-    const rawTierStr = String(affix.baseTier || affix.tierName || (affix.tierNum ? `T${affix.tierNum}` : 'T5')).split(' ')[0];
+    const rawTierStr = String(affix.baseTier || affix.tierName || (affix.tierNum ? `T${affix.tierNum}` : 'T6')).split(' ')[0];
     const bracket = AFFIX_TIER_BRACKETS.find(b => b.tierName === rawTierStr || b.tierRank === affix.tierRank || b.tierNum === affix.tierNum) || AFFIX_TIER_BRACKETS[0];
     const baseMin = typeof poolDef.min === 'number' ? poolDef.min : 10;
     const baseMax = typeof poolDef.max === 'number' ? poolDef.max : 30;
@@ -234,7 +235,7 @@
       tMax = Math.max(tMin + 1, Math.round(baseMin + span * bracket.maxFrac));
     }
     const isFlatStat = ['flatDmg', 'maxLife', 'maxEs', 'armor', 'evasion', 'lifeRegen', 'lifeOnHit'].includes(poolDef.stat);
-    const flatIlvlMult = isFlatStat ? (1 + Math.max(0, cleanIlvl - 1) * 0.24) : 1.0;
+    const flatIlvlMult = isFlatStat ? (1 + Math.max(0, cleanIlvl - 1) * 0.28 + Math.pow(Math.max(0, cleanIlvl - 1), 1.35) * 0.04) : (1 + Math.floor(Math.max(0, cleanIlvl - 1) / 8) * 0.08);
     const rollMin = Math.max(1, Math.round(tMin * flatIlvlMult));
     const rollMax = Math.max(rollMin + 1, Math.round(tMax * flatIlvlMult));
     return { rollMin, rollMax, baseTier: bracket.tierName, labelTemplate: poolDef.label };

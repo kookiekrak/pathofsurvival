@@ -56,17 +56,20 @@
       tooltipEl.className = 'poe-tooltip tt-border-gem';
       const fDef = (GameData.FLASKS && GameData.FLASKS.find(fl => fl.id === item.flaskId)) || {};
       const desc = fDef.desc || (item.affixes && item.affixes[0] && item.affixes[0].text) || 'Utility Flask';
+      const maxChg = item.maxCharges || fDef.maxCharges || 30;
+      const costChg = item.cost || fDef.cost || 10;
+      const durSec = item.duration || fDef.duration || 0;
       return `
         <div class="tt-header tt-header-gem">
           <div class="tt-title-main">${item.name.toUpperCase()}</div>
-          <div class="tt-title-base">CUSTOMIZABLE BELT FLASK (SLOTS 1–5)</div>
+          <div class="tt-title-base">CUSTOMIZABLE BELT FLASK (AUTO-TRIGGERS ON FULL CHARGES)</div>
         </div>
         <div class="tt-body">
-          <div class="tt-prop-line">Max Charges: <strong>${fDef.maxCharges || 30}</strong> • Uses <strong>${fDef.cost || 10}</strong> Charges</div>
+          <div class="tt-prop-line">Max Charges: <strong>${maxChg}</strong> • Uses <strong>${costChg}</strong> Charges${durSec ? ` • Lasts <strong>${durSec}s</strong>` : ''}</div>
           <div class="tt-separator"></div>
           <div class="tt-affix" style="color:#63e6be">${desc}</div>
           <div class="tt-separator"></div>
-          <div class="tt-hint">Hover &amp; Press [1–5] or Click/Drag into any Belt Slot [1–5] to Equip • R-Click: Drop</div>
+          <div class="tt-hint">${actionHint || 'Hover & Press [1–5] or Click/Drag into Belt Slot [1–5] to Equip • R-Click: Drop/Salvage'}</div>
         </div>
       `;
     }
@@ -128,8 +131,8 @@
     const isBmOpen = !document.getElementById('blackMarketDrawer')?.classList.contains('hidden');
     const defaultHint = showDeltas
       ? (isBmOpen
-        ? `L-Click: Equip | R-Click: Sell to Black Market (+${goldVal} Gold, Buyback Available)`
-        : `L-Click: Equip | R-Click: Drop on Ground (Open Black Market [V] to Sell)`)
+        ? `L-Click: Equip | R-Click: Salvage for Crafting Orb Shards & Gold`
+        : `L-Click: Equip | R-Click: Drop on Ground (Open Vendor [V] to Salvage)`)
       : `R-Click: Unequip to Bag | Shift+Click: Drop on Ground`;
     const finalHint = actionHint || defaultHint;
 

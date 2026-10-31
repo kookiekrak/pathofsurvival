@@ -248,18 +248,18 @@
 }
 
 .run-boons-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  max-height: 120px;
-  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+  max-height: 76px;
+  overflow: hidden;
 }
 
 .run-boon-pill {
   background: linear-gradient(90deg, #1a1308 0%, #090704 100%);
   border: 1px solid #594421;
-  padding: 5px 8px;
-  font-size: 0.84rem;
+  padding: 3px 6px;
+  font-size: 0.74rem;
   color: #f5d37a;
   display: flex;
   align-items: center;

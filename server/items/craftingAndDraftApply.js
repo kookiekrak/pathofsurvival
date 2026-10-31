@@ -209,6 +209,111 @@ function applyCurrencyToItem(player, currencyId, targetLocation, slotOrIdx) {
   return { ok: true, msg: `Crafted ${item.name} (ilvl ${ilvl}, max ${item.maxTierForIlvl}) with ${GameData.CURRENCIES[currencyId].name}!` };
 }
 
-const exportsObj = { applyGemDraftChoice, applyCurrencyToItem };
+function generatePlayerVendorStock(player, mapTierOverride = null) {
+  const tier = Math.max(1, mapTierOverride || (player && player.bestTier) || 1);
+  const baseIlvl = Math.max(1, Math.min(48, Math.max((player && player.level) || 1, (tier - 1) * 3 + 2)));
+  const slotPlan = [
+    'weapon',
+    'body',
+    pick(['helm', 'gloves', 'boots']),
+    pick(['helm', 'gloves', 'boots']),
+    pick(['ring', 'amulet', 'belt']),
+    pick(GameData.GEAR_SLOTS)
+  ];
+  const stock = slotPlan.map((slot, idx) => {
+    const itemIlvl = Math.max(1, baseIlvl + (idx >= 3 ? 1 : 0));
+    let rarity = 'magic';
+    if (idx === 5) {
+      rarity = Math.random() < 0.06 ? 'unique' : 'rare';
+    } else if (idx === 3 || Math.random() < 0.42) {
+      rarity = 'rare';
+    }
+    const item = generateGearItem(slot, rarity, itemIlvl, 0);
+    const cost = rarity === 'unique'
+      ? Math.round(220 + itemIlvl * 24)
+      : rarity === 'rare'
+        ? Math.round(75 + itemIlvl * 11)
+        : Math.round(40 + itemIlvl * 6);
+    return {
+      stockId: item.id,
+      item,
+      cost,
+      sold: false
+    };
+  });
+  if (player) {
+    player.vendorStock = stock;
+    if (player.currencies) player.currencies._vendorStock = stock;
+  }
+  return stock;
+}
+
+function awardSalvageShards(player, item, isRunMode = false) {
+  if (!player.currencies) player.currencies = {};
+  if (!player.currencies._shards || typeof player.currencies._shards !== 'object') {
+    player.currencies._shards = { transmute: 0, alteration: 0, alchemy: 0, chaos: 0, exalted: 0, divine: 0 };
+  }
+  const shards = player.currencies._shards;
+  const ilvl = Math.max(1, Math.floor((item && (item.ilvl || item.itemLevel)) || 1));
+  const gains = {};
+
+  if (item && (item.slot === 'flask' || item.rarity === 'flask')) {
+    gains.alteration = 4;
+  } else if (item && item.rarity === 'unique') {
+    gains.chaos = 5;
+    gains.exalted = 4;
+    gains.divine = 3;
+  } else if (item && item.rarity === 'rare') {
+    gains.alchemy = 4 + (ilvl >= 14 ? 2 : 0);
+    gains.chaos = 2 + Math.min(4, Math.floor(ilvl / 10));
+    if (ilvl >= 20) gains.exalted = 1 + (ilvl >= 35 ? 1 : 0);
+  } else if (item && item.rarity === 'magic') {
+    gains.transmute = 2;
+    gains.alteration = 4 + (ilvl >= 12 ? 2 : 0);
+  } else {
+    gains.transmute = 4;
+  }
+
+  const shardParts = [];
+  const orbParts = [];
+  const shortNames = {
+    transmute: 'Transmute',
+    alteration: 'Alteration',
+    alchemy: 'Alchemy',
+    chaos: 'Chaos',
+    exalted: 'Exalted',
+    divine: 'Divine'
+  };
+
+  for (const [k, amt] of Object.entries(gains)) {
+    shards[k] = (shards[k] || 0) + amt;
+    shardParts.push(`+${amt} ${shortNames[k]} Shards`);
+    if (shards[k] >= 10) {
+      const fullOrbs = Math.floor(shards[k] / 10);
+      shards[k] %= 10;
+      player.currencies[k] = (player.currencies[k] || 0) + fullOrbs;
+      orbParts.push(`+${fullOrbs} ${shortNames[k]} Orb${fullOrbs > 1 ? 's' : ''}!`);
+    }
+  }
+
+  const goldGain = item && item.rarity === 'unique'
+    ? Math.round(18 + ilvl * 2)
+    : item && item.rarity === 'rare'
+      ? Math.round(8 + ilvl * 1.2)
+      : Math.round(4 + ilvl * 0.6);
+
+  if (isRunMode) {
+    player.runGold = (player.runGold || 0) + goldGain;
+  }
+  player.gold = (player.gold || 0) + goldGain;
+
+  return {
+    goldGain,
+    shardsText: shardParts.join(', '),
+    orbsText: orbParts.join(' ')
+  };
+}
+
+const exportsObj = { applyGemDraftChoice, applyCurrencyToItem, generatePlayerVendorStock, awardSalvageShards };
 Object.assign(global, exportsObj);
 module.exports = exportsObj;

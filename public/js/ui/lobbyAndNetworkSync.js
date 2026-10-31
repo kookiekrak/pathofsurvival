@@ -132,8 +132,10 @@
         syncWorldEntities();
         updateRealtimeHud();
       } else if (msg.type === 'announcement') {
+        if (typeof playSkillSfx === 'function') playSkillSfx('boss_warn');
         showBanner(msg.title, msg.subtitle, msg.color);
       } else if (msg.type === 'craft_feedback') {
+        if (msg.ok && typeof playSkillSfx === 'function') playSkillSfx('craft');
         const banner = document.getElementById('craftStatusBanner');
         banner.textContent = msg.msg;
         banner.style.color = msg.ok ? '#69db7c' : '#ff8787';

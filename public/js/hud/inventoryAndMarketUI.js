@@ -62,92 +62,92 @@
     if (!bar || !myProfile) return;
     bar.innerHTML = '';
 
-    const stashGold = myProfile.stashGold ?? myProfile.gold ?? 0;
-    const gCosts = myProfile.gambleCosts || { level: myProfile.level || 1, ilvl: myProfile.level || 1, weapon: 65, body: 55, armour: 45, jewelry: 70 };
+    const isRun = worldState && worldState.mode === 'RUN';
+    const availGold = isRun ? (myProfile.runGold ?? 0) : (myProfile.stashGold ?? myProfile.gold ?? 0);
+    const goldTypeLbl = isRun ? 'RUN GOLD' : 'GOLD';
 
     const stashEl = document.getElementById('bmStashGoldVal');
-    if (stashEl) stashEl.textContent = `(${stashGold} STASH GOLD)`;
+    if (stashEl) stashEl.textContent = `(${availGold} ${goldTypeLbl})`;
     const ilvlEl = document.getElementById('bmTierIlvlLabel');
-    if (ilvlEl) ilvlEl.textContent = `Char Lv.${gCosts.level || myProfile.level || 1} • Rolls ilvl ${gCosts.ilvl} Gear`;
+    if (ilvlEl) ilvlEl.textContent = `6 Fixed Items / Run • Hover to Inspect`;
 
-    const offers = [
-      {
-        label: 'MYSTERY WEAPON',
-        sub: `Axes, Swords, Bows, Wands, Daggers (ilvl ${gCosts.ilvl})`,
-        cost: gCosts.weapon,
-        icon: '⚔️',
-        title: `Gamble Mystery Weapon (ilvl ${gCosts.ilvl} • Guaranteed Magic, Rare, or Unique!) — Costs ${gCosts.weapon} Stash Gold`,
-        action: () => ws && ws.send(JSON.stringify({ type: 'gamble_item', category: 'weapon' }))
-      },
-      {
-        label: 'MYSTERY BODY ARMOUR',
-        sub: `Chestplates, Brigandines, Robes (ilvl ${gCosts.ilvl})`,
-        cost: gCosts.body || gCosts.armour,
-        icon: '🥋',
-        title: `Gamble Mystery Body Armour (ilvl ${gCosts.ilvl} • Guaranteed Magic, Rare, or Unique!) — Costs ${gCosts.body || gCosts.armour} Stash Gold`,
-        action: () => ws && ws.send(JSON.stringify({ type: 'gamble_item', category: 'body' }))
-      },
-      {
-        label: 'HELM / GLOVES / BOOTS',
-        sub: `Headgear, Gauntlets, Greaves (ilvl ${gCosts.ilvl})`,
-        cost: gCosts.armour,
-        icon: '🛡️',
-        title: `Gamble Mystery Helm, Gloves, or Boots (ilvl ${gCosts.ilvl}) — Costs ${gCosts.armour} Stash Gold`,
-        action: () => ws && ws.send(JSON.stringify({ type: 'gamble_item', category: 'armour' }))
-      },
-      {
-        label: 'JEWELRY & BELTS',
-        sub: `Rings, Amulets, Heavy/Leather Belts (ilvl ${gCosts.ilvl})`,
-        cost: gCosts.jewelry,
-        icon: '💍',
-        title: `Gamble Mystery Ring, Amulet, or Belt (ilvl ${gCosts.ilvl}) — Costs ${gCosts.jewelry} Stash Gold`,
-        action: () => ws && ws.send(JSON.stringify({ type: 'gamble_item', category: 'jewelry' }))
-      }
-    ];
-
-    for (const off of offers) {
-      const canBuy = off.cost > 0 && stashGold >= off.cost;
-      const btn = document.createElement('button');
-      btn.className = 'bm-gamble-card';
-      btn.style.opacity = canBuy ? '1' : '0.55';
-      btn.style.borderColor = canBuy ? '#9c7a38' : '#382c1d';
-      btn.innerHTML = `
-        <div class="bm-gamble-top">
-          <span>${off.icon} ${off.label}</span>
-          <span style="color:${canBuy ? '#ffd43b' : '#ff8787'}">${off.cost}g</span>
+    const stock = Array.isArray(myProfile.vendorStock) ? myProfile.vendorStock : [];
+    for (const entry of stock) {
+      if (!entry || !entry.item) continue;
+      const item = entry.item;
+      const isSold = Boolean(entry.sold);
+      const canBuy = !isSold && availGold >= entry.cost;
+      const card = document.createElement('div');
+      card.className = 'bm-gamble-card';
+      card.style.padding = '5px 7px';
+      card.style.opacity = isSold ? '0.42' : (canBuy ? '1' : '0.68');
+      card.style.borderColor = isSold ? '#2b2217' : (canBuy ? '#9c7a38' : '#4a2525');
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;min-width:0">
+          <div style="width:28px;height:28px;background:#050403;border:1px solid #382c1d;display:flex;align-items:center;justify-content:center;flex-shrink:0">${getGearSvg(item)}</div>
+          <div style="min-width:0;flex:1">
+            <div class="text-${item.rarity}" style="font-family:var(--font-serif);font-size:0.74rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.68rem;color:#9e8d73">
+              <span>ilvl ${item.ilvl || 1} ${item.slot.toUpperCase()}</span>
+              <strong style="color:${isSold ? '#868e96' : (canBuy ? '#ffd43b' : '#ff8787')}">${isSold ? 'SOLD' : `${entry.cost}g`}</strong>
+            </div>
+          </div>
         </div>
-        <div class="bm-gamble-sub">${off.sub}</div>
       `;
-      btn.title = off.title;
-      btn.addEventListener('click', off.action);
-      bar.appendChild(btn);
+      card.addEventListener('mouseenter', (ev) => showItemTooltip(ev, item, true));
+      card.addEventListener('mouseleave', hideTooltip);
+      if (!isSold) {
+        card.addEventListener('click', () => {
+          hideTooltip();
+          if (ws) ws.send(JSON.stringify({ type: 'buy_vendor_item', stockId: entry.stockId || item.id }));
+        });
+      }
+      bar.appendChild(card);
     }
 
-    // Render Buyback List (Recently Sold Items)
+    // Render Crafting Orb Shards Progress Strip (10 Shards = +1 Full Orb)
+    const shardEl = document.getElementById('shardProgressBar');
+    if (shardEl) {
+      const shards = myProfile.shards || (myProfile.currencies && myProfile.currencies._shards) || {};
+      const shardDefs = [
+        ['transmute', 'TRN', '#74c0fc'],
+        ['alteration', 'ALT', '#63e6be'],
+        ['alchemy', 'ALC', '#ffd43b'],
+        ['chaos', 'CHA', '#f59f00'],
+        ['exalted', 'EXA', '#ff922b'],
+        ['divine', 'DIV', '#ff6b6b']
+      ];
+      shardEl.innerHTML = shardDefs
+        .map(([k, lbl, col]) => `<div class="stat-pair"><span>${lbl} SHARDS</span><strong style="color:${col}">${shards[k] || 0}/10</strong></div>`)
+        .join('');
+    }
+
+    // Render Buyback List (Recently Salvaged Items)
     const buybackEl = document.getElementById('buybackList');
     if (buybackEl) {
       buybackEl.innerHTML = '';
-      const buybacks = myProfile.buybackItems || [];
+      const buybacks = (myProfile.buybackItems || []).slice(0, 3);
       if (buybacks.length === 0) {
-        buybackEl.innerHTML = `<div style="color:#827563;font-size:0.82rem;padding:6px 2px">No recently sold items. Open Inventory [I] and Right-Click any item while Black Market is open to sell it for Gold.</div>`;
+        buybackEl.innerHTML = `<div style="color:#827563;font-size:0.74rem;padding:4px 2px">Open Inventory [I] and Right-Click any gear item while Vendor [V] is open to salvage it into Crafting Orb Shards!</div>`;
       } else {
         for (const entry of buybacks) {
           if (!entry || !entry.item) continue;
           const item = entry.item;
-          const price = entry.price || computeVendorGoldPreview(item);
-          const canAfford = stashGold >= price;
+          const price = entry.price || 15;
+          const canAfford = availGold >= price;
           const row = document.createElement('div');
           row.className = 'bm-buyback-row';
+          row.style.padding = '3px 6px';
           row.innerHTML = `
             <div class="bm-buyback-left">
-              <div class="bm-buyback-art">${getGearSvg(item)}</div>
+              <div class="bm-buyback-art" style="width:26px;height:26px">${getGearSvg(item)}</div>
               <div style="min-width:0">
-                <div class="text-${item.rarity}" style="font-family:var(--font-serif);font-size:0.84rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
-                <div style="font-size:0.74rem;color:#9e8d73">ilvl ${item.ilvl || 1} ${item.slot.toUpperCase()}</div>
+                <div class="text-${item.rarity}" style="font-family:var(--font-serif);font-size:0.74rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
+                <div style="font-size:0.66rem;color:#9e8d73">ilvl ${item.ilvl || 1} ${item.slot.toUpperCase()}</div>
               </div>
             </div>
-            <button class="poe-chisel-btn sm-btn" style="color:${canAfford ? '#ffd43b' : '#ff8787'};border-color:${canAfford ? '#9c7a38' : '#4a2525'};flex-shrink:0" type="button">
-              BUYBACK (${price}g)
+            <button class="poe-chisel-btn sm-btn" style="padding:2px 6px;font-size:0.68rem;color:${canAfford ? '#ffd43b' : '#ff8787'};border-color:${canAfford ? '#9c7a38' : '#4a2525'};flex-shrink:0" type="button">
+              RECLAIM (${price}g)
             </button>
           `;
           row.addEventListener('mouseenter', (ev) => showItemTooltip(ev, item, true));
@@ -220,10 +220,13 @@
     grid.innerHTML = '';
     const inv = myProfile.inventory || [];
     document.getElementById('invCountLabel').textContent = `(${inv.length}/32)`;
+    const isVendorOpen = !document.getElementById('blackMarketDrawer')?.classList.contains('hidden');
     const hintEl = document.getElementById('invActionHint');
     if (hintEl) {
-      hintEl.textContent = 'L-Click: Equip • R-Click: Drop on Ground';
-      hintEl.style.color = '#a3937c';
+      hintEl.textContent = isVendorOpen
+        ? 'L-Click: Equip • R-Click: Salvage for Shards!'
+        : 'L-Click: Equip • R-Click: Drop on Ground';
+      hintEl.style.color = isVendorOpen ? '#ffd43b' : '#a3937c';
     }
 
     for (let idx = 0; idx < 32; idx++) {
@@ -322,8 +325,9 @@
             renderCurrencyBench();
             return;
           }
+          const vendorOpen = !document.getElementById('blackMarketDrawer')?.classList.contains('hidden');
           ws.send(JSON.stringify({
-            type: 'drop_inventory_item',
+            type: vendorOpen ? 'salvage_item' : 'drop_item',
             itemId: entry.id,
             invIdx: idx
           }));

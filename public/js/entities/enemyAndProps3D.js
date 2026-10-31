@@ -3,25 +3,51 @@
   with (window.__POS_CTX__) {
   const enemyPoolByKey = new Map();
 
+  const MONSTER_MODEL_MAP = {
+    skeleton: { modelKey: 'Skeleton_Warrior', wepKey: 'wep_blade', shieldKey: 'wep_shield' },
+    scarab: { modelKey: 'Monster_Spider', wepKey: null, shieldKey: null },
+    archer: { modelKey: 'Skeleton_Rogue', wepKey: 'wep_blade', shieldKey: null },
+    frost_sentinel: { modelKey: 'Monster_Crab', wepKey: null, shieldKey: null },
+    volatile_imp: { modelKey: 'Monster_Wasp', wepKey: null, shieldKey: null },
+    gilded_goblin: { modelKey: 'Skeleton_Minion', wepKey: 'wep_axe', shieldKey: null },
+    rhoa: { modelKey: 'Monster_Bull', wepKey: null, shieldKey: null },
+    goatman: { modelKey: 'Monster_Stag', wepKey: null, shieldKey: null },
+    necromancer: { modelKey: 'Skeleton_Mage', wepKey: 'wep_staff', shieldKey: null },
+    blight_spitter: { modelKey: 'Monster_Snake', wepKey: null, shieldKey: null },
+    storm_herald: { modelKey: 'Monster_AlienFlying', wepKey: null, shieldKey: null },
+    void_stalker: { modelKey: 'Monster_Wolf', wepKey: null, shieldKey: null },
+    cultist: { modelKey: 'Monster_AlienLarge', wepKey: null, shieldKey: null },
+    devourer: { modelKey: 'Monster_Raptor', wepKey: null, shieldKey: null },
+    shield_juggernaut: { modelKey: 'Monster_Triceratops', wepKey: null, shieldKey: null },
+    kitava_herald: { modelKey: 'Monster_Trex', wepKey: null, shieldKey: null },
+    raid_pylon: { modelKey: 'Monster_AlienFlying', wepKey: null, shieldKey: null }
+  };
+
   function applyEnemyRarityStyle(ent, m) {
-    const rarityScale = m.rarity === 'boss' ? 28 : m.rarity === 'rare' ? 19.5 : m.rarity === 'magic' ? 16.5 : 14.5;
+    const targetH = m.rarity === 'boss' ? 54 : m.rarity === 'rare' ? 37 : m.rarity === 'magic' ? 31 : 25;
+    const finalScale = targetH / (ent.natH || 2.0);
     if (ent.model) {
-      ent.model.scale.setScalar(rarityScale);
+      ent.model.scale.setScalar(finalScale);
+      ent.model.position.y = -(ent.minY || 0) * finalScale;
     }
     if (ent.lastRarity !== m.rarity || ent.lastType !== m.t) {
       ent.lastRarity = m.rarity;
       ent.lastType = m.t;
       const emHex = m.t === 'raid_pylon' ? 0x1098ad : m.t === 'gilded_goblin' ? 0x8a6d0b : m.rarity === 'boss' ? 0x661111 : m.rarity === 'rare' ? 0x4a3605 : m.rarity === 'magic' ? 0x0b2244 : 0x000000;
-      for (const mat of ent.materials) {
-        if (mat.emissive) mat.emissive.setHex(emHex);
-      }
+      for (const mat of ent.materials) if (mat.emissive) mat.emissive.setHex(emHex);
       if (ent.rarityRing) {
-        if (m.rarity === 'rare' || m.rarity === 'boss') {
-          ent.rarityRing.visible = true;
+        ent.rarityRing.visible = m.rarity === 'rare' || m.rarity === 'boss';
+        if (ent.rarityRing.visible) {
           ent.rarityRing.scale.setScalar(m.r || 18);
           ent.rarityRing.material.color.setHex(m.rarity === 'boss' ? 0xff3b3b : 0xffd43b);
-        } else {
-          ent.rarityRing.visible = false;
+        }
+      }
+      if (ent.crownHalo) {
+        ent.crownHalo.visible = m.rarity === 'boss' || m.t === 'gilded_goblin';
+        if (ent.crownHalo.visible) {
+          ent.crownHalo.position.y = targetH + 6;
+          ent.crownHalo.scale.setScalar(m.rarity === 'boss' ? 16 : 9);
+          ent.crownHalo.material.color.setHex(m.t === 'gilded_goblin' ? 0xffd43b : 0xff5522);
         }
       }
     }
@@ -32,14 +58,8 @@
     ent.group.visible = false;
     if (ent.poolKey && ent.b !== 'dummy') {
       let pool = enemyPoolByKey.get(ent.poolKey);
-      if (!pool) {
-        pool = [];
-        enemyPoolByKey.set(ent.poolKey, pool);
-      }
-      if (pool.length < 85) {
-        pool.push(ent);
-        return;
-      }
+      if (!pool) { pool = []; enemyPoolByKey.set(ent.poolKey, pool); }
+      if (pool.length < 85) { pool.push(ent); return; }
     }
     enemiesGroup.remove(ent.group);
     cleanupEntity3D(ent);
@@ -49,42 +69,31 @@
     let ent = enemyEntities.get(m.id);
     if (ent) return ent;
 
-    // Cohesive Dark-Fantasy KayKit 3D Monster Models + Bound 3D Weapons
-    let modelKey = 'Skeleton_Warrior';
-    let wepKey = 'wep_blade';
-    let shieldKey = 'wep_shield';
+    // Distinct 3D Monster Archetypes + Pinnacle Boss Models
+    const archCfg = MONSTER_MODEL_MAP[m.t] || MONSTER_MODEL_MAP.skeleton;
+    let modelKey = archCfg.modelKey, wepKey = archCfg.wepKey, shieldKey = archCfg.shieldKey;
 
     if (m.b === 'dummy') {
       modelKey = 'Knight'; wepKey = null; shieldKey = null;
-    } else if (m.t === 'cultist' || m.t === 'frost_sentinel' || m.t === 'storm_herald' || m.t === 'necromancer' || m.t === 'raid_pylon') {
-      modelKey = 'Skeleton_Mage'; wepKey = 'wep_staff'; shieldKey = null;
-    } else if (m.t === 'goatman' || m.t === 'blight_spitter' || m.t === 'gilded_goblin') {
-      modelKey = 'Skeleton_Rogue'; wepKey = 'wep_axe'; shieldKey = null;
-    } else if (m.t === 'rhoa' || m.t === 'void_stalker') {
-      modelKey = 'Skeleton_Rogue'; wepKey = 'wep_blade'; shieldKey = 'wep_blade';
-    } else if (m.t === 'devourer' || m.t === 'volatile_imp') {
-      modelKey = 'Skeleton_Minion'; wepKey = 'wep_axe'; shieldKey = 'wep_blade';
-    } else if (m.t === 'kitava_herald' || m.t === 'shield_juggernaut' || m.rarity === 'boss') {
-      modelKey = 'Skeleton_Warrior'; wepKey = 'wep_axe'; shieldKey = 'wep_shield';
+    } else if (m.rarity === 'boss') {
+      const bName = String(m.name || '');
+      if (bName.includes('Exarch')) { modelKey = 'Monster_Mech'; wepKey = null; shieldKey = null; }
+      else if (bName.includes('Eater')) { modelKey = 'Monster_AlienLarge'; wepKey = null; shieldKey = null; }
+      else if (bName.includes('Maven')) { modelKey = 'Monster_AlienFlying'; wepKey = null; shieldKey = null; }
+      else if (bName.includes('Sirus')) { modelKey = 'Knight'; wepKey = null; shieldKey = null; }
     }
 
     const poolKey = `${modelKey}_${wepKey || 'none'}_${shieldKey || 'none'}`;
     const pool = enemyPoolByKey.get(poolKey);
     if (pool && pool.length > 0 && m.b !== 'dummy') {
       ent = pool.pop();
-      ent.id = m.id;
-      ent.b = m.b;
-      ent.rarity = m.rarity;
-      ent.radius = m.r;
-      ent.targetX = m.x;
-      ent.targetZ = m.y;
+      ent.id = m.id; ent.b = m.b; ent.rarity = m.rarity; ent.radius = m.r;
+      ent.targetX = m.x; ent.targetZ = m.y;
       ent.group.position.set(m.x, 0, m.y);
       ent.group.visible = true;
       if (ent.lastChilled) {
         ent.lastChilled = false;
-        for (const mat of ent.materials) {
-          mat.color.setHex(0xffffff);
-        }
+        for (const mat of ent.materials) mat.color.setHex(0xffffff);
       }
       applyEnemyRarityStyle(ent, m);
       enemyEntities.set(m.id, ent);
@@ -95,16 +104,18 @@
     group.position.set(m.x, 0, m.y);
     enemiesGroup.add(group);
 
-    let mixer = null;
-    let model = null;
+    let mixer = null, model = null, natH = 2.0, minY = 0;
     const materials = [];
     const gltf = ASSETS.models[modelKey] || ASSETS.models.Skeleton_Warrior;
 
     if (gltf) {
       model = SkeletonUtils.clone(gltf.scene);
-      const rarityScale = m.rarity === 'boss' ? 28 : m.rarity === 'rare' ? 19.5 : m.rarity === 'magic' ? 16.5 : 14.5;
-      model.scale.setScalar(rarityScale);
-      model.position.y = 0;
+      natH = (gltf.userData && gltf.userData.naturalHeight) || 2.0;
+      minY = (gltf.userData && gltf.userData.minY) || 0;
+      const targetH = m.rarity === 'boss' ? 54 : m.rarity === 'rare' ? 37 : m.rarity === 'magic' ? 31 : 25;
+      const finalScale = targetH / natH;
+      model.scale.setScalar(finalScale);
+      model.position.y = -minY * finalScale;
 
       if (wepKey) attachSkeletonWeapon(model, wepKey, shieldKey);
       if (modelKey === 'Knight') configureCharacterWeapons(model);
@@ -128,9 +139,7 @@
       mixer = new THREE.AnimationMixer(model);
       const animPrefs = m.b === 'dummy'
         ? ['Idle', '2H_Melee_Idle']
-        : m.t === 'cultist'
-          ? ['Running_B', 'Running_A']
-          : ['Running_A', 'Running_C', 'Walking_A'];
+        : ['Run', 'Gallop', 'Flying', 'Walk', 'Running_A', 'Idle'];
       const clip = findClip(gltf.animations, animPrefs);
       if (clip) {
         const action = mixer.clipAction(clip);
@@ -141,34 +150,24 @@
 
     const rarityRing = new THREE.Mesh(
       sharedProjGeos.ring,
-      new THREE.MeshBasicMaterial({
-        color: m.rarity === 'boss' ? 0xff3b3b : 0xffd43b,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.72
-      })
+      new THREE.MeshBasicMaterial({ color: m.rarity === 'boss' ? 0xff3b3b : 0xffd43b, side: THREE.DoubleSide, transparent: true, opacity: 0.72 })
     );
     rarityRing.rotation.x = -Math.PI / 2;
     rarityRing.position.y = 1.2;
     rarityRing.visible = false;
     group.add(rarityRing);
 
+    const crownHalo = new THREE.Mesh(
+      sharedProjGeos.fxTorus,
+      new THREE.MeshBasicMaterial({ color: 0xffd43b, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    crownHalo.rotation.x = Math.PI / 2;
+    crownHalo.visible = false;
+    group.add(crownHalo);
+
     ent = {
-      id: m.id,
-      poolKey,
-      b: m.b,
-      group,
-      model,
-      mixer,
-      materials,
-      rarityRing,
-      lastRarity: null,
-      lastChilled: false,
-      targetX: m.x,
-      targetZ: m.y,
-      yaw: 0,
-      rarity: m.rarity,
-      radius: m.r
+      id: m.id, poolKey, b: m.b, group, model, natH, minY, mixer, materials, rarityRing, crownHalo,
+      lastRarity: null, lastType: null, lastChilled: false, targetX: m.x, targetZ: m.y, yaw: 0, rarity: m.rarity, radius: m.r
     };
     applyEnemyRarityStyle(ent, m);
     enemyEntities.set(m.id, ent);

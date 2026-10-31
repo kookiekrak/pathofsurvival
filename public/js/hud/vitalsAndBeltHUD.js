@@ -126,18 +126,20 @@
       }
       if (vaalBtn) vaalBtn.classList.toggle('vaal-ready', vaalLock <= 0 && vaalSouls >= vaalMax);
 
-      // In-Run Gold Counter (hidden in Hideout; Gold is strictly In-Run Gold for Golden Chests & Rerolls!)
+      // Gold Counter (shows Run Gold in Maps, or Stash Gold in Hideout for the Vendor!)
       const isRunMode = worldState.mode === 'RUN';
       const goldBar = document.querySelector('.poe-gold-chest-bar');
-      if (goldBar) goldBar.classList.toggle('hidden', !isRunMode);
-      const goldVal = me.runGold ?? me.gold ?? (myProfile && myProfile.runGold) ?? 0;
+      if (goldBar) goldBar.classList.remove('hidden');
+      const goldVal = isRunMode
+        ? (me.runGold ?? (myProfile && myProfile.runGold) ?? 0)
+        : ((myProfile && (myProfile.stashGold ?? myProfile.gold)) ?? me.gold ?? 0);
       const chestCost = me.nextChestCost ?? (myProfile && myProfile.nextChestCost) ?? 50;
       const goldEl = document.getElementById('hudGoldVal');
       const goldLbl = document.getElementById('hudGoldLbl');
       const costEl = document.getElementById('hudChestCost');
       const buyBtn = document.getElementById('buyChestBtn');
       if (goldEl) goldEl.textContent = goldVal;
-      if (goldLbl) goldLbl.textContent = 'RUN GOLD';
+      if (goldLbl) goldLbl.textContent = isRunMode ? 'RUN GOLD' : 'GOLD [V]';
       if (costEl) costEl.textContent = chestCost;
       if (buyBtn) {
         buyBtn.classList.toggle('can-afford', goldVal >= chestCost);
@@ -182,12 +184,12 @@
     if (allocEl) allocEl.textContent = allocatedNodesCount;
 
     const goldBar = document.querySelector('.poe-gold-chest-bar');
-    if (goldBar) goldBar.classList.toggle('hidden', !isRunMode);
-    const displayGold = myProfile.runGold ?? myProfile.gold ?? 0;
+    if (goldBar) goldBar.classList.remove('hidden');
+    const displayGold = isRunMode ? (myProfile.runGold ?? 0) : (myProfile.stashGold ?? myProfile.gold ?? 0);
     const goldEl = document.getElementById('hudGoldVal');
     if (goldEl) goldEl.textContent = displayGold;
     const goldLbl = document.getElementById('hudGoldLbl');
-    if (goldLbl) goldLbl.textContent = 'RUN GOLD';
+    if (goldLbl) goldLbl.textContent = isRunMode ? 'RUN GOLD' : 'GOLD [V]';
     if (typeof myProfile.nextChestCost === 'number') {
       const costEl = document.getElementById('hudChestCost');
       if (costEl) costEl.textContent = myProfile.nextChestCost;
@@ -347,21 +349,25 @@
 
       const isUtility = f.id !== 'life';
       const isMagebloodActive = hasMageblood && isUtility;
-      const rawChg = typeof slotCharges[i] === 'number' ? slotCharges[i] : (chargesById[f.id] ?? f.maxCharges);
-      const cur = isMagebloodActive ? f.maxCharges : rawChg;
-      const pct = isMagebloodActive ? 100 : Math.min(100, Math.round((cur / f.maxCharges) * 100));
+      const slotMeta = (Array.isArray(myProfile.flaskBeltItems) && myProfile.flaskBeltItems[i]) || null;
+      const maxChg = (slotMeta && slotMeta.maxCharges) || f.maxCharges;
+      const useCost = (slotMeta && slotMeta.cost) || f.cost;
+      const fName = (slotMeta && slotMeta.name) || f.name;
+      const rawChg = typeof slotCharges[i] === 'number' ? slotCharges[i] : (chargesById[f.id] ?? maxChg);
+      const cur = isMagebloodActive ? maxChg : rawChg;
+      const pct = isMagebloodActive ? 100 : Math.min(100, Math.round((cur / maxChg) * 100));
       const isBuffActive = isMagebloodActive || (slotTimers[i] || 0) > 0 || (activeById[f.id] || 0) > 0;
 
       slot.className = `flask-slot ${isBuffActive ? 'buff-active' : ''} ${isSelected ? 'selected-belt-slot' : ''}`;
       slot.innerHTML = `
         <span class="flask-key-num">${keyNum}</span>
         <div class="flask-svg-wrap">${getFlaskSvg(f.id, pct, f.color)}</div>
-        <span class="flask-charges-num">${isMagebloodActive ? 'PERM' : `${cur}/${f.maxCharges}`}</span>
+        <span class="flask-charges-num">${isMagebloodActive ? 'PERM' : `${cur}/${maxChg}`}</span>
         ${isBuffActive ? '<div class="flask-buff-bar"></div>' : ''}
       `;
       slot.title = isMagebloodActive
-        ? `Slot [${keyNum}] ${f.name} (MAGEBLOOD — Permanently Active at 125% Effect!): ${f.desc}`
-        : `Slot [${keyNum}] ${f.name}: ${f.desc} (Open Inventory [I] to Swap/Move Slots)`;
+        ? `Slot [${keyNum}] ${fName} (MAGEBLOOD — Permanently Active at 125% Effect!): ${f.desc}`
+        : `Slot [${keyNum}] ${fName} (${useCost}/${maxChg} Chg, Auto-Uses on Full Charges): ${f.desc}`;
       slot.addEventListener('click', () => handleBeltSlotClick(i, false));
       slot.addEventListener('contextmenu', (ev) => {
         const invOpen = !document.getElementById('inventoryDrawer').classList.contains('hidden');

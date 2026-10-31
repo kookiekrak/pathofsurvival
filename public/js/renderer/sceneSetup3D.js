@@ -93,6 +93,19 @@
     ['Skeleton_Rogue', '/assets/models/Skeleton_Rogue.glb'],
     ['Skeleton_Mage', '/assets/models/Skeleton_Mage.glb'],
     ['Skeleton_Minion', '/assets/models/Skeleton_Minion.glb'],
+    ['Monster_Spider', '/assets/models/Spider.glb'],
+    ['Monster_Snake', '/assets/models/Snake_angry.glb'],
+    ['Monster_Wasp', '/assets/models/Wasp.glb'],
+    ['Monster_Bull', '/assets/models/Bull.glb'],
+    ['Monster_Wolf', '/assets/models/Wolf.glb'],
+    ['Monster_Stag', '/assets/models/Stag.glb'],
+    ['Monster_Raptor', '/assets/models/Velociraptor.glb'],
+    ['Monster_Triceratops', '/assets/models/Triceratops.glb'],
+    ['Monster_Trex', '/assets/models/Trex.glb'],
+    ['Monster_Crab', '/assets/models/Crab.glb'],
+    ['Monster_AlienLarge', '/assets/models/Alien_Large.glb'],
+    ['Monster_AlienFlying', '/assets/models/Alien_Flying.glb'],
+    ['Monster_Mech', '/assets/models/Mech_Colossus.glb'],
     ['wep_blade', '/assets/models/Skeleton_Blade.gltf'],
     ['wep_axe', '/assets/models/Skeleton_Axe.gltf'],
     ['wep_staff', '/assets/models/Skeleton_Staff.gltf'],
@@ -164,7 +177,7 @@
         gltfLoader.load(
           url,
           (gltf) => {
-            const isEnemyOrWep = key.startsWith('Skeleton_') || key.startsWith('wep_');
+            const isEnemyOrWep = key.startsWith('Monster_') || key.startsWith('Skeleton_') || key.startsWith('wep_');
             gltf.scene.traverse((obj) => {
               if (obj.isMesh) {
                 obj.castShadow = !isEnemyOrWep;
@@ -176,7 +189,7 @@
             const size = new THREE.Vector3();
             box.getSize(size);
             gltf.userData = {
-              naturalHeight: Math.max(0.5, size.y),
+              naturalHeight: Math.max(0.4, size.y),
               minY: box.min.y
             };
             ASSETS.models[key] = gltf;

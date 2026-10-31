@@ -85,7 +85,9 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
       }
     }
 
-    // Auto-Flask Triggering in Maps: Life Flasks trigger at < 72% HP; Utility Flasks trigger when enemies are nearby!
+    // Auto-Flask Triggering in Maps:
+    // - Life Flasks trigger at < 72% HP OR when charges reach FULL (curCharges >= maxCharges)!
+    // - Utility Flasks trigger when charges reach FULL OR when enemies are nearby and buff isn't active!
     if (room.state === 'RUN' && Array.isArray(p.flaskBelt)) {
       const hasNearbyEnemy = findNearestEnemy(room, p.x, p.y, 380) !== null;
       let usedAnyFlask = false;
@@ -95,32 +97,38 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
         if (!fId) continue;
         const fDef = GameData.FLASKS.find(fl => fl.id === fId);
         if (!fDef) continue;
-        const useCost = fDef.useCost || fDef.cost || 5;
+        const slotMeta = (Array.isArray(p.flaskBeltItems) && p.flaskBeltItems[sIdx]) || null;
+        const maxCharges = (slotMeta && slotMeta.maxCharges) || fDef.maxCharges || 30;
+        const useCost = (slotMeta && slotMeta.cost) || fDef.useCost || fDef.cost || 5;
+        const dur = (slotMeta && slotMeta.duration) || fDef.duration || 5.0;
         const curCharges = p.flaskSlotCharges[sIdx] ?? p.flaskCharges[fId] ?? 0;
         if (curCharges < useCost) continue;
+        const isFullCharges = curCharges >= maxCharges;
 
         if (fId === 'life') {
-          if (p.hp < p.maxHp * 0.72 && (p.autoLifeFlaskCd || 0) <= 0) {
+          if ((p.hp < p.maxHp * 0.72 || isFullCharges) && (p.autoLifeFlaskCd || 0) <= 0) {
             p.flaskSlotCharges[sIdx] = Math.max(0, curCharges - useCost);
             p.flaskCharges[fId] = p.flaskSlotCharges[sIdx];
             p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.45));
             p.autoLifeFlaskCd = 1.25;
             usedAnyFlask = true;
           }
-        } else if (hasNearbyEnemy && (p.flaskSlotTimers[sIdx] || 0) <= 0 && (p.activeFlasks[fId] || 0) <= 0 && !(p.stats && p.stats.mageblood > 0)) {
-          p.flaskSlotCharges[sIdx] = Math.max(0, curCharges - useCost);
-          p.flaskCharges[fId] = p.flaskSlotCharges[sIdx];
-          const dur = fDef.duration || 5.0;
-          p.flaskSlotTimers[sIdx] = dur;
-          p.activeFlasks[fId] = dur;
-          if (fId === 'quartz') {
-            p.es = Math.min(p.maxEs, p.es + Math.round(p.maxEs * 0.4));
-          } else if (fId === 'amethyst') {
-            p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.2));
-            p.es = Math.min(p.maxEs, p.es + Math.round(p.maxEs * 0.2));
+        } else if (!(p.stats && p.stats.mageblood > 0)) {
+          const buffInactive = (p.flaskSlotTimers[sIdx] || 0) <= 0 && (p.activeFlasks[fId] || 0) <= 0;
+          if (isFullCharges || (hasNearbyEnemy && buffInactive)) {
+            p.flaskSlotCharges[sIdx] = Math.max(0, curCharges - useCost);
+            p.flaskCharges[fId] = p.flaskSlotCharges[sIdx];
+            p.flaskSlotTimers[sIdx] = dur;
+            p.activeFlasks[fId] = dur;
+            if (fId === 'quartz') {
+              p.es = Math.min(p.maxEs, p.es + Math.round(p.maxEs * 0.4));
+            } else if (fId === 'amethyst') {
+              p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.2));
+              p.es = Math.min(p.maxEs, p.es + Math.round(p.maxEs * 0.2));
+            }
+            usedUtilityFlask = true;
+            usedAnyFlask = true;
           }
-          usedUtilityFlask = true;
-          usedAnyFlask = true;
         }
       }
       if (usedUtilityFlask) recalcPlayer(p, false);
@@ -242,8 +250,8 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
     }
 
     // Loot Pickup Rules:
-    // - Currency Orbs & Monster-Dropped Utility Flasks auto-pickup when walking closely over them (56 units), or when clicked.
-    // - GEAR & PLAYER-DROPPED FLASKS NEVER AUTO-PICKUP! They are ONLY picked up when explicitly clicked (`p.targetDropId === drop.id`).
+    // - Currency Orbs auto-pickup when walking closely over them (52 units), or when clicked.
+    // - GEAR & FLASKS NEVER AUTO-PICKUP! They are ONLY picked up when explicitly clicked (`p.targetDropId === drop.id`).
     for (let i = room.groundDrops.length - 1; i >= 0; i--) {
       const drop = room.groundDrops[i];
       const d = dist(p.x, p.y, drop.x, drop.y);
@@ -251,10 +259,12 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
         p.currencies[drop.currencyId] = (p.currencies[drop.currencyId] || 0) + 1;
         room.groundDrops.splice(i, 1);
         sendPrivateProfile(p);
-      } else if (drop.dropType === 'flask' && ((!drop.droppedByPlayer && d <= 56) || (p.targetDropId === drop.id && d <= 125))) {
-        if (p.targetDropId === drop.id) p.targetDropId = null;
-        room.groundDrops.splice(i, 1);
-        pickupGroundFlask(room, p, drop);
+      } else if (drop.dropType === 'flask' && p.targetDropId === drop.id && d <= 125) {
+        p.targetDropId = null;
+        if ((p.inventory || []).length < 32) {
+          room.groundDrops.splice(i, 1);
+          pickupGroundFlask(room, p, drop);
+        }
       } else if (drop.dropType === 'gear' && p.targetDropId === drop.id && d <= 125) {
         p.targetDropId = null;
         if (p.inventory.length < 32) {

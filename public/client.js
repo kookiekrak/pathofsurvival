@@ -84,6 +84,7 @@ const CLIENT_MODULES = [
   "/js/hud/tooltipsAndStatsUI.js",
   "/js/panels/passiveTreeCanvas.js",
   "/js/panels/mapDeviceAndDrawers.js",
+  "/js/loop/soundEngine.js",
   "/js/loop/inputAndRaycast.js",
   "/js/loop/hudOverlay2D.js",
   "/js/loop/renderLoop3D.js"

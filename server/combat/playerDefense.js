@@ -66,10 +66,10 @@ function applyDamageToPlayer(room, player, rawDamage, dmgType, ignoreEvade = fal
 
   let mitigated = rawDamage;
   if (dmgType === 'physical') {
-    const armorRed = Math.min(0.65, s.armor / (s.armor + rawDamage * 12));
+    const armorRed = Math.min(0.75, s.armor / (s.armor + rawDamage * 8));
     mitigated = Math.max(2, Math.round(rawDamage * (1 - armorRed)));
   } else {
-    mitigated = Math.max(2, Math.round(rawDamage * (1 - (s.allRes || 0) / 100)));
+    mitigated = Math.max(2, Math.round(rawDamage * (1 - Math.min(78, s.allRes || 0) / 100)));
   }
 
   if (player.es > 0) {

@@ -3,8 +3,8 @@ const GameData = global.GameData || require('../../public/shared/gameData.js');
 
 function buildUniqueFromTemplate(tpl, ilvl = 1, existingId = null) {
   const cleanIlvl = Math.max(1, Math.floor(ilvl || 1));
-  const flatScale = 1 + Math.max(0, cleanIlvl - 1) * 0.22 + Math.pow(Math.max(0, cleanIlvl - 1), 1.2) * 0.05;
-  const pctScale = 1 + Math.floor(Math.max(0, cleanIlvl - 1) / 4) * 0.10;
+  const flatScale = 1 + Math.max(0, cleanIlvl - 1) * 0.28 + Math.pow(Math.max(0, cleanIlvl - 1), 1.35) * 0.04;
+  const pctScale = 1 + Math.floor(Math.max(0, cleanIlvl - 1) / 8) * 0.08;
   const flatKeys = new Set(['flatDmg', 'maxLife', 'maxEs', 'armor', 'evasion', 'lifeRegen', 'lifeOnHit']);
   const scaledImplicits = {};
   for (const [k, v] of Object.entries(tpl.implicits || {})) {
@@ -104,17 +104,52 @@ function pickWeightedUniqueTemplate(pool) {
   return list[list.length - 1];
 }
 
-function buildFlaskItem(flaskId, existingId = null) {
+function buildFlaskItem(flaskId, existingId = null, customStats = null) {
   const fDef = (GameData.FLASKS || []).find(f => f.id === flaskId) || GameData.FLASKS[0];
+  let maxCharges = fDef.maxCharges || 30;
+  let cost = fDef.cost || 10;
+  let duration = fDef.duration || 5.0;
+  let prefix = '';
+
+  if (customStats && typeof customStats === 'object') {
+    maxCharges = customStats.maxCharges || maxCharges;
+    cost = customStats.cost || cost;
+    duration = customStats.duration || duration;
+    prefix = customStats.prefix || '';
+  } else if (customStats !== false) {
+    const rollType = Math.random();
+    if (rollType < 0.25) {
+      prefix = 'Ample ';
+      maxCharges = Math.round(maxCharges * (1.2 + Math.random() * 0.3));
+    } else if (rollType < 0.50) {
+      prefix = "Chemist's ";
+      cost = Math.max(3, Math.round(cost * (0.68 + Math.random() * 0.14)));
+      maxCharges = Math.max(cost, Math.round(maxCharges * (0.9 + Math.random() * 0.2)));
+    } else if (rollType < 0.75 && fDef.id !== 'life') {
+      prefix = "Experimenter's ";
+      duration = +(duration * (1.18 + Math.random() * 0.25)).toFixed(1);
+      maxCharges = Math.max(cost, Math.round(maxCharges * (0.95 + Math.random() * 0.2)));
+    } else {
+      prefix = 'Perpetual ';
+      maxCharges = Math.max(cost + 2, Math.round(maxCharges * (0.85 + Math.random() * 0.45)));
+      cost = Math.max(3, Math.min(maxCharges, Math.round(cost * (0.8 + Math.random() * 0.25))));
+    }
+  }
+
+  const displayName = (customStats && customStats.name) ? customStats.name : `${prefix}${fDef.name}`.trim();
+  const durText = fDef.id !== 'life' ? ` • Lasts ${duration}s` : '';
   return {
     id: existingId || uid('flask'),
     flaskId: fDef.id,
-    name: fDef.name,
-    baseName: 'Belt Flask',
+    name: displayName,
+    baseName: fDef.name,
     slot: 'flask',
     rarity: 'flask',
     ilvl: 1,
     itemLevel: 1,
+    maxCharges,
+    cost,
+    duration,
     maxTierForIlvl: 'Flask',
     implicits: {},
     affixes: [
@@ -123,8 +158,8 @@ function buildFlaskItem(flaskId, existingId = null) {
         stat: 'flask',
         val: 1,
         value: 1,
-        tierName: `${fDef.cost}/${fDef.maxCharges} Charges`,
-        text: fDef.desc
+        tierName: `${cost}/${maxCharges} Charges${durText}`,
+        text: `${fDef.desc} (Auto-Triggers in Combat & on Full Charges)`
       }
     ],
     mods: [],
@@ -157,9 +192,9 @@ function generateGearItem(slotArg, rarityArg, itemLevel = 1, rarityBonusPct = 0)
   }
 
   const base = pick(GameData.GEAR_BASES[slot]);
-  // Scale flat implicits (flatDmg, maxLife, armor, evasion, maxEs) strongly with ilvl so higher-tier gear matters!
-  const flatImplicitScale = 1 + Math.max(0, ilvl - 1) * 0.35 + Math.pow(Math.max(0, ilvl - 1), 1.3) * 0.10;
-  const pctImplicitScale = 1 + Math.floor(Math.max(0, ilvl - 1) / 3) * 0.14;
+  // Scale flat implicits (flatDmg, maxLife, armor, evasion, maxEs) smoothly with ilvl across T1-T16!
+  const flatImplicitScale = 1 + Math.max(0, ilvl - 1) * 0.28 + Math.pow(Math.max(0, ilvl - 1), 1.35) * 0.04;
+  const pctImplicitScale = 1 + Math.floor(Math.max(0, ilvl - 1) / 8) * 0.08;
   const flatImplicitKeys = new Set(['flatDmg', 'maxLife', 'maxEs', 'armor', 'evasion', 'lifeRegen']);
   const scaledImplicits = {};
   for (const [k, v] of Object.entries(base.implicits || {})) {
@@ -232,7 +267,7 @@ function createStarterLoadout(classId) {
     rarity: 'normal',
     ilvl: 1,
     itemLevel: 1,
-    maxTierForIlvl: 'T5',
+    maxTierForIlvl: 'T6',
     implicits: { ...weaponBase.implicits },
     affixes: [],
     mods: []
@@ -246,7 +281,7 @@ function createStarterLoadout(classId) {
     rarity: 'normal',
     ilvl: 1,
     itemLevel: 1,
-    maxTierForIlvl: 'T5',
+    maxTierForIlvl: 'T6',
     implicits: { maxLife: 34, armor: 42 },
     affixes: [],
     mods: []
@@ -260,7 +295,7 @@ function createStarterLoadout(classId) {
     rarity: 'normal',
     ilvl: 1,
     itemLevel: 1,
-    maxTierForIlvl: 'T5',
+    maxTierForIlvl: 'T6',
     implicits: { maxLife: 14, armor: 18, moveSpeedPct: 12 },
     affixes: [],
     mods: []

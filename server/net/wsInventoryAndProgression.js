@@ -2,15 +2,10 @@
 const GameData = global.GameData || require('../../public/shared/gameData.js');
 
 function ensureFlaskBeltArrays(player) {
-  if (!Array.isArray(player.flaskBelt) || player.flaskBelt.length !== 5) {
-    player.flaskBelt = ['life', null, null, null, null];
-  }
-  if (!Array.isArray(player.flaskSlotCharges) || player.flaskSlotCharges.length !== 5) {
-    player.flaskSlotCharges = [15, 0, 0, 0, 0];
-  }
-  if (!Array.isArray(player.flaskSlotTimers) || player.flaskSlotTimers.length !== 5) {
-    player.flaskSlotTimers = [0, 0, 0, 0, 0];
-  }
+  if (!Array.isArray(player.flaskBelt) || player.flaskBelt.length !== 5) player.flaskBelt = ['life', null, null, null, null];
+  if (!Array.isArray(player.flaskBeltItems) || player.flaskBeltItems.length !== 5) player.flaskBeltItems = [null, null, null, null, null];
+  if (!Array.isArray(player.flaskSlotCharges) || player.flaskSlotCharges.length !== 5) player.flaskSlotCharges = [15, 0, 0, 0, 0];
+  if (!Array.isArray(player.flaskSlotTimers) || player.flaskSlotTimers.length !== 5) player.flaskSlotTimers = [0, 0, 0, 0, 0];
 }
 
 function sendCraftFeedback(ws, ok, msg) {
@@ -19,10 +14,7 @@ function sendCraftFeedback(ws, ok, msg) {
 
 function pushPlayerFloatingText(room, player, val, text, color, size = 16, crit = false, dtype = 'loot') {
   if (!room || room.state !== 'HIDEOUT') return;
-  room.fxEvents.push({
-    kind: 'dmg_num', x: Math.round(player.x), y: Math.round(player.y - 28),
-    val, text, color, size, crit, dtype
-  });
+  room.fxEvents.push({ kind: 'dmg_num', x: Math.round(player.x), y: Math.round(player.y - 28), val, text, color, size, crit, dtype });
 }
 
 function resolveInventoryIndex(player, msg) {
@@ -38,12 +30,13 @@ function equipFlaskFromInventorySlot(player, invIdx, slotIdx) {
   const fId = item.flaskId || 'life';
   const fDef = GameData.FLASKS.find(f => f.id === fId) || GameData.FLASKS[0];
   const prevFlaskId = player.flaskBelt[slotIdx];
+  const prevMeta = player.flaskBeltItems[slotIdx] || null;
+  const newMeta = { name: item.name || fDef.name, maxCharges: item.maxCharges || fDef.maxCharges, cost: item.cost || fDef.cost, duration: item.duration || fDef.duration };
   player.flaskBelt[slotIdx] = fDef.id;
-  player.flaskSlotCharges[slotIdx] = fDef.maxCharges;
-  if (!player.unlockedFlasks.includes(fDef.id)) {
-    player.unlockedFlasks.push(fDef.id);
-  }
-  if (prevFlaskId) player.inventory[invIdx] = buildFlaskItem(prevFlaskId);
+  player.flaskBeltItems[slotIdx] = newMeta;
+  player.flaskSlotCharges[slotIdx] = newMeta.maxCharges;
+  if (!player.unlockedFlasks.includes(fDef.id)) player.unlockedFlasks.push(fDef.id);
+  if (prevFlaskId) player.inventory[invIdx] = buildFlaskItem(prevFlaskId, null, prevMeta || false);
   else player.inventory.splice(invIdx, 1);
   recalcPlayer(player, false);
   sendPrivateProfile(player);
@@ -217,9 +210,11 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
     const toSlot = Math.max(0, Math.min(4, Math.floor(Number(msg.toSlot) || 0)));
     if (fromSlot !== toSlot) {
       const belt = currentPlayer.flaskBelt;
+      const meta = currentPlayer.flaskBeltItems;
       const chg = currentPlayer.flaskSlotCharges;
       const tmr = currentPlayer.flaskSlotTimers;
       [belt[fromSlot], belt[toSlot]] = [belt[toSlot], belt[fromSlot]];
+      [meta[fromSlot], meta[toSlot]] = [meta[toSlot], meta[fromSlot]];
       [chg[fromSlot], chg[toSlot]] = [chg[toSlot], chg[fromSlot]];
       [tmr[fromSlot], tmr[toSlot]] = [tmr[toSlot], tmr[fromSlot]];
       recalcPlayer(currentPlayer, false);
@@ -228,14 +223,16 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
     return true;
   }
   if (msg.type === 'unequip_flask_slot' || msg.type === 'unassign_flask_belt') {
-    if (!Array.isArray(currentPlayer.flaskBelt) || currentPlayer.flaskBelt.length !== 5) return true;
+    ensureFlaskBeltArrays(currentPlayer);
     const slotIdx = Math.max(0, Math.min(4, Math.floor(Number(msg.slotIndex) || 0)));
     const fId = currentPlayer.flaskBelt[slotIdx];
+    const prevMeta = currentPlayer.flaskBeltItems[slotIdx] || null;
     if (!fId || currentPlayer.inventory.length >= 32) return true;
     currentPlayer.flaskBelt[slotIdx] = null;
+    currentPlayer.flaskBeltItems[slotIdx] = null;
     currentPlayer.flaskSlotCharges[slotIdx] = 0;
     currentPlayer.flaskSlotTimers[slotIdx] = 0;
-    currentPlayer.inventory.push(buildFlaskItem(fId));
+    currentPlayer.inventory.push(buildFlaskItem(fId, null, prevMeta || false));
     recalcPlayer(currentPlayer, false);
     sendPrivateProfile(currentPlayer);
     return true;
@@ -250,7 +247,7 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
     sendPrivateProfile(currentPlayer);
     return true;
   }
-  if (msg.type === 'drop_item' || msg.type === 'delete_item') {
+  if (msg.type === 'drop_item' || msg.type === 'drop_inventory_item' || msg.type === 'delete_item') {
     // Drop Gear or Flask onto Ground so Other Players Can Inspect & Pick It Up to Trade!
     let item = null;
     const invIdx = resolveInventoryIndex(currentPlayer, msg);
@@ -284,7 +281,7 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
       dropType: isFlask ? 'flask' : 'gear',
       kind: isFlask ? 'flask' : 'item',
       flaskId: isFlask ? (item.flaskId || 'life') : undefined,
-      item: isFlask ? undefined : item,
+      item,
       label: item.name,
       rarity: isFlask ? 'flask' : item.rarity,
       droppedByPlayer: true, ttl: 180
@@ -323,18 +320,41 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
     if (!item) return true;
     currentPlayer.inventory.splice(invIdx, 1);
 
-    const ilvl = Math.max(1, Math.floor(item.ilvl || item.itemLevel || 1));
-    let goldGain = Math.round(3 + ilvl);
-    if (item.rarity === 'unique') goldGain = Math.round(30 + ilvl * 4);
-    else if (item.rarity === 'rare') goldGain = Math.round(14 + ilvl * 2.5);
-    else if (item.rarity === 'magic') goldGain = Math.round(6 + ilvl * 1.5);
+    const isRun = currentRoom.state === 'RUN';
+    const res = awardSalvageShards(currentPlayer, item, isRun);
 
     if (!Array.isArray(currentPlayer.buybackItems)) currentPlayer.buybackItems = [];
-    currentPlayer.buybackItems.unshift({ item, price: goldGain });
-    if (currentPlayer.buybackItems.length > 8) currentPlayer.buybackItems.pop();
+    currentPlayer.buybackItems.unshift({ item, price: Math.max(10, res.goldGain * 2) });
+    if (currentPlayer.buybackItems.length > 6) currentPlayer.buybackItems.pop();
 
-    currentPlayer.gold = (currentPlayer.gold || 0) + goldGain;
-    pushPlayerFloatingText(currentRoom, currentPlayer, `SOLD: +${goldGain}G`, `SOLD TO BLACK MARKET: +${goldGain} GOLD`, '#facc15', 16);
+    const summary = `${res.shardsText}${res.orbsText ? ` (${res.orbsText})` : ''} +${res.goldGain}G`;
+    sendCraftFeedback(ws, true, `Salvaged ${item.name}: ${summary}`);
+    pushPlayerFloatingText(currentRoom, currentPlayer, `SALVAGED: ${res.shardsText}`, `SALVAGED: ${summary}`, '#ffd43b', 15);
+    sendPrivateProfile(currentPlayer);
+    return true;
+  }
+  if (msg.type === 'buy_vendor_item') {
+    if (!Array.isArray(currentPlayer.vendorStock) || currentPlayer.vendorStock.length === 0) {
+      generatePlayerVendorStock(currentPlayer, currentPlayer.bestTier || 1);
+    }
+    const stockId = msg.stockId || msg.itemId;
+    const entry = (currentPlayer.vendorStock || []).find(e => e && (e.stockId === stockId || (e.item && e.item.id === stockId)));
+    if (!entry || entry.sold || !entry.item) return true;
+    const isRun = currentRoom.state === 'RUN';
+    const availGold = isRun ? (currentPlayer.runGold || 0) : (currentPlayer.gold || 0);
+    if (availGold < entry.cost) {
+      sendCraftFeedback(ws, false, `Need ${entry.cost} ${isRun ? 'Run Gold' : 'Gold'} to purchase ${entry.item.name}!`);
+      return true;
+    }
+    if (currentPlayer.inventory.length >= 32) {
+      sendCraftFeedback(ws, false, 'Inventory is full (32/32)! Salvage or drop items first.');
+      return true;
+    }
+    if (isRun) currentPlayer.runGold -= entry.cost;
+    else currentPlayer.gold -= entry.cost;
+    entry.sold = true;
+    currentPlayer.inventory.push(entry.item);
+    sendCraftFeedback(ws, true, `Purchased ${entry.item.name} for ${entry.cost} Gold!`);
     sendPrivateProfile(currentPlayer);
     return true;
   }
@@ -344,50 +364,21 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
     const bIdx = currentPlayer.buybackItems.findIndex(b => b && b.item && b.item.id === targetId);
     if (bIdx < 0) return true;
     const entry = currentPlayer.buybackItems[bIdx];
-    if ((currentPlayer.gold || 0) < entry.price) {
-      sendCraftFeedback(ws, false, `Need ${entry.price} Stash Gold to buy back ${entry.item.name}!`);
+    const isRun = currentRoom.state === 'RUN';
+    const availGold = isRun ? (currentPlayer.runGold || 0) : (currentPlayer.gold || 0);
+    if (availGold < entry.price) {
+      sendCraftFeedback(ws, false, `Need ${entry.price} Gold to buy back ${entry.item.name}!`);
       return true;
     }
     if (currentPlayer.inventory.length >= 32) {
       sendCraftFeedback(ws, false, 'Inventory is full (32/32)!');
       return true;
     }
-    currentPlayer.gold -= entry.price;
+    if (isRun) currentPlayer.runGold -= entry.price;
+    else currentPlayer.gold -= entry.price;
     currentPlayer.buybackItems.splice(bIdx, 1);
     currentPlayer.inventory.push(entry.item);
     sendCraftFeedback(ws, true, `Bought back ${entry.item.name} for ${entry.price} Gold!`);
-    sendPrivateProfile(currentPlayer);
-    return true;
-  }
-  if (msg.type === 'gamble_item') {
-    const cat = msg.category || 'weapon';
-    const gCosts = getGambleCosts(currentRoom, currentPlayer);
-    const cost = cat === 'weapon' ? gCosts.weapon : cat === 'body' ? (gCosts.body || gCosts.armour) : cat === 'jewelry' ? gCosts.jewelry : gCosts.armour;
-    if ((currentPlayer.gold || 0) < cost) {
-      sendCraftFeedback(ws, false, `Need ${cost} Stash Gold to gamble ${cat.toUpperCase()}!`);
-      return true;
-    }
-    if (currentPlayer.inventory.length >= 32) {
-      sendCraftFeedback(ws, false, 'Inventory is full (32/32)! Open Black Market & Right-Click items to sell.');
-      return true;
-    }
-    currentPlayer.gold -= cost;
-    const slotPool = cat === 'weapon' ? ['weapon'] : cat === 'body' ? ['body'] : cat === 'jewelry' ? ['ring', 'amulet', 'belt'] : ['boots', 'helm', 'gloves'];
-    const chosenSlot = pick(slotPool);
-    const roll = Math.random();
-    const rarity = roll < 0.012 ? 'unique' : roll < 0.39 ? 'rare' : 'magic';
-    const item = generateGearItem(chosenSlot, rarity, gCosts.ilvl, 0);
-    let autoEquipped = false;
-    if (!currentPlayer.equipment[chosenSlot]) {
-      currentPlayer.equipment[chosenSlot] = item;
-      autoEquipped = true;
-      recalcPlayer(currentPlayer, false);
-    } else {
-      currentPlayer.inventory.push(item);
-    }
-    const col = rarity === 'unique' ? '#ff922b' : rarity === 'rare' ? '#ffd43b' : '#74c0fc';
-    pushPlayerFloatingText(currentRoom, currentPlayer, `GAMBLED: ${item.name.toUpperCase()}`, `GAMBLED [${rarity.toUpperCase()}]: ${item.name}`, col, 17, rarity !== 'magic');
-    sendCraftFeedback(ws, true, `Gambled ${rarity.toUpperCase()} ${item.name} (ilvl ${gCosts.ilvl})${autoEquipped ? ' — Auto-Equipped!' : '!'}`);
     sendPrivateProfile(currentPlayer);
     return true;
   }

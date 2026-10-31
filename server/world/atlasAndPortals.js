@@ -44,14 +44,16 @@ function startAtlasRun(room, mapId) {
       p.activeFlasks[f.id] = 0;
     }
     if (Array.isArray(p.flaskBelt)) {
-      p.flaskSlotCharges = p.flaskBelt.map(fId => {
+      p.flaskSlotCharges = p.flaskBelt.map((fId, idx) => {
         const fDef = fId ? GameData.FLASKS.find(f => f.id === fId) : null;
-        return fDef ? fDef.maxCharges : 0;
+        const meta = Array.isArray(p.flaskBeltItems) ? p.flaskBeltItems[idx] : null;
+        return (meta && meta.maxCharges) || (fDef ? fDef.maxCharges : 0);
       });
       p.flaskSlotTimers = [0, 0, 0, 0, 0];
     }
-    // Rogue-lite per-run reset of Run Level, Skills & Run Stat Upgrades!
+    // Rogue-lite per-run reset of Run Level, Skills, Run Stat Upgrades & fresh 6-item Run Vendor Stock!
     p.currentMapId = mapDef.id;
+    generatePlayerVendorStock(p, mapDef.tier || 1);
     resetPlayerRunSkills(p);
     recalcPlayer(p, true);
     // Reset In-Run Gold to Starting Run Gold from Rogue-lite Skill Tree (Stash Gold remains safely in Hideout!)
@@ -102,6 +104,9 @@ function returnToHideout(room, reasonTitle, reasonSub) {
   room.fxEvents = [];
 
   for (const p of room.players.values()) {
+    if ((p.earnedRunGold || 0) > 0) {
+      p.gold = (p.gold || 0) + Math.floor(p.earnedRunGold);
+    }
     p.runGold = 0;
     p.startingRunGold = 0;
     p.earnedRunGold = 0;
@@ -118,9 +123,10 @@ function returnToHideout(room, reasonTitle, reasonSub) {
       p.activeFlasks[f.id] = 0;
     }
     if (Array.isArray(p.flaskBelt)) {
-      p.flaskSlotCharges = p.flaskBelt.map(fId => {
+      p.flaskSlotCharges = p.flaskBelt.map((fId, idx) => {
         const fDef = fId ? GameData.FLASKS.find(f => f.id === fId) : null;
-        return fDef ? fDef.maxCharges : 0;
+        const meta = Array.isArray(p.flaskBeltItems) ? p.flaskBeltItems[idx] : null;
+        return (meta && meta.maxCharges) || (fDef ? fDef.maxCharges : 0);
       });
       p.flaskSlotTimers = [0, 0, 0, 0, 0];
     }

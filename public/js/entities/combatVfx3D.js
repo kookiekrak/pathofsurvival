@@ -103,6 +103,10 @@
     }
 
     if (f.kind === 'nova' || f.kind === 'level_up') {
+      if (typeof playSkillSfx === 'function') {
+        if (f.kind === 'level_up') playSkillSfx('level_up');
+        else playSkillSfx('nova', f.sub || (f.color === '#74c0fc' ? 'cold' : 'fire'));
+      }
       const col = f.kind === 'level_up' ? 0xffd43b : new THREE.Color(f.color || '#74c0fc');
       const maxR = f.kind === 'level_up' ? 75 : (f.r || 65);
 
@@ -193,6 +197,7 @@
         maxLife
       });
     } else if (f.kind === 'chain' && typeof f.x1 === 'number' && typeof f.x2 === 'number') {
+      if (typeof playSkillSfx === 'function') playSkillSfx('arc', 'lightning');
       const pts = [];
       const segs = 5;
       for (let s = 0; s <= segs; s++) {
@@ -219,6 +224,7 @@
       fxGroup.add(boltMesh);
       active3DFx.push({ kind: 'arc', group: boltMesh, lineMat, customGeo: tubeGeo, life: 0.25, maxLife: 0.25 });
     } else if (f.kind === 'arc' && f.points && f.points.length > 1) {
+      if (typeof playSkillSfx === 'function') playSkillSfx('arc', 'lightning');
       const pts = [];
       for (let i = 0; i < f.points.length - 1; i++) {
         const [x1, z1] = f.points[i];
