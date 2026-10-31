@@ -133,36 +133,35 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
       });
     }
 
-    // Active Delirium Mirror Fog Countdown, Fractured Ambush Waves & Simulacrum Reward Burst
+    // Active Delirium Mirror Fog Countdown, Fractured Ambush Waves & Single End-of-Fog Reward
     if ((room.deliriumTimer || 0) > 0) {
       room.deliriumTimer -= dt;
-      room.deliriumWaveCd = (room.deliriumWaveCd || 5) - dt;
-      if (room.deliriumWaveCd <= 0 && room.deliriumTimer > 1.5 && !room.isRaidEncounter && !bossAlive && aliveList.length > 0) {
-        room.deliriumWaveCd = 5.5;
+      room.deliriumWaveCd = (room.deliriumWaveCd || 6) - dt;
+      if (room.deliriumWaveCd <= 0 && room.deliriumTimer > 2.0 && !room.isRaidEncounter && !bossAlive && aliveList.length > 0) {
+        room.deliriumWaveCd = 7.5;
         const anchor = pick(aliveList);
         const ang = Math.random() * Math.PI * 2;
         const ax = Math.max(-ARENA_HALF + 80, Math.min(ARENA_HALF - 80, Math.round(anchor.x + Math.cos(ang) * 420)));
         const ay = Math.max(-ARENA_HALF + 80, Math.min(ARENA_HALF - 80, Math.round(anchor.y + Math.sin(ang) * 420)));
-        spawnMonster(room, null, 'rare', ax, ay);
-        spawnMonster(room, false, { x: ax + 35, y: ay - 25 }, 'magic');
+        spawnMonster(room, false, { x: ax, y: ay }, 'magic', null, true);
+        spawnMonster(room, false, { x: ax + 45, y: ay - 35 }, 'normal', null, true);
       }
       if (room.deliriumTimer <= 0) {
         const dTier = Math.max(1, room.deliriumTier || 1);
         room.deliriumTimer = 0;
         room.deliriumTier = 0;
         const anchor = pick(aliveList) || { x: 0, y: 0 };
-        const rewardOrbs = dTier >= 5 ? 2 : 1;
-        for (let k = 0; k < rewardOrbs; k++) {
-          spawnCurrencyDrop(room, anchor.x + randInt(-28, 28), anchor.y + randInt(-28, 28), null, dTier * 140);
-        }
         const dropIlvl = (mapTier - 1) * 3 + 3;
-        const delRarity = dTier >= 4 ? 'rare' : (Math.random() < 0.65 ? 'rare' : 'magic');
-        spawnGroundDrop(room, anchor.x, anchor.y, 'gear', delRarity, dropIlvl, dTier * 150);
-        addRoomChat(room, 'Delirium', `The Delirium Fog dissipated — Tier ${dTier} Rewards dropped (${rewardOrbs} Orbs & High-Rarity Gear)!`, '#dee2e6');
+        const delRarity = dTier >= 3 ? 'rare' : (Math.random() < 0.55 ? 'rare' : 'magic');
+        spawnGroundDrop(room, anchor.x, anchor.y, 'gear', delRarity, dropIlvl, dTier * 75);
+        if (dTier >= 6 || (dTier >= 3 && Math.random() < 0.45)) {
+          spawnCurrencyDrop(room, anchor.x + randInt(-24, 24), anchor.y + randInt(-24, 24), null, dTier * 75);
+        }
+        addRoomChat(room, 'Delirium', `The Delirium Fog dissipated — Tier ${dTier} Simulacrum Reward dropped (+${dTier * 75}% Rarity)!`, '#dee2e6');
         broadcastRoomEvent(room, {
           type: 'announcement',
-          title: `DELIRIUM FOG DISSIPATED — TIER ${dTier} REWARDS DROPPED!`,
-          subtitle: `Simulacrum Reward Burst unleashed at your location!`,
+          title: `DELIRIUM FOG DISSIPATED — TIER ${dTier} REWARD!`,
+          subtitle: `Simulacrum Reward dropped at your location (+${dTier * 75}% Rarity)!`,
           color: '#dee2e6'
         });
       }
@@ -290,7 +289,7 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
       while (room.enemies.size < minTargetPop && safety++ < 6) {
         if (spawnMonsterPack(room) <= 0) break;
       }
-      const deliriumBoost = (room.deliriumTimer || 0) > 0 ? 1.35 : 1.0;
+      const deliriumBoost = (room.deliriumTimer || 0) > 0 ? 1.15 : 1.0;
       const baseSpawnRate = (0.75 + room.wave * 0.10 + (room.players.size - 1) * 0.30) * Math.sqrt(tierDensity) * modPackMult;
       room.spawnAccumulator += dt * baseSpawnRate * deliriumBoost;
 

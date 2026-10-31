@@ -263,18 +263,18 @@ function activateInteractable(room, player, it) {
       color: '#ff4d6d'
     });
   } else if (it.kind === 'delirium') {
-    room.deliriumTimer = 42.0;
+    room.deliriumTimer = 36.0;
     room.deliriumKills = 0;
     room.deliriumTier = 1;
-    room.deliriumWaveCd = 4.0;
+    room.deliriumWaveCd = 6.0;
     room.fxEvents.push({ kind: 'nova', x: it.x, y: it.y, r: 180, color: '#ced4da' });
-    spawnMonsterPack(room, player.x, player.y);
-    spawnMonster(room, false, { x: it.x + 85, y: it.y, exact: true, forceModCount: 4 }, 'rare');
-    addRoomChat(room, 'Delirium', `${player.name} shattered a Mirror of Delirium! (42s Simulacrum Fog — Tier 1: +60% Item & Currency Rarity)`, '#dee2e6');
+    spawnMonster(room, false, { x: it.x + 120, y: it.y - 60 }, 'magic', null, true);
+    spawnMonster(room, false, { x: it.x - 120, y: it.y + 60 }, 'normal', null, true);
+    addRoomChat(room, 'Delirium', `${player.name} shattered a Mirror of Delirium! (36s Simulacrum Fog — Slay monsters to upgrade your end-of-fog Reward Tier!)`, '#dee2e6');
     broadcastRoomEvent(room, {
       type: 'announcement',
       title: 'MIRROR OF DELIRIUM SHATTERED! (TIER 1)',
-      subtitle: '42s Delirium Fog Active — Slay hordes to climb Reward Tiers for +60% Rarity per Tier!',
+      subtitle: '36s Delirium Fog Active — Slay foes to climb Reward Tiers for a High-Rarity Reward when the fog clears!',
       color: '#dee2e6'
     });
   } else if (it.kind === 'strongbox') {
