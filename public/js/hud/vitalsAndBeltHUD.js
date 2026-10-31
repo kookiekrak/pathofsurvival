@@ -50,7 +50,31 @@
       }
     }
 
-    // PoE 1 Vertical Party Portrait Medallions (throttled DOM creation so 25Hz ticks never recreate SVGs)
+    const mapModsEl = document.getElementById('hudMapModsList');
+    if (mapModsEl) {
+      const mStats = worldState.mapModStats;
+      const cMods = (worldState.craftedMap && Array.isArray(worldState.craftedMap.mods)) ? worldState.craftedMap.mods : [];
+      const lines = (mStats && Array.isArray(mStats.modLines) && mStats.modLines.length > 0)
+        ? mStats.modLines
+        : cMods.map(m => m.text || m.name);
+      if (worldState.mode === 'HIDEOUT' && lines.length === 0) {
+        mapModsEl.classList.add('hidden');
+      } else {
+        mapModsEl.classList.remove('hidden');
+        const totRar = (mapDef.lootRarityBonus || 0) + ((mStats && mStats.rarity) || 0) + (worldState.deliriumTier || 0) * 60;
+        const totPack = (mStats && mStats.packSize) || 0;
+        const sig = `${worldState.mode}|${totRar}|${totPack}|${lines.join(';')}`;
+        if (mapModsEl._sig !== sig) {
+          mapModsEl._sig = sig;
+          const hdr = `<div style="color:#f2c76e;font-weight:700;margin-bottom:2px">+${totRar}% Item Rarity${totPack > 0 ? ` • +${totPack}% Pack Size` : ''}</div>`;
+          const body = lines.length > 0
+            ? lines.map(l => `<div style="color:#88b4ff">${l}</div>`).join('')
+            : `<div style="color:#9e8d73">Normal Map (0 Modifiers)</div>`;
+          mapModsEl.innerHTML = hdr + body;
+        }
+      }
+    }
+
     const roster = document.getElementById('partyRoster');
     let me = null;
     const pSignature = worldState.players.map(p => `${p.id}:${p.classId}`).join('|');
@@ -61,22 +85,7 @@
         const row = document.createElement('div');
         row.className = 'poe-party-portrait';
         row.dataset.pid = p.id;
-        row.innerHTML = `
-          <div class="portrait-medallion">
-            ${getClassEmblemSvg(p.classId)}
-            <span class="portrait-lvl-pip">${p.level}</span>
-          </div>
-          <div class="portrait-info">
-            <div class="portrait-name-row">
-              <span class="portrait-pname">${p.name}</span>
-              <span class="portrait-status"></span>
-            </div>
-            <div class="portrait-bars">
-              <div class="portrait-hp-fill"></div>
-              <div class="portrait-es-fill"></div>
-            </div>
-          </div>
-        `;
+        row.innerHTML = `<div class="portrait-medallion">${getClassEmblemSvg(p.classId)}<span class="portrait-lvl-pip">${p.level}</span></div><div class="portrait-info"><div class="portrait-name-row"><span class="portrait-pname">${p.name}</span><span class="portrait-status"></span></div><div class="portrait-bars"><div class="portrait-hp-fill"></div><div class="portrait-es-fill"></div></div></div>`;
         roster.appendChild(row);
       }
     }
