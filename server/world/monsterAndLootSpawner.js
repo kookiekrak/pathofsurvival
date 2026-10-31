@@ -172,7 +172,7 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
     radius: Math.round(base.radius * radiusMulti),
     damage: Math.round(base.damage * waveDmgMult * dmgMulti),
     xp: Math.round(base.xp * xpScale * (rarity === 'rare' ? 3.4 : rarity === 'magic' ? 1.7 : 1)),
-    color, behavior: base.behavior, actionTimer: randInt(12, 22) / 10, specialCd: randInt(12, 22) / 10,
+    color, behavior: base.behavior, actionTimer: randInt(18, 42) / 10, specialCd: randInt(24, 38) / 10,
     hitTimer: 0, chillTimer: 0, shockTimer: 0, isBreachMob: !!isBreachMob
   };
   room.enemies.set(mId, mObj);
@@ -224,31 +224,31 @@ function spawnMonsterPack(room, anchorX = null, anchorY = null) {
 
   let packBase = null;
   let packCount = 4;
-  if (roll < 0.40) {
-    // ranged_barrage (40% weight)
+  if (roll < 0.22) {
+    // ranged_barrage (22% weight)
     const rangedPool = activePool.filter(m => m.role === 'ranged' || m.behavior === 'ranged_kite' || m.behavior === 'toxic_mortar');
     packBase = rangedPool.length > 0 ? pick(rangedPool) : pick(activePool);
-    packCount = randInt(4, 6);
-  } else if (roll < 0.68) {
-    // caster_coven (28% weight -> 68% total projectile shooter packs!)
+    packCount = randInt(3, 4);
+  } else if (roll < 0.38) {
+    // caster_coven (16% weight -> 38% total projectile shooter packs)
     const casterPool = activePool.filter(m => m.role === 'caster' || m.behavior === 'frost_caster' || m.behavior === 'flameblast_caster' || m.behavior === 'storm_caller' || m.behavior === 'mortar_leap');
     packBase = casterPool.length > 0 ? pick(casterPool) : pick(activePool);
-    packCount = randInt(3, 5);
-  } else if (roll < 0.80) {
-    // charger / kamikaze (12% weight)
+    packCount = randInt(3, 4);
+  } else if (roll < 0.58) {
+    // charger / kamikaze (20% weight)
     const chargerPool = activePool.filter(m => m.role === 'charger' || m.behavior === 'charge' || m.role === 'kamikaze');
     packBase = chargerPool.length > 0 ? pick(chargerPool) : pick(activePool);
     packCount = randInt(3, 5);
-  } else if (roll < 0.90) {
-    // tank / assassin (10% weight)
+  } else if (roll < 0.76) {
+    // tank / assassin (18% weight)
     const heavyPool = activePool.filter(m => m.role === 'tank' || m.role === 'assassin' || m.behavior === 'phalanx_tank' || m.behavior === 'blink_ambush');
     packBase = heavyPool.length > 0 ? pick(heavyPool) : pick(activePool);
     packCount = randInt(2, 4);
   } else {
-    // swarmer melee (10% weight)
+    // swarmer melee (24% weight)
     const meleePool = activePool.filter(m => m.role === 'swarmer' || m.behavior === 'melee');
     packBase = meleePool.length > 0 ? pick(meleePool) : pick(activePool);
-    packCount = randInt(5, 7);
+    packCount = randInt(4, 6);
   }
 
   let spawned = 0;
