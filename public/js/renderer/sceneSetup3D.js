@@ -153,30 +153,34 @@
 
     const texPromises = TEXTURE_MANIFEST.map(([key, url]) =>
       new Promise((resolve) => {
+        let done = false;
+        const finish = () => { if (!done) { done = true; bumpProgress(key); resolve(); } };
+        const timer = setTimeout(finish, 4500);
         texLoader.load(
           url,
           (tex) => {
+            clearTimeout(timer);
             tex.wrapS = THREE.RepeatWrapping;
             tex.wrapT = THREE.RepeatWrapping;
             tex.colorSpace = THREE.SRGBColorSpace;
             ASSETS.textures[key] = tex;
-            bumpProgress(key);
-            resolve();
+            finish();
           },
           undefined,
-          () => {
-            bumpProgress(key);
-            resolve();
-          }
+          () => { clearTimeout(timer); finish(); }
         );
       })
     );
 
     const modelPromises = MODEL_MANIFEST.map(([key, url]) =>
       new Promise((resolve) => {
+        let done = false;
+        const finish = () => { if (!done) { done = true; bumpProgress(key); resolve(); } };
+        const timer = setTimeout(finish, 4500);
         gltfLoader.load(
           url,
           (gltf) => {
+            clearTimeout(timer);
             const isEnemyOrWep = key.startsWith('Monster_') || key.startsWith('Skeleton_') || key.startsWith('wep_');
             gltf.scene.traverse((obj) => {
               if (obj.isMesh) {
@@ -184,7 +188,6 @@
                 obj.receiveShadow = !isEnemyOrWep;
               }
             });
-            // Measure visual bounding box so we can scale every prop & character accurately!
             const box = new THREE.Box3().setFromObject(gltf.scene);
             const size = new THREE.Vector3();
             box.getSize(size);
@@ -193,14 +196,10 @@
               minY: box.min.y
             };
             ASSETS.models[key] = gltf;
-            bumpProgress(key);
-            resolve();
+            finish();
           },
           undefined,
-          () => {
-            bumpProgress(key);
-            resolve();
-          }
+          () => { clearTimeout(timer); finish(); }
         );
       })
     );
@@ -211,6 +210,8 @@
       textEl.textContent = 'All 3D Characters, Monsters, Shrines & Biomes Ready!';
       textEl.style.color = '#69db7c';
     }
+    const wrapEl = document.getElementById('assetLoadingWrap');
+    if (wrapEl) setTimeout(() => { wrapEl.style.display = 'none'; }, 900);
     rebuildBiomeEnvironment(worldState.mode, worldState.mapId);
   }
 

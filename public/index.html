@@ -7,12 +7,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css?v=49536f5" />
+  <link rel="stylesheet" href="/style.css?v=mobilefix2" />
   <script type="importmap">
     { "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }
   </script>
 </head>
 <body>
+  <div id="rotateDeviceBanner" class="rotate-device-banner" onclick="this.classList.add('dismissed')">
+    <span>📱 <strong>ROTATE PHONE TO LANDSCAPE</strong> for best view • Pinch 2 fingers to Zoom Out/In</span>
+    <button type="button" class="rotate-dismiss-btn" aria-label="Dismiss">✕</button>
+  </div>
   <canvas id="gameCanvas"></canvas>
   <canvas id="hudOverlayCanvas"></canvas>
 
@@ -34,11 +38,11 @@
       <!-- STAGE 1: POE 1 CHARACTER SELECTION -->
       <div id="charSelectStage" class="poe-char-select-stage">
         <div class="poe-char-select-columns">
-          <div style="display:flex;flex-direction:column;gap:8px;min-height:0">
+          <div style="display:flex;flex-direction:column;gap:8px;min-height:0;min-width:0">
             <div id="selectedCharPreview" class="poe-char-spotlight" style="flex:1"></div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div class="char-select-gateway-row" style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap">
               <span class="char-create-hint">Creates your own instance by default, or click Party Gateway to join a public lobby.</span>
-              <div style="display:flex;gap:6px;flex-shrink:0">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;max-width:100%">
                 <button id="openLeaderboardFromSelectBtn" class="poe-chisel-btn lobby-gateway-btn" style="color:#ff8787;border-color:#9e2a2b" type="button">💀 HC LADDER</button>
                 <button id="openLobbyFromSelectBtn" class="poe-chisel-btn lobby-gateway-btn" type="button">PARTY GATEWAY: <span id="selectTargetRoomBadge">SOLO</span></button>
               </div>
@@ -69,9 +73,9 @@
         <div id="classGrid" class="class-grid-creation"></div>
         <div class="char-create-footer">
           <button id="backToCharSelectBtn" class="poe-chisel-btn lobby-gateway-btn" style="flex-shrink:0" type="button">← BACK</button>
-          <div class="input-group char-name-group" style="display:flex;align-items:center;gap:10px;flex:1;min-width:260px">
+          <div class="input-group char-name-group" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
             <label for="playerNameInput" style="margin:0;white-space:nowrap;flex-shrink:0">CHARACTER NAME:</label>
-            <input id="playerNameInput" type="text" maxlength="16" placeholder="Enter Exile Name..." value="" style="flex:1;min-width:180px" />
+            <input id="playerNameInput" type="text" maxlength="16" placeholder="Enter Exile Name..." value="" style="flex:1;min-width:0" />
           </div>
           <button id="leagueToggleBtn" class="poe-chisel-btn lobby-gateway-btn" style="flex-shrink:0;color:#78c2ad;border-color:#3b7a68" type="button">LEAGUE: STANDARD</button>
           <div id="charCreateError" class="delete-confirm-error hidden" style="margin:0;flex-shrink:0"></div>
@@ -99,21 +103,14 @@
       </div>
     </div>
   </div>
-
   <!-- SEPARATE MULTIPLAYER PARTY & INSTANCE LOBBY MODAL (KEY: L) -->
   <div id="lobbyModal" class="modal-backdrop hidden">
     <div class="poe-frame lobby-modal-box">
       <div class="frame-rivet tl"></div><div class="frame-rivet tr"></div><div class="frame-rivet bl"></div><div class="frame-rivet br"></div>
-      <div class="poe-window-header lobby-modal-header">
-        <span class="header-ornament">◆</span><h2>ORIATH GATEWAY — MULTIPLAYER PARTY LOBBY</h2>
-        <button id="closeLobbyModalBtn" class="window-close" data-close="lobbyModal" title="Close Lobby">✕</button>
-      </div>
+      <div class="poe-window-header lobby-modal-header"><span class="header-ornament">◆</span><h2>ORIATH GATEWAY — MULTIPLAYER PARTY LOBBY</h2><button id="closeLobbyModalBtn" class="window-close" data-close="lobbyModal" title="Close Lobby">✕</button></div>
       <div class="lobby-modal-body">
         <p class="map-device-intro" style="margin: 0 0 12px;">Join an active Public Party Instance with up to 4 Exiles, or enter a custom Instance Code to create or join a private party realm.</p>
-        <div class="poe-section-title">
-          <span>PUBLIC PARTY INSTANCES</span>
-          <button id="refreshRoomsBtn" class="poe-chisel-btn sm-btn" type="button">REFRESH</button>
-        </div>
+        <div class="poe-section-title"><span>PUBLIC PARTY INSTANCES</span><button id="refreshRoomsBtn" class="poe-chisel-btn sm-btn" type="button">REFRESH</button></div>
         <div class="room-browser-table-wrap">
           <table class="room-browser-table">
             <thead><tr><th>CODE</th><th>INSTANCE</th><th>EXILES</th><th>ZONE</th><th>ACTION</th></tr></thead>
@@ -394,6 +391,6 @@
   <script src="/shared/world/monstersAndAtlasMaps.js?v=t1fix"></script>
   <script src="/shared/world/playerStatsCalculator.js?v=49536f5"></script>
   <script src="/shared/gameData.js?v=49536f5"></script>
-  <script type="module" src="/client.js?v=49536f5"></script>
+  <script type="module" src="/client.js?v=mobilefix2"></script>
 </body>
 </html>

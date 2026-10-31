@@ -52,7 +52,7 @@ window.__POS_CTX__ = {
   mouseClientY: window.innerHeight / 2,
   mouseNdc: new THREE.Vector2(0, 0),
   mouseWorldPoint: new THREE.Vector3(0, 0, -100),
-  camZoom: 1.0,
+  camZoom: (window.innerWidth <= 960 || window.innerHeight <= 540 || 'ontouchstart' in window) ? 1.42 : 1.0,
   camTargetX: 0,
   camTargetZ: 80,
   dropHitBoxes: [],
@@ -93,7 +93,7 @@ const CLIENT_MODULES = [
 function loadScriptSequential(src) {
   return new Promise((resolve, reject) => {
     const s = document.createElement("script");
-    s.src = src;
+    s.src = `${src}?v=mobilefix2`;
     s.async = false;
     s.onload = resolve;
     s.onerror = reject;

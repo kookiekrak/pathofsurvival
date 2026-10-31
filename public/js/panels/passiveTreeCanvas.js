@@ -80,10 +80,16 @@
     isDraggingTree = false;
   });
 
-  // Mobile Touch Pan & Tap-to-Allocate on Passive Skill Tree Canvas
+  // Mobile Touch Pan, 2-Finger Pinch-to-Zoom & Tap-to-Allocate on Passive Skill Tree Canvas
   let treeTouchMoved = false;
+  let treePinchDist = 0;
+  let treePinchStartZoom = 1.0;
   treeCanvas.addEventListener('touchstart', (ev) => {
-    if (ev.touches.length === 1) {
+    if (ev.touches.length >= 2) {
+      treeTouchMoved = true;
+      treePinchDist = Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY);
+      treePinchStartZoom = treeZoom;
+    } else if (ev.touches.length === 1) {
       treeTouchMoved = false;
       const t = ev.touches[0];
       dragStartX = t.clientX - treeCamX;
@@ -92,7 +98,14 @@
     }
   }, { passive: true });
   treeCanvas.addEventListener('touchmove', (ev) => {
-    if (ev.touches.length === 1) {
+    if (ev.touches.length >= 2) {
+      ev.preventDefault();
+      const d = Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY);
+      if (treePinchDist > 10 && d > 10) {
+        treeZoom = Math.max(0.35, Math.min(2.2, treePinchStartZoom * (d / treePinchDist)));
+        renderPassiveTree();
+      }
+    } else if (ev.touches.length === 1 && treePinchDist === 0) {
       ev.preventDefault();
       const t = ev.touches[0];
       if (Math.hypot(t.clientX - dragStartX - treeCamX, t.clientY - dragStartY - treeCamY) > 8) {
@@ -104,6 +117,7 @@
     }
   }, { passive: false });
   treeCanvas.addEventListener('touchend', (ev) => {
+    if (!ev.touches || ev.touches.length < 2) treePinchDist = 0;
     isDraggingTree = false;
     if (!treeTouchMoved && ev.changedTouches && ev.changedTouches[0]) {
       const t = ev.changedTouches[0];

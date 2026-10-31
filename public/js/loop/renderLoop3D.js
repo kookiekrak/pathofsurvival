@@ -13,8 +13,10 @@
       camTargetZ += (me.y - camTargetZ) * 0.16;
     }
 
-    // 3/4 Angled Action-RPG Camera so full 3D bodies, capes, and weapons are clearly visible
-    camera.position.set(camTargetX, 235 * camZoom, camTargetZ + 310 * camZoom);
+    // 3/4 Angled Action-RPG Camera with automatic narrow-aspect compensation so mobile isn't zoomed in
+    const aspectComp = camera.aspect < 1.35 ? Math.min(1.85, Math.pow(1.35 / Math.max(0.45, camera.aspect), 0.68)) : 1.0;
+    const effZoom = camZoom * aspectComp;
+    camera.position.set(camTargetX, 235 * effZoom, camTargetZ + 310 * effZoom);
     camera.lookAt(camTargetX, 14, camTargetZ);
 
     dirLight.position.set(camTargetX + 180, 420, camTargetZ + 220);
@@ -34,6 +36,7 @@
     }
 
     renderLoop._frameMod3 = ((renderLoop._frameMod3 || 0) + 1) % 3;
+    const cullScale = Math.max(1.0, effZoom);
     let eIdx = 0;
     for (const ent of enemyEntities.values()) {
       ent.group.position.x += (ent.targetX - ent.group.position.x) * 0.3;
@@ -41,7 +44,7 @@
 
       const dxCam = Math.abs(ent.group.position.x - camTargetX);
       const dzCam = Math.abs(ent.group.position.z - camTargetZ);
-      const isVisibleOnScreen = dxCam < 850 && dzCam < 750;
+      const isVisibleOnScreen = dxCam < 850 * cullScale && dzCam < 750 * cullScale;
       if (ent.group.visible !== isVisibleOnScreen) {
         ent.group.visible = isVisibleOnScreen;
       }

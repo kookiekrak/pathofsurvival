@@ -151,8 +151,13 @@
     sendInputState();
   });
 
-  // Mobile Touch Controls: Drag to Move & Aim/Fire, Tap to Interact with Loot/Portals/Chests
+  // Mobile Touch Controls: 1-Finger Drag to Move/Aim/Fire, 2-Finger Pinch to Zoom Out/In, Tap to Interact
   let touchStartMs = 0;
+  let pinchStartDist = 0;
+  let pinchStartZoom = 1.0;
+  function getTouchPairDist(t0, t1) {
+    return Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+  }
   function applyTouchMoveAndAim(touch) {
     if (!touch) return;
     updateMouseWorldRaycast(touch.clientX, touch.clientY);
@@ -170,24 +175,39 @@
     sendInputState();
   }
   canvas.addEventListener('touchstart', (ev) => {
-    if (ev.touches.length > 0) {
+    if (ev.touches.length >= 2) {
+      pinchStartDist = getTouchPairDist(ev.touches[0], ev.touches[1]);
+      pinchStartZoom = camZoom;
+      keys.up = keys.down = keys.left = keys.right = false;
+      mouseDownLeft = false;
+      sendInputState();
+    } else if (ev.touches.length === 1) {
       touchStartMs = Date.now();
       applyTouchMoveAndAim(ev.touches[0]);
     }
   }, { passive: true });
   canvas.addEventListener('touchmove', (ev) => {
-    if (ev.touches.length > 0) {
+    if (ev.touches.length >= 2) {
+      ev.preventDefault();
+      const d = getTouchPairDist(ev.touches[0], ev.touches[1]);
+      if (pinchStartDist > 10 && d > 10) {
+        camZoom = Math.max(0.55, Math.min(2.65, pinchStartZoom * (pinchStartDist / d)));
+      }
+    } else if (ev.touches.length === 1 && pinchStartDist === 0) {
       ev.preventDefault();
       applyTouchMoveAndAim(ev.touches[0]);
     }
   }, { passive: false });
   const endTouchInput = (ev) => {
-    keys.up = keys.down = keys.left = keys.right = false;
-    mouseDownLeft = false;
-    sendInputState();
-    if (Date.now() - touchStartMs < 260 && ev.changedTouches && ev.changedTouches[0]) {
-      const t = ev.changedTouches[0];
-      canvas.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY }));
+    if (!ev.touches || ev.touches.length < 2) pinchStartDist = 0;
+    if (!ev.touches || ev.touches.length === 0) {
+      keys.up = keys.down = keys.left = keys.right = false;
+      mouseDownLeft = false;
+      sendInputState();
+      if (Date.now() - touchStartMs < 260 && ev.changedTouches && ev.changedTouches[0]) {
+        const t = ev.changedTouches[0];
+        canvas.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY }));
+      }
     }
   };
   canvas.addEventListener('touchend', endTouchInput, { passive: true });
@@ -224,7 +244,7 @@
   canvas.addEventListener('wheel', (ev) => {
     ev.preventDefault();
     const factor = ev.deltaY > 0 ? 1.08 : 0.92;
-    camZoom = Math.max(0.55, Math.min(1.65, camZoom * factor));
+    camZoom = Math.max(0.55, Math.min(2.65, camZoom * factor));
   }, { passive: false });
 
   canvas.addEventListener('click', (ev) => {
