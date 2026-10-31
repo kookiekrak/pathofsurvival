@@ -80,6 +80,38 @@
     isDraggingTree = false;
   });
 
+  // Mobile Touch Pan & Tap-to-Allocate on Passive Skill Tree Canvas
+  let treeTouchMoved = false;
+  treeCanvas.addEventListener('touchstart', (ev) => {
+    if (ev.touches.length === 1) {
+      treeTouchMoved = false;
+      const t = ev.touches[0];
+      dragStartX = t.clientX - treeCamX;
+      dragStartY = t.clientY - treeCamY;
+      treeCanvas.dispatchEvent(new MouseEvent('mousemove', { clientX: t.clientX, clientY: t.clientY }));
+    }
+  }, { passive: true });
+  treeCanvas.addEventListener('touchmove', (ev) => {
+    if (ev.touches.length === 1) {
+      ev.preventDefault();
+      const t = ev.touches[0];
+      if (Math.hypot(t.clientX - dragStartX - treeCamX, t.clientY - dragStartY - treeCamY) > 8) {
+        treeTouchMoved = true;
+      }
+      treeCamX = t.clientX - dragStartX;
+      treeCamY = t.clientY - dragStartY;
+      renderPassiveTree();
+    }
+  }, { passive: false });
+  treeCanvas.addEventListener('touchend', (ev) => {
+    isDraggingTree = false;
+    if (!treeTouchMoved && ev.changedTouches && ev.changedTouches[0]) {
+      const t = ev.changedTouches[0];
+      treeCanvas.dispatchEvent(new MouseEvent('mousemove', { clientX: t.clientX, clientY: t.clientY }));
+      treeCanvas.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY }));
+    }
+  }, { passive: true });
+
   treeCanvas.addEventListener('mousemove', (ev) => {
     const rect = treeCanvas.getBoundingClientRect();
     const mx = ev.clientX - rect.left;

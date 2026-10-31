@@ -150,6 +150,48 @@
     sendInputState();
   });
 
+  // Mobile Touch Controls: Drag to Move & Aim/Fire, Tap to Interact with Loot/Portals/Chests
+  let touchStartMs = 0;
+  function applyTouchMoveAndAim(touch) {
+    if (!touch) return;
+    updateMouseWorldRaycast(touch.clientX, touch.clientY);
+    const me = worldState.players.find(p => p.id === myPlayerId);
+    const px = me ? me.x : camTargetX;
+    const pz = me ? me.y : camTargetZ;
+    const dx = mouseWorldPoint.x - px;
+    const dz = mouseWorldPoint.z - pz;
+    const dist = Math.hypot(dx, dz);
+    keys.right = dist > 26 && dx > 14;
+    keys.left = dist > 26 && dx < -14;
+    keys.down = dist > 26 && dz > 14;
+    keys.up = dist > 26 && dz < -14;
+    mouseDownLeft = true;
+    sendInputState();
+  }
+  canvas.addEventListener('touchstart', (ev) => {
+    if (ev.touches.length > 0) {
+      touchStartMs = Date.now();
+      applyTouchMoveAndAim(ev.touches[0]);
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchmove', (ev) => {
+    if (ev.touches.length > 0) {
+      ev.preventDefault();
+      applyTouchMoveAndAim(ev.touches[0]);
+    }
+  }, { passive: false });
+  const endTouchInput = (ev) => {
+    keys.up = keys.down = keys.left = keys.right = false;
+    mouseDownLeft = false;
+    sendInputState();
+    if (Date.now() - touchStartMs < 260 && ev.changedTouches && ev.changedTouches[0]) {
+      const t = ev.changedTouches[0];
+      canvas.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY }));
+    }
+  };
+  canvas.addEventListener('touchend', endTouchInput, { passive: true });
+  canvas.addEventListener('touchcancel', endTouchInput, { passive: true });
+
   function checkGroundDropHover(mx, my) {
     let foundDrop = null;
     for (const box of dropHitBoxes) {
