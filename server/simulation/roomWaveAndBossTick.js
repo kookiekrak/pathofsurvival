@@ -153,15 +153,16 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
         const anchor = pick(aliveList) || { x: 0, y: 0 };
         const dropIlvl = (mapTier - 1) * 3 + 3;
         const delRarity = dTier >= 3 ? 'rare' : (Math.random() < 0.55 ? 'rare' : 'magic');
-        spawnGroundDrop(room, anchor.x, anchor.y, 'gear', delRarity, dropIlvl, dTier * 75);
-        if (dTier >= 6 || (dTier >= 3 && Math.random() < 0.45)) {
-          spawnCurrencyDrop(room, anchor.x + randInt(-24, 24), anchor.y + randInt(-24, 24), null, dTier * 75);
+        const delBonus = ((mapDef && mapDef.lootRarityBonus) || 0) + dTier * 15;
+        spawnGroundDrop(room, anchor.x, anchor.y, 'gear', delRarity, dropIlvl, delBonus);
+        if (dTier >= 5 || (dTier >= 3 && Math.random() < 0.40)) {
+          spawnCurrencyDrop(room, anchor.x + randInt(-24, 24), anchor.y + randInt(-24, 24), null, delBonus);
         }
-        addRoomChat(room, 'Delirium', `The Delirium Fog dissipated — Tier ${dTier} Simulacrum Reward dropped (+${dTier * 75}% Rarity)!`, '#dee2e6');
+        addRoomChat(room, 'Delirium', `The Delirium Fog dissipated — Tier ${dTier} Simulacrum Reward dropped (+${dTier * 15}% Delirium Rarity)!`, '#dee2e6');
         broadcastRoomEvent(room, {
           type: 'announcement',
           title: `DELIRIUM FOG DISSIPATED — TIER ${dTier} REWARD!`,
-          subtitle: `Simulacrum Reward dropped at your location (+${dTier * 75}% Rarity)!`,
+          subtitle: `Simulacrum Reward dropped at your location (+${dTier * 15}% Rarity)!`,
           color: '#dee2e6'
         });
       }

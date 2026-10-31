@@ -21,15 +21,15 @@ function onEnemyKilled(room, enemy, killer) {
     }
   }
   if ((room.deliriumTimer || 0) > 0 && !enemy.isRaidPylon) {
-    room.deliriumKills = (room.deliriumKills || 0) + (enemy.rarity === 'rare' ? 4 : enemy.rarity === 'magic' ? 2 : 1);
-    const newTier = Math.min(8, 1 + Math.floor(room.deliriumKills / 10));
+    room.deliriumKills = (room.deliriumKills || 0) + (enemy.rarity === 'rare' ? 3 : enemy.rarity === 'magic' ? 2 : 1);
+    const newTier = Math.min(6, 1 + Math.floor(room.deliriumKills / 14));
     if (newTier > (room.deliriumTier || 1)) {
       room.deliriumTier = newTier;
-      addRoomChat(room, 'Delirium', `Delirium Reward Tier ${newTier} reached! (+${newTier * 60}% Item & Currency Rarity)`, '#dee2e6');
+      addRoomChat(room, 'Delirium', `Delirium Reward Tier ${newTier} reached! (+${newTier * 15}% Item & Currency Rarity)`, '#dee2e6');
       broadcastRoomEvent(room, {
         type: 'announcement',
-        title: `DELIRIUM REWARD TIER ${newTier}! (+${newTier * 60}% Item & Currency Rarity)`,
-        subtitle: `Delirium Simulacrum intensity increased — slain foes drop higher-tier Orbs & Gear!`,
+        title: `DELIRIUM REWARD TIER ${newTier}! (+${newTier * 15}% Item & Currency Rarity)`,
+        subtitle: `Delirium Simulacrum intensity increased — slain foes build your end-of-fog Reward Tier!`,
         color: '#dee2e6'
       });
     }
@@ -175,7 +175,7 @@ function onEnemyKilled(room, enemy, killer) {
     activeB.kills = (activeB.kills || 0) + 1;
   }
   const breachMult = enemy.isBreachMob ? 0.25 : 1.0;
-  const mapIIR = ((mapDef && mapDef.lootRarityBonus) || 0) + ((room.mapModStats && room.mapModStats.rarity) || 0) + ((room.deliriumTier || 0) * 60);
+  const mapIIR = ((mapDef && mapDef.lootRarityBonus) || 0) + ((room.mapModStats && room.mapModStats.rarity) || 0) + ((room.deliriumTier || 0) * 15);
   const mobIIR = enemy.rarityBonusPct || (Array.isArray(enemy.mods) ? enemy.mods.length * 90 : 0);
   const totalRarityBonus = mapIIR + mobIIR;
   const iirMult = 1 + totalRarityBonus / 100;

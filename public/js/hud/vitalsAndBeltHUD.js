@@ -32,10 +32,10 @@
       modeBadge.textContent = `Monster Level ${67 + mapDef.tier}`;
       waveTitle.textContent = `${mapDef.name} — Wave ${worldState.wave}`;
       const delTier = worldState.deliriumTier || 1;
-      const delSub = worldState.deliriumRem > 0 ? ` • DELIRIUM TIER ${delTier} (${worldState.deliriumRem}s • +${delTier * 60}% Rarity)` : '';
+      const delSub = worldState.deliriumRem > 0 ? ` • DELIRIUM TIER ${delTier} (${worldState.deliriumRem}s • +${delTier * 15}% Rarity)` : '';
       const ritSub = worldState.activeRitual ? ` • BLOOD RITUAL WAVE ${worldState.activeRitual.wave}/${worldState.activeRitual.maxWaves}` : '';
       const modRarity = (worldState.mapModStats && worldState.mapModStats.rarity) || 0;
-      const totalRarity = (mapDef.lootRarityBonus || 0) + modRarity + (worldState.deliriumTier || 0) * 60;
+      const totalRarity = (mapDef.lootRarityBonus || 0) + modRarity + (worldState.deliriumTier || 0) * 15;
       waveSub.textContent = (worldState.portalsOpen
         ? `Boss Slain • Extraction Portal Open at (0,0) • Endless Waves Active`
         : `${mapDef.bossName} • ${mins}:${secs} • +${totalRarity}% Item Rarity`) + delSub + ritSub;
@@ -61,7 +61,7 @@
         mapModsEl.classList.add('hidden');
       } else {
         mapModsEl.classList.remove('hidden');
-        const totRar = (mapDef.lootRarityBonus || 0) + ((mStats && mStats.rarity) || 0) + (worldState.deliriumTier || 0) * 60;
+        const totRar = (mapDef.lootRarityBonus || 0) + ((mStats && mStats.rarity) || 0) + (worldState.deliriumTier || 0) * 15;
         const totPack = (mStats && mStats.packSize) || 0;
         const sig = `${worldState.mode}|${totRar}|${totPack}|${lines.join(';')}`;
         if (mapModsEl._sig !== sig) {

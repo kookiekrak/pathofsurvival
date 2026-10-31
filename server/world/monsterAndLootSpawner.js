@@ -314,7 +314,7 @@ function spawnGroundDrop(room, x, y, dropCategory, forceRarity = null, itemLevel
   const mapDef = GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId) || GameData.ATLAS_MAPS[0];
   const rarityBonusPct = rarityBonusOverride !== null
     ? rarityBonusOverride
-    : ((mapDef ? (mapDef.lootRarityBonus || 0) : 0) + ((room.mapModStats && room.mapModStats.rarity) || 0) + ((room.deliriumTier || 0) * 60));
+    : ((mapDef ? (mapDef.lootRarityBonus || 0) : 0) + ((room.mapModStats && room.mapModStats.rarity) || 0) + ((room.deliriumTier || 0) * 15));
 
   if (dropCategory === 'flask') {
     const allFlasks = GameData.FLASKS;

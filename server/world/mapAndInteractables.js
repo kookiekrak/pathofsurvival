@@ -218,7 +218,7 @@ function activateInteractable(room, player, it) {
   }
   it.used = true;
   const mapDef = GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId) || GameData.ATLAS_MAPS[0];
-  const mapIIR = ((mapDef && mapDef.lootRarityBonus) || 0) + ((room.mapModStats && room.mapModStats.rarity) || 0) + ((room.deliriumTier || 0) * 60);
+  const mapIIR = ((mapDef && mapDef.lootRarityBonus) || 0) + ((room.mapModStats && room.mapModStats.rarity) || 0) + ((room.deliriumTier || 0) * 15);
 
   if (it.kind === 'shrine') {
     for (const p of room.players.values()) {
