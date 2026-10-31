@@ -120,8 +120,8 @@ function startAtlasRun(room, mapId) {
   if (!room.craftedMap || room.craftedMap.mapId !== mapDef.id) {
     room.craftedMap = { mapId: mapDef.id, rarity: 'normal', mods: [], scoured: false };
   }
-  // If map has no mods and wasn't explicitly scoured clean, roll 1-2 innate random map mods so runs have dynamic modifiers!
-  if (room.craftedMap.mods.length === 0 && !room.craftedMap.scoured) {
+  // If map is Tier 3+ and has no mods (and wasn't scoured clean), roll 1-2 innate map mods; Tier 1-2 stay Normal unless crafted!
+  if ((mapDef.tier || 1) >= 3 && room.craftedMap.mods.length === 0 && !room.craftedMap.scoured) {
     const autoCount = (mapDef.tier || 1) >= 11 ? 2 : 1;
     room.craftedMap.mods = rollRandomMapMods(autoCount);
     room.craftedMap.rarity = 'magic';

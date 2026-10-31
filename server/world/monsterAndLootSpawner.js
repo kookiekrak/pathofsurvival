@@ -42,19 +42,19 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
   } else {
     const anchor = pick(alivePlayers);
     const angle = Math.random() * Math.PI * 2;
-    const spawnDist = randInt(185, 295);
+    const spawnDist = randInt(360, 490);
     x = anchor.x + Math.cos(angle) * spawnDist;
     y = anchor.y + Math.sin(angle) * spawnDist;
   }
 
-  // STRICT ANTI-SPAWN-ON-PLAYER ENFORCEMENT:
+  // STRICT ANTI-SPAWN-ON-PLAYER ENFORCEMENT (never spawn within 310 units of any living player):
   if (!overridePos || !overridePos.exact) {
     for (const pl of alivePlayers) {
       const d = dist(x, y, pl.x, pl.y);
-      if (d < 165) {
+      if (d < 310) {
         const pushAng = d > 1 ? Math.atan2(y - pl.y, x - pl.x) : Math.random() * Math.PI * 2;
-        x = Math.round(pl.x + Math.cos(pushAng) * 185);
-        y = Math.round(pl.y + Math.sin(pushAng) * 185);
+        x = Math.round(pl.x + Math.cos(pushAng) * 345);
+        y = Math.round(pl.y + Math.sin(pushAng) * 345);
       }
     }
   }
@@ -211,11 +211,8 @@ function spawnMonsterPack(room, anchorX = null, anchorY = null) {
   const w = Math.max(1, room.wave || 1);
 
   const anchor = (typeof anchorX === 'number' && typeof anchorY === 'number') ? { x: anchorX, y: anchorY } : pick(alivePlayers);
-  const isMoving = Math.hypot(anchor.vx || 0, anchor.vy || 0) > 15;
-  const angle = isMoving
-    ? Math.atan2(anchor.vy, anchor.vx) + (Math.random() - 0.5) * 2.2
-    : Math.random() * Math.PI * 2;
-  const packDist = randInt(185, 295);
+  const angle = Math.random() * Math.PI * 2;
+  const packDist = randInt(360, 490);
   const packCenter = {
     x: Math.max(-ARENA_HALF + 90, Math.min(ARENA_HALF - 90, anchor.x + Math.cos(angle) * packDist)),
     y: Math.max(-ARENA_HALF + 90, Math.min(ARENA_HALF - 90, anchor.y + Math.sin(angle) * packDist))
