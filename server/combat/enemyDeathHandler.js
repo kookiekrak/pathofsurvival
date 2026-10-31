@@ -35,9 +35,9 @@ function onEnemyKilled(room, enemy, killer) {
     }
   }
 
-  // Advance Kill-Driven Wave Progress (10 Waves)
+  // Advance Kill-Driven Wave Progress (Paced ~45-60s per wave)
   if (room.state === 'RUN' && !room.isRaidEncounter && !enemy.isRaidPylon) {
-    const waveGain = enemy.rarity === 'boss' ? 100 : enemy.rarity === 'rare' ? 8.5 : enemy.rarity === 'magic' ? 3.0 : 1.1;
+    const waveGain = enemy.rarity === 'boss' ? 35 : enemy.rarity === 'rare' ? 3.2 : enemy.rarity === 'magic' ? 1.15 : 0.42;
     room.waveProgress = Math.min(100, (room.waveProgress || 0) + waveGain);
   }
 

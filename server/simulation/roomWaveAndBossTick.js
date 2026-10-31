@@ -112,7 +112,7 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
 
     room.runTimer += dt;
     if (!room.isRaidEncounter && !bossAlive) {
-      room.waveProgress = Math.min(100, (room.waveProgress || 0) + 2.2 * dt);
+      room.waveProgress = Math.min(100, (room.waveProgress || 0) + 0.65 * dt);
     }
 
     if (room.waveProgress >= 100 && !room.isRaidEncounter && !bossAlive) {
@@ -213,7 +213,7 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
     }
 
     // Spawn an Atlas Map Boss every 5 waves (Wave 5, 10, 15, 20...) or when initial timer elapses
-    const shouldSpawnWaveBoss = (!room.isRaidEncounter && room.wave % 5 === 0 && room.waveProgress >= 40 && room.lastBossWave !== room.wave);
+    const shouldSpawnWaveBoss = (!room.isRaidEncounter && room.wave % 5 === 0 && room.waveProgress >= 85 && room.lastBossWave !== room.wave);
     const shouldSpawnTimerBoss = (!room.isRaidEncounter && room.runTimer >= room.runDuration && !room.bossSpawned);
     if (shouldSpawnWaveBoss || shouldSpawnTimerBoss) {
       spawnMapBoss(room);
