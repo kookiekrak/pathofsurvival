@@ -21,6 +21,18 @@
         `;
 
         cell.addEventListener('click', (ev) => {
+          if (activeCurrencyId) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            ws.send(JSON.stringify({
+              type: 'use_currency',
+              currencyId: activeCurrencyId,
+              targetLocation: 'equipment',
+              slotOrIdx: slot
+            }));
+            if (!ev.shiftKey) setActiveCurrency(null);
+            return;
+          }
           if (ev.shiftKey) {
             hideTooltip();
             ws.send(JSON.stringify({
@@ -28,21 +40,16 @@
               itemId: item.id,
               slot
             }));
-            return;
-          }
-          if (activeCurrencyId) {
-            ws.send(JSON.stringify({
-              type: 'use_currency',
-              currencyId: activeCurrencyId,
-              targetLocation: 'equipment',
-              slotOrIdx: slot
-            }));
           }
         });
 
         cell.addEventListener('contextmenu', (ev) => {
           ev.preventDefault();
           hideTooltip();
+          if (activeCurrencyId) {
+            setActiveCurrency(null);
+            return;
+          }
           ws.send(JSON.stringify({
             type: 'unequip_item',
             slot
@@ -163,53 +170,53 @@
     }
   }
 
+  function setActiveCurrency(orbId) {
+    activeCurrencyId = orbId || null;
+    document.body.classList.toggle('crafting-mode-active', Boolean(activeCurrencyId));
+    if (typeof renderCurrencyBench === 'function' && myProfile) renderCurrencyBench();
+    if (typeof renderStashInventory === 'function' && myProfile) renderStashInventory();
+  }
+
+  // Capture-phase Right-Click: Crafting ALWAYS captures right-click first to cancel orb without triggering Stash/Inventory/Equipment actions!
+  window.addEventListener('contextmenu', (ev) => {
+    if (!activeCurrencyId) return;
+    if (ev.target && ev.target.closest && ev.target.closest('.currency-btn')) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    ev.stopImmediatePropagation();
+    hideTooltip();
+    setActiveCurrency(null);
+  }, true);
+
   function renderCurrencyBench() {
     const bar = document.getElementById('currencyBar');
     bar.innerHTML = '';
 
-    const updateBanner = () => {
-      const banner = document.getElementById('craftStatusBanner');
-      if (!banner) return;
+    const banner = document.getElementById('craftStatusBanner');
+    if (banner) {
       if (activeCurrencyId && GameData.CURRENCIES[activeCurrencyId]) {
         const cName = GameData.CURRENCIES[activeCurrencyId].name;
-        banner.textContent = `Using ${cName} — Left-Click Gear (R-Click to Cancel)`;
+        banner.textContent = `Crafting [${cName}]: L-Click Gear (Shift=Keep) • R-Click/ESC Cancel`;
         banner.style.color = '#ffd43b';
       } else {
-        banner.textContent = 'Right-Click Orb to use, then Left-Click Gear';
+        banner.textContent = 'Left/Right-Click Orb to Craft, then Left-Click Gear';
         banner.style.color = '#a3937c';
       }
-    };
-    updateBanner();
+    }
 
     for (const cDef of Object.values(GameData.CURRENCIES)) {
       const count = myProfile.currencies[cDef.id] || 0;
       const btn = document.createElement('button');
       btn.className = `currency-btn ${activeCurrencyId === cDef.id ? 'active-currency' : ''}`;
-      btn.innerHTML = `
-        <span class="orb-stack-num">${count}</span>
-        <div class="orb-svg-wrap">${getCurrencySvg(cDef.id)}</div>
-        <span class="orb-short-lbl">${cDef.short.toUpperCase()}</span>
-      `;
-      btn.title = `${cDef.name} (Right-Click to Use): ${cDef.description}`;
-      btn.addEventListener('contextmenu', (ev) => {
+      btn.innerHTML = `<span class="orb-stack-num">${count}</span><div class="orb-svg-wrap">${getCurrencySvg(cDef.id)}</div><span class="orb-short-lbl">${cDef.short.toUpperCase()}</span>`;
+      btn.title = `${cDef.name} (Click or Right-Click to Use): ${cDef.description}`;
+      const selectOrbFn = (ev) => {
         ev.preventDefault();
-        activeCurrencyId = activeCurrencyId === cDef.id ? null : cDef.id;
-        updateBanner();
-        renderCurrencyBench();
-      });
-      btn.addEventListener('click', () => {
-        if (activeCurrencyId === cDef.id) {
-          activeCurrencyId = null;
-          updateBanner();
-          renderCurrencyBench();
-        } else {
-          const banner = document.getElementById('craftStatusBanner');
-          if (banner) {
-            banner.textContent = `Right-Click ${cDef.short} Orb to pick up for crafting!`;
-            banner.style.color = '#dfcf99';
-          }
-        }
-      });
+        ev.stopPropagation();
+        setActiveCurrency(activeCurrencyId === cDef.id ? null : cDef.id);
+      };
+      btn.addEventListener('click', selectOrbFn);
+      btn.addEventListener('contextmenu', selectOrbFn);
       bar.appendChild(btn);
     }
   }
@@ -232,13 +239,28 @@
         const isFlaskItem = entry.slot === 'flask';
         cell.className = `bag-cell occupied rarity-${entry.rarity}`;
         cell.innerHTML = `<div class="bag-cell-art">${getGearSvg(entry)}</div><span class="bag-cell-slot-tag">${isFlaskItem ? 'FLK' : entry.slot.slice(0, 3).toUpperCase()}</span>`;
-        const withdrawFn = (ev) => {
+        cell.addEventListener('click', (ev) => {
           ev.preventDefault();
+          if (activeCurrencyId) {
+            ev.stopPropagation();
+            if (!isFlaskItem && ws) {
+              ws.send(JSON.stringify({ type: 'use_currency', currencyId: activeCurrencyId, targetLocation: 'stash', slotOrIdx: idx }));
+              if (!ev.shiftKey) setActiveCurrency(null);
+            }
+            return;
+          }
           hideTooltip();
           if (ws) ws.send(JSON.stringify({ type: 'withdraw_stash_item', itemId: entry.id, stashIdx: idx }));
-        };
-        cell.addEventListener('click', withdrawFn);
-        cell.addEventListener('contextmenu', withdrawFn);
+        });
+        cell.addEventListener('contextmenu', (ev) => {
+          ev.preventDefault();
+          if (activeCurrencyId) {
+            setActiveCurrency(null);
+            return;
+          }
+          hideTooltip();
+          if (ws) ws.send(JSON.stringify({ type: 'withdraw_stash_item', itemId: entry.id, stashIdx: idx }));
+        });
         cell.addEventListener('mouseenter', (ev) => showItemTooltip(ev, entry, true));
         cell.addEventListener('mouseleave', hideTooltip);
       }
@@ -255,12 +277,14 @@
     const isVendorOpen = !document.getElementById('blackMarketDrawer')?.classList.contains('hidden');
     const hintEl = document.getElementById('invActionHint');
     if (hintEl) {
-      hintEl.textContent = isStashOpen
-        ? 'L-Click: Equip • R-Click: Deposit to Account Stash [B]!'
-        : isVendorOpen
-          ? 'L-Click: Equip • R-Click: Salvage for Shards!'
-          : 'L-Click: Equip • R-Click: Drop on Ground';
-      hintEl.style.color = (isStashOpen || isVendorOpen) ? '#ffd43b' : '#a3937c';
+      hintEl.textContent = activeCurrencyId
+        ? `CRAFTING [${activeCurrencyId.toUpperCase()}]: L-Click Gear to Craft (Shift=Keep) • R-Click Cancel`
+        : isStashOpen
+          ? 'L-Click: Equip • R-Click: Deposit to Account Stash [B]!'
+          : isVendorOpen
+            ? 'L-Click: Equip • R-Click: Salvage for Shards!'
+            : 'L-Click: Equip • R-Click: Drop on Ground';
+      hintEl.style.color = (activeCurrencyId || isStashOpen || isVendorOpen) ? '#ffd43b' : '#a3937c';
     }
 
     for (let idx = 0; idx < 50; idx++) {
@@ -270,19 +294,13 @@
         cell.className = 'bag-cell';
         cell.addEventListener('contextmenu', (ev) => {
           ev.preventDefault();
-          if (activeCurrencyId) {
-            activeCurrencyId = null;
-            renderCurrencyBench();
-          }
+          if (activeCurrencyId) setActiveCurrency(null);
         });
       } else {
         const isFlaskItem = entry.slot === 'flask';
         const isSelectedFlask = isFlaskItem && selectedInvFlaskIdx === idx;
         cell.className = `bag-cell occupied rarity-${entry.rarity} ${isSelectedFlask ? 'selected-flask-item' : ''}`;
-        cell.innerHTML = `
-          <div class="bag-cell-art">${getGearSvg(entry)}</div>
-          <span class="bag-cell-slot-tag">${isFlaskItem ? 'FLK' : entry.slot.slice(0, 3).toUpperCase()}</span>
-        `;
+        cell.innerHTML = `<div class="bag-cell-art">${getGearSvg(entry)}</div><span class="bag-cell-slot-tag">${isFlaskItem ? 'FLK' : entry.slot.slice(0, 3).toUpperCase()}</span>`;
         if (isFlaskItem) {
           cell.draggable = true;
           cell.addEventListener('dragstart', (ev) => {
@@ -290,6 +308,16 @@
           });
         }
         cell.addEventListener('click', (ev) => {
+          // Crafting ALWAYS captures click first before Shift-deposit/drop or Equip!
+          if (activeCurrencyId) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (!isFlaskItem) {
+              ws.send(JSON.stringify({ type: 'use_currency', currencyId: activeCurrencyId, targetLocation: 'inventory', slotOrIdx: idx }));
+              if (!ev.shiftKey) setActiveCurrency(null);
+            }
+            return;
+          }
           if (ev.shiftKey) {
             hideTooltip();
             ws.send(JSON.stringify({
@@ -301,22 +329,14 @@
           }
           if (isFlaskItem) {
             if (selectedBeltSlotIdx !== null) {
-              ws.send(JSON.stringify({
-                type: 'equip_flask_slot',
-                invIdx: idx,
-                slotIndex: selectedBeltSlotIdx
-              }));
+              ws.send(JSON.stringify({ type: 'equip_flask_slot', invIdx: idx, slotIndex: selectedBeltSlotIdx }));
               selectedBeltSlotIdx = null;
               selectedInvFlaskIdx = null;
               return;
             }
             if (selectedInvFlaskIdx === idx) {
               selectedInvFlaskIdx = null;
-              ws.send(JSON.stringify({
-                type: 'equip_item',
-                itemId: entry.id,
-                invIdx: idx
-              }));
+              ws.send(JSON.stringify({ type: 'equip_item', itemId: entry.id, invIdx: idx }));
             } else {
               selectedInvFlaskIdx = idx;
               renderFlaskBelt();
@@ -324,39 +344,21 @@
             }
             return;
           }
-          if (activeCurrencyId) {
-            ws.send(JSON.stringify({
-              type: 'use_currency',
-              currencyId: activeCurrencyId,
-              targetLocation: 'inventory',
-              slotOrIdx: idx
-            }));
-          } else {
-            ws.send(JSON.stringify({
-              type: 'equip_item',
-              itemId: entry.id,
-              invIdx: idx
-            }));
-          }
+          ws.send(JSON.stringify({ type: 'equip_item', itemId: entry.id, invIdx: idx }));
         });
         cell.addEventListener('mouseenter', (ev) => {
-          if (isFlaskItem) {
-            window.__POS_CTX__.hoveredInventoryFlaskIdx = idx;
-          }
+          if (isFlaskItem) window.__POS_CTX__.hoveredInventoryFlaskIdx = idx;
           showItemTooltip(ev, entry, true);
         });
         cell.addEventListener('mouseleave', () => {
-          if (window.__POS_CTX__.hoveredInventoryFlaskIdx === idx) {
-            window.__POS_CTX__.hoveredInventoryFlaskIdx = null;
-          }
+          if (window.__POS_CTX__.hoveredInventoryFlaskIdx === idx) window.__POS_CTX__.hoveredInventoryFlaskIdx = null;
           hideTooltip();
         });
         cell.addEventListener('contextmenu', (ev) => {
           ev.preventDefault();
           hideTooltip();
           if (activeCurrencyId) {
-            activeCurrencyId = null;
-            renderCurrencyBench();
+            setActiveCurrency(null);
             return;
           }
           const stashOpen = !document.getElementById('stashDrawer')?.classList.contains('hidden');
@@ -374,7 +376,7 @@
   }
 
   Object.assign(window.__POS_CTX__, {
-    renderEquipmentPaperDoll, renderBlackMarketBar, renderCurrencyBench, renderStashInventory, renderAccountStashGrid
+    setActiveCurrency, renderEquipmentPaperDoll, renderBlackMarketBar, renderCurrencyBench, renderStashInventory, renderAccountStashGrid
   });
   }
 })();

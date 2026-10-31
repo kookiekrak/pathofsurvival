@@ -228,21 +228,21 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
       }
     }
 
-    // Anti-Straggler Teleport: reposition monsters that fall > 560 units behind the party,
-    // placing them 255-360 units ahead (just outside camera view)!
-    if (bestD > 560 && m.rarity !== 'boss' && m.rarity !== 'unique') {
+    // Anti-Straggler Teleport: reposition monsters that fall > 420 units behind the party,
+    // placing them 190-285 units ahead (right at screen perimeter)!
+    if (bestD > 420 && m.rarity !== 'boss' && m.rarity !== 'unique') {
       const moveHeading = Math.hypot(target.vx || 0, target.vy || 0) > 20
         ? Math.atan2(target.vy, target.vx) + (Math.random() - 0.5) * 1.1
         : Math.random() * Math.PI * 2;
-      const teleDist = randInt(255, 360);
+      const teleDist = randInt(190, 285);
       let tx = Math.max(-ARENA_HALF + 70, Math.min(ARENA_HALF - 70, Math.round(target.x + Math.cos(moveHeading) * teleDist)));
       let ty = Math.max(-ARENA_HALF + 70, Math.min(ARENA_HALF - 70, Math.round(target.y + Math.sin(moveHeading) * teleDist)));
       for (const pl of livingPlayers) {
         const dPl = dist(tx, ty, pl.x, pl.y);
-        if (dPl < 215) {
+        if (dPl < 170) {
           const pAng = dPl > 1 ? Math.atan2(ty - pl.y, tx - pl.x) : Math.random() * Math.PI * 2;
-          tx = Math.round(pl.x + Math.cos(pAng) * 240);
-          ty = Math.round(pl.y + Math.sin(pAng) * 240);
+          tx = Math.round(pl.x + Math.cos(pAng) * 190);
+          ty = Math.round(pl.y + Math.sin(pAng) * 190);
         }
       }
       m.x = tx;

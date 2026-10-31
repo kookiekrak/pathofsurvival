@@ -41,7 +41,7 @@
 
       const dxCam = Math.abs(ent.group.position.x - camTargetX);
       const dzCam = Math.abs(ent.group.position.z - camTargetZ);
-      const isVisibleOnScreen = dxCam < 440 && dzCam < 380;
+      const isVisibleOnScreen = dxCam < 850 && dzCam < 750;
       if (ent.group.visible !== isVisibleOnScreen) {
         ent.group.visible = isVisibleOnScreen;
       }

@@ -90,8 +90,9 @@
 
     if (k === 'escape') {
       if (activeCurrencyId) {
-        activeCurrencyId = null;
-        if (typeof renderCurrencyBench === 'function' && myProfile) renderCurrencyBench();
+        if (typeof setActiveCurrency === 'function') setActiveCurrency(null);
+        else activeCurrencyId = null;
+        return;
       }
       document.getElementById('inventoryDrawer').classList.add('hidden');
       document.getElementById('stashDrawer')?.classList.add('hidden');

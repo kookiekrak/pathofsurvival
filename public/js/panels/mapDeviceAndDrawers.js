@@ -184,6 +184,10 @@
         }
       }
       el.classList.toggle('hidden', !isHidden);
+      if (id === 'inventoryDrawer' && !isHidden && activeCurrencyId) {
+        if (typeof setActiveCurrency === 'function') setActiveCurrency(null);
+        else activeCurrencyId = null;
+      }
       if (typeof renderStashInventory === 'function' && myProfile) {
         renderStashInventory();
       }
@@ -326,6 +330,10 @@
   document.querySelectorAll('.window-close').forEach(btn => {
     btn.addEventListener('click', () => {
       document.getElementById(btn.dataset.close)?.classList.add('hidden');
+      if (btn.dataset.close === 'inventoryDrawer' && activeCurrencyId) {
+        if (typeof setActiveCurrency === 'function') setActiveCurrency(null);
+        else activeCurrencyId = null;
+      }
       if (typeof renderStashInventory === 'function' && myProfile) {
         renderStashInventory();
       }

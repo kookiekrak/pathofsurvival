@@ -203,6 +203,9 @@ function onEnemyKilled(room, enemy, killer) {
       color: '#53f574'
     });
     room.portalsOpen = true;
+    if (!room.isRaidEncounter && typeof spawnMonsterPack === 'function') {
+      for (let k = 0; k < 6; k++) spawnMonsterPack(room);
+    }
     return;
   }
 

@@ -94,6 +94,11 @@ function applyCurrencyToItem(player, currencyId, targetLocation, slotOrIdx) {
     item = player.equipment[slotOrIdx];
   } else if (targetLocation === 'inventory') {
     item = player.inventory[slotOrIdx];
+  } else if (targetLocation === 'stash') {
+    if (!Array.isArray(player.accountStash) && typeof getAccountStash === 'function') {
+      player.accountStash = getAccountStash(player.accountId);
+    }
+    item = Array.isArray(player.accountStash) ? player.accountStash[slotOrIdx] : null;
   }
 
   if (!item || item.slot === 'flask') {
@@ -158,6 +163,9 @@ function applyCurrencyToItem(player, currencyId, targetLocation, slotOrIdx) {
       return { ok: false, reason: 'This item has no variable modifier ranges to reroll.' };
     }
     player.currencies.divine--;
+    if (targetLocation === 'stash' && typeof saveAccountStash === 'function') {
+      saveAccountStash(player.accountId, player.accountStash);
+    }
     recalcPlayer(player, false);
     return { ok: true, msg: `Divined ${item.name} — rerolled ${rerolledCount} modifier values within their tier ranges!` };
   }
@@ -205,6 +213,9 @@ function applyCurrencyToItem(player, currencyId, targetLocation, slotOrIdx) {
   }
 
   player.currencies[currencyId]--;
+  if (targetLocation === 'stash' && typeof saveAccountStash === 'function') {
+    saveAccountStash(player.accountId, player.accountStash);
+  }
   recalcPlayer(player, false);
   return { ok: true, msg: `Crafted ${item.name} (ilvl ${ilvl}, max ${item.maxTierForIlvl}) with ${GameData.CURRENCIES[currencyId].name}!` };
 }

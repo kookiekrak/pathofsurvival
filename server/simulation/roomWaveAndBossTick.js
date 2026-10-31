@@ -219,8 +219,9 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
       bossAlive = true;
     }
 
-    // Recycle straggler non-boss monsters that wandered > 560 units from all living players
+    // Recycle straggler non-boss monsters that wandered > 420 units from all living players & keep >= 16 monsters on screen
     if (aliveList.length > 0 && !room.isRaidEncounter) {
+      let nearScreenCount = 0;
       for (const m of room.enemies.values()) {
         if (m.rarity === 'boss' || m.isRitualMob) continue;
         let minPlayerDist = Infinity;
@@ -228,12 +229,17 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
           const d = dist(m.x, m.y, pl.x, pl.y);
           if (d < minPlayerDist) minPlayerDist = d;
         }
-        if (minPlayerDist > 560) {
+        if (minPlayerDist <= 330) {
+          nearScreenCount++;
+        } else if (minPlayerDist > 420 || nearScreenCount < 14) {
           const anchor = pick(aliveList);
-          const ang = Math.random() * Math.PI * 2;
-          const rDist = randInt(255, 360);
-          m.x = Math.max(-ARENA_HALF + 70, Math.min(ARENA_HALF - 70, Math.round(anchor.x + Math.cos(ang) * rDist)));
-          m.y = Math.max(-ARENA_HALF + 70, Math.min(ARENA_HALF - 70, Math.round(anchor.y + Math.sin(ang) * rDist)));
+          const moveAng = Math.hypot(anchor.vx || 0, anchor.vy || 0) > 15
+            ? Math.atan2(anchor.vy, anchor.vx) + (Math.random() - 0.5) * 2.0
+            : Math.random() * Math.PI * 2;
+          const rDist = randInt(190, 285);
+          m.x = Math.max(-ARENA_HALF + 70, Math.min(ARENA_HALF - 70, Math.round(anchor.x + Math.cos(moveAng) * rDist)));
+          m.y = Math.max(-ARENA_HALF + 70, Math.min(ARENA_HALF - 70, Math.round(anchor.y + Math.sin(moveAng) * rDist)));
+          nearScreenCount++;
         }
       }
     }
@@ -282,13 +288,16 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
       }
     }
 
-    // Continuous monster pack spawning with Low-Population Refill Boost (zero normal packs during Raid or Map Boss fights!)
+    // Continuous monster pack spawning + Instant Floor Refill so the map is NEVER empty of monsters (outside 1v1 Boss Duels)!
     if (!room.isRaidEncounter && !bossAlive) {
+      const minTargetPop = Math.min(52, 32 + room.wave * 2);
+      let safety = 0;
+      while (room.enemies.size < minTargetPop && safety++ < 10) {
+        if (spawnMonsterPack(room) <= 0) break;
+      }
       const deliriumBoost = (room.deliriumTimer || 0) > 0 ? 1.35 : 1.0;
-      const minTargetPop = Math.min(44, 24 + room.wave * 2);
-      const lowPopBoost = room.enemies.size < minTargetPop ? 2.4 : 1.0;
-      const baseSpawnRate = (0.85 + room.wave * 0.10 + (room.players.size - 1) * 0.30) * Math.sqrt(tierDensity) * modPackMult;
-      room.spawnAccumulator += dt * baseSpawnRate * deliriumBoost * lowPopBoost;
+      const baseSpawnRate = (0.95 + room.wave * 0.10 + (room.players.size - 1) * 0.30) * Math.sqrt(tierDensity) * modPackMult;
+      room.spawnAccumulator += dt * baseSpawnRate * deliriumBoost;
 
       while (room.spawnAccumulator >= 1) {
         room.spawnAccumulator -= 1;
