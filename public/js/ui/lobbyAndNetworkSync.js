@@ -147,6 +147,15 @@
         }
         syncWorldEntities();
         updateRealtimeHud();
+      } else if (msg.type === 'session_replaced') {
+        socket._manualClose = true;
+        clearTimeout(connectAndJoin._reconnTimer);
+        try { socket.close(); } catch {}
+        myPlayerId = null;
+        document.getElementById('loginModal')?.classList.remove('hidden');
+        document.getElementById('topHud')?.classList.add('hidden');
+        document.getElementById('bottomHud')?.classList.add('hidden');
+        showBanner(msg.title || 'Logged In Elsewhere', msg.subtitle || 'Character is active in another window.', '#ff6b6b');
       } else if (msg.type === 'announcement') {
         if (typeof playSkillSfx === 'function') playSkillSfx('boss_warn');
         showBanner(msg.title, msg.subtitle, msg.color);

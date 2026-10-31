@@ -31,13 +31,36 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_characters_account ON characters(account_id, updated_at DESC);
   DROP INDEX IF EXISTS idx_characters_account_name;
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_characters_account_name_class ON characters(account_id, lower(name), class_id);
+  DROP INDEX IF EXISTS idx_characters_account_name_class;
   CREATE TABLE IF NOT EXISTS account_stash (
     account_id TEXT PRIMARY KEY,
     stash_json TEXT NOT NULL DEFAULT '[]',
     updated_at INTEGER NOT NULL DEFAULT 0
   );
 `);
+
+// Deduplicate any existing duplicate character names before enforcing global case-insensitive name uniqueness
+try {
+  const allChars = db.prepare(`SELECT id, name, level, xp, updated_at FROM characters ORDER BY level DESC, xp DESC, updated_at DESC`).all();
+  const seenNames = new Set();
+  for (const row of allChars) {
+    const key = String(row.name || '').trim().toLowerCase();
+    if (!key || seenNames.has(key)) {
+      if ((row.level || 1) <= 1 && (row.xp || 0) === 0) {
+        db.prepare(`DELETE FROM characters WHERE id = ?`).run(row.id);
+      } else {
+        const newName = `${String(row.name || 'Exile').slice(0, 13)}_${String(row.id).slice(-4)}`;
+        db.prepare(`UPDATE characters SET name = ? WHERE id = ?`).run(newName, row.id);
+        seenNames.add(newName.toLowerCase());
+      }
+    } else {
+      seenNames.add(key);
+    }
+  }
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_characters_unique_name ON characters(lower(name));`);
+} catch (err) {
+  console.error('SQLite name deduplication error:', err.message);
+}
 
 const stmtGetAccountStash = db.prepare(`SELECT stash_json FROM account_stash WHERE account_id = ?`);
 const stmtUpsertAccountStash = db.prepare(`
@@ -87,6 +110,7 @@ const stmtListLeaderboard = db.prepare(`
 `);
 const stmtGetCharacterById = db.prepare(`SELECT * FROM characters WHERE id = ?`);
 const stmtGetCharacterByName = db.prepare(`SELECT * FROM characters WHERE account_id = ? AND lower(name) = lower(?) AND class_id = ?`);
+const stmtGetCharacterByGlobalName = db.prepare(`SELECT id, account_id, name, class_id FROM characters WHERE lower(name) = lower(?) LIMIT 1`);
 const stmtUpsertCharacter = db.prepare(`
   INSERT INTO characters (
     id, account_id, name, class_id, level, xp, xp_next, passive_points,
@@ -194,6 +218,7 @@ const exportsObj = {
   stmtListLeaderboard,
   stmtGetCharacterById,
   stmtGetCharacterByName,
+  stmtGetCharacterByGlobalName,
   stmtUpsertCharacter,
   stmtDeleteCharacter,
   getAccountStash,

@@ -95,10 +95,10 @@ const httpServer = http.createServer((req, res) => {
           return;
         }
 
-        const existingRows = stmtListCharacters.all(accountId);
-        if (existingRows.some(r => String(r.name || '').toLowerCase() === name.toLowerCase())) {
+        const takenRow = stmtGetCharacterByGlobalName.get(name);
+        if (takenRow) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: false, error: `An Exile named "${name}" already exists on your roster.` }));
+          res.end(JSON.stringify({ ok: false, error: `Character name "${name}" is already taken! Please choose a unique name.` }));
           return;
         }
 

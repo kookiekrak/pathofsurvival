@@ -1,22 +1,33 @@
 // Server Network Module: WebSocket Connection Lifecycle, Room Switching, Combat Input & World Interactions
 const GameData = global.GameData || require('../../public/shared/gameData.js');
 
+function dedupeLoggedInCharacter(ws, charId, name) {
+  const cId = charId ? String(charId) : null;
+  const nLow = String(name || '').trim().toLowerCase();
+  for (const r of rooms.values()) {
+    for (const [pid, existingP] of r.players.entries()) {
+      if ((cId && existingP.characterId === cId) || (nLow && String(existingP.name || '').trim().toLowerCase() === nLow)) {
+        saveCharacterToDb(existingP);
+        r.players.delete(pid);
+        if (existingP.ws && existingP.ws !== ws) {
+          try {
+            existingP.ws.send(JSON.stringify({ type: 'session_replaced', title: 'Disconnected: Logged In Elsewhere', subtitle: `${existingP.name} was logged into from another window or device.` }));
+            existingP.ws.close();
+          } catch {}
+        }
+      }
+    }
+  }
+}
+
 function switchPlayerRoom(ws, msg, connState) {
   let roomCode = ((msg.roomCode || 'ORIATH').toUpperCase().replace(/[^A-Z0-9]/g, '') || 'ORIATH').slice(0, 8);
-  let room = rooms.get(roomCode);
-  if (!room) room = createRoom(roomCode, msg.roomName);
-  if (roomCode !== 'ORIATH' && typeof msg.isPrivate === 'boolean') {
-    room.isPrivate = msg.isPrivate;
-  }
+  let room = rooms.get(roomCode) || createRoom(roomCode, msg.roomName);
+  if (roomCode !== 'ORIATH' && typeof msg.isPrivate === 'boolean') room.isPrivate = msg.isPrivate;
 
   // ORIATH is an uncapped Public Town Hub; other party instances cap at 6 players
   if (roomCode !== 'ORIATH' && room.players.size >= 6 && (!connState.currentPlayer || !room.players.has(connState.currentPlayer.id))) {
-    ws.send(JSON.stringify({
-      type: 'announcement',
-      title: 'Party Instance Full (6/6)',
-      subtitle: 'Redirected to Oriath Public Sanctuary Town Hub.',
-      color: '#ffd43b'
-    }));
+    ws.send(JSON.stringify({ type: 'announcement', title: 'Party Instance Full (6/6)', subtitle: 'Redirected to Oriath Public Sanctuary Town Hub.', color: '#ffd43b' }));
     roomCode = 'ORIATH';
     room = rooms.get('ORIATH') || createRoom('ORIATH', 'Oriath Public Sanctuary');
   }
@@ -25,9 +36,10 @@ function switchPlayerRoom(ws, msg, connState) {
     saveCharacterToDb(connState.currentPlayer);
     connState.currentRoom.players.delete(connState.currentPlayer.id);
   }
-
+  dedupeLoggedInCharacter(ws, msg.characterId, msg.name);
   connState.currentRoom = room;
   connState.currentPlayer = createPlayer(ws, msg.name, msg.classId, msg.accountId, msg.characterId);
+  dedupeLoggedInCharacter(ws, connState.currentPlayer.characterId, connState.currentPlayer.name);
   room.players.set(connState.currentPlayer.id, connState.currentPlayer);
 
   ws.send(JSON.stringify({ type: 'chat_history', log: room.chatLog }));
