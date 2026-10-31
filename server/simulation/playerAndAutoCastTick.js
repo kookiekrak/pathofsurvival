@@ -8,7 +8,6 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
     if (p.dashCooldown > 0) p.dashCooldown = Math.max(0, p.dashCooldown - dt);
     if (p.esDelayTimer > 0) p.esDelayTimer = Math.max(0, p.esDelayTimer - dt);
     if (p.graceTimer > 0) p.graceTimer = Math.max(0, p.graceTimer - dt);
-    if (p.hitGraceTimer > 0) p.hitGraceTimer = Math.max(0, p.hitGraceTimer - dt);
     if ((p.acuityCd || 0) > 0) p.acuityCd = Math.max(0, p.acuityCd - dt);
     if ((p.shavNovaCd || 0) > 0) p.shavNovaCd = Math.max(0, p.shavNovaCd - dt);
     if ((p.kaomsTickCd || 0) > 0) p.kaomsTickCd = Math.max(0, p.kaomsTickCd - dt);

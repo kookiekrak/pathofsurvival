@@ -16,7 +16,7 @@ function getPlayerRfRadius(player) {
 }
 
 function applyDamageToPlayer(room, player, rawDamage, dmgType, ignoreEvade = false) {
-  if (player.dashTimer > 0 || (player.graceTimer || 0) > 0 || (player.hitGraceTimer || 0) > 0) return false;
+  if (player.dashTimer > 0 || (player.graceTimer || 0) > 0) return false;
   const s = player.stats;
 
   // Naked Vulnerability Penalty: Fighting with 0 equipped gear pieces increases incoming damage by 35% and disables evasion!
@@ -40,9 +40,6 @@ function applyDamageToPlayer(room, player, rawDamage, dmgType, ignoreEvade = fal
       return true;
     }
   }
-
-  // Brief 0.06s same-tick deduplication so surrounding monsters don't eat each other's attacks!
-  player.hitGraceTimer = 0.06;
 
   // Reset PoE Energy Shield recharge delay whenever hit (unless Shavronne's Wrappings is equipped!)
   if (!s.shavronneWard) {
