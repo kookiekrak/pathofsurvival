@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Path of Survival</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "/vendor/three/build/three.module.js",
+        "three/addons/": "/vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- 3D WebGL Game Canvas (Three.js) -->
+  <canvas id="gameCanvas"></canvas>
+  <!-- 2D Projected World Labels, FilterBlade Ground Plates, Top Monster Plaque & Damage Numbers -->
+  <canvas id="hudOverlayCanvas"></canvas>
+
+  <!-- ===================================================================== -->
+  <!-- PATH OF SURVIVAL CHARACTER SELECTION & CREATION                       -->
+  <!-- ===================================================================== -->
+  <div id="loginModal" class="modal-backdrop">
+    <div class="poe-frame login-box char-create-box">
+      <div class="frame-rivet tl"></div>
+      <div class="frame-rivet tr"></div>
+      <div class="frame-rivet bl"></div>
+      <div class="frame-rivet br"></div>
+
+      <div class="poe-login-crest">
+        <div class="crest-line"></div>
+        <span class="poe-header-ornament">DARK FANTASY ARPG • CHARACTER SELECTION</span>
+        <div class="crest-line"></div>
+      </div>
+      <h1 class="poe-title">PATH OF SURVIVAL</h1>
+      <div class="poe-subtitle">Dark Gothic Co-Op Action RPG • Wave Gem Links • Currency Crafting • Passive Atlas</div>
+
+      <div id="assetLoadingWrap" class="asset-loading-wrap">
+        <div class="asset-loading-bar">
+          <div id="assetLoadingFill" class="asset-loading-fill"></div>
+        </div>
+        <div id="assetLoadingText" class="asset-loading-text">Loading 3D Meshes &amp; Shaders...</div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- STAGE 1: POE 1 CHARACTER SELECTION (DEFAULT SCREEN, LIST ON RIGHT)  -->
+      <!-- =================================================================== -->
+      <div id="charSelectStage" class="poe-char-select-stage">
+        <div class="poe-char-select-columns">
+          <!-- Left Spotlight: Highlighted Exile Preview & Realm Info -->
+          <div style="display:flex;flex-direction:column;gap:8px;min-height:0">
+            <div id="selectedCharPreview" class="poe-char-spotlight" style="flex:1"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <span class="char-create-hint">Creates your own instance by default, or click Party Gateway to join a public lobby.</span>
+              <button id="openLobbyFromSelectBtn" class="poe-chisel-btn lobby-gateway-btn" type="button">
+                PARTY GATEWAY: <span id="selectTargetRoomBadge">SOLO</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Panel: Authentic PoE 1 Character List + CREATE / DELETE / PLAY -->
+          <div class="poe-char-roster-panel">
+            <div class="poe-section-title" style="margin-bottom:6px">
+              <span>CHARACTERS</span>
+              <span class="char-create-hint">Select &amp; Play</span>
+            </div>
+            <div id="savedCharsList" class="poe-roster-list"></div>
+
+            <!-- PoE 1 Right-Hand Panel Footer: CREATE / DELETE + PLAY -->
+            <div class="poe-roster-footer">
+              <div class="poe-roster-btn-row">
+                <button id="goToCreateCharBtn" class="poe-chisel-btn lobby-gateway-btn" style="flex:1" type="button">
+                  CREATE
+                </button>
+                <button id="openDeleteCharModalBtn" class="poe-chisel-btn lobby-gateway-btn danger-chisel-btn" style="flex:1" type="button">
+                  DELETE
+                </button>
+              </div>
+              <button id="playSelectedCharBtn" class="poe-gold-btn large-btn" style="width:100%;padding:9px 14px;font-size:0.96rem" type="button">
+                PLAY
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- STAGE 2: POE 1 CHARACTER CREATION (PICK CLASS & NAME -> BACK TO LIST)-->
+      <!-- =================================================================== -->
+      <div id="charCreateStage" class="poe-char-create-stage hidden">
+        <!-- Top Bar: Selected Class Summary -->
+        <div id="selectedClassSummary" class="selected-class-summary" style="margin-bottom:8px"></div>
+
+        <div class="poe-section-title">
+          <span>CREATE CHARACTER — CHOOSE EXILE ARCHETYPE</span>
+          <span class="char-create-hint">Class is permanently tied to this character</span>
+        </div>
+
+        <!-- Full-Width Unclipped 7-Class Grid -->
+        <div id="classGrid" class="class-grid-creation"></div>
+
+        <!-- Bottom PoE 1 Character Creation Name + BACK / OK Bar -->
+        <div class="char-create-footer">
+          <button id="backToCharSelectBtn" class="poe-chisel-btn lobby-gateway-btn" style="flex-shrink:0" type="button">
+            ← BACK
+          </button>
+          <div class="input-group char-name-group" style="display:flex;align-items:center;gap:10px;flex:1;min-width:260px">
+            <label for="playerNameInput" style="margin:0;white-space:nowrap;flex-shrink:0">CHARACTER NAME:</label>
+            <input id="playerNameInput" type="text" maxlength="16" placeholder="Enter Exile Name..." value="" style="flex:1;min-width:180px" />
+          </div>
+          <div id="charCreateError" class="delete-confirm-error hidden" style="margin:0;flex-shrink:0"></div>
+          <button id="enterWraeclastBtn" class="poe-gold-btn" style="width:auto;flex-shrink:0;padding:9px 28px;font-size:0.96rem" type="button">
+            OK (CREATE CHARACTER)
+          </button>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- POE DELETE CHARACTER CONFIRMATION MODAL (PREVENTS ACCIDENTAL DEL)   -->
+      <!-- =================================================================== -->
+      <div id="deleteCharConfirmModal" class="poe-delete-modal-overlay hidden">
+        <div class="poe-frame poe-delete-modal-box">
+          <div class="poe-window-header">
+            <span class="header-ornament">◆</span>
+            <h2>CONFIRM CHARACTER DELETION</h2>
+          </div>
+          <div class="poe-delete-modal-body">
+            <p id="deleteCharWarningText" class="delete-warning-text"></p>
+            <div class="input-group" style="margin: 10px 0;">
+              <label for="deleteConfirmNameInput">TYPE CHARACTER NAME TO CONFIRM PERMANENT DELETION:</label>
+              <input id="deleteConfirmNameInput" type="text" maxlength="18" placeholder="Type exact character name..." autocomplete="off" />
+            </div>
+            <div id="deleteConfirmError" class="delete-confirm-error hidden">Name does not match the selected character.</div>
+            <div class="poe-delete-modal-actions">
+              <button id="cancelDeleteCharBtn" class="poe-chisel-btn lobby-gateway-btn" type="button">CANCEL</button>
+              <button id="confirmDeleteCharBtn" class="poe-chisel-btn lobby-gateway-btn danger-confirm-btn" type="button">PERMANENTLY DELETE EXILE</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- SEPARATE MULTIPLAYER PARTY & INSTANCE LOBBY MODAL (KEY: L)            -->
+  <!-- ===================================================================== -->
+  <div id="lobbyModal" class="modal-backdrop hidden">
+    <div class="poe-frame lobby-modal-box">
+      <div class="frame-rivet tl"></div>
+      <div class="frame-rivet tr"></div>
+      <div class="frame-rivet bl"></div>
+      <div class="frame-rivet br"></div>
+
+      <div class="poe-window-header lobby-modal-header">
+        <span class="header-ornament">◆</span>
+        <h2>ORIATH GATEWAY — MULTIPLAYER PARTY LOBBY</h2>
+        <button id="closeLobbyModalBtn" class="window-close" data-close="lobbyModal" title="Close Lobby">✕</button>
+      </div>
+
+      <div class="lobby-modal-body">
+        <p class="map-device-intro" style="margin: 0 0 12px;">
+          Join an active Public Party Instance with up to 4 Exiles, or enter a custom Instance Code to create or join a private party realm.
+        </p>
+
+        <div class="poe-section-title">
+          <span>PUBLIC PARTY INSTANCES</span>
+          <button id="refreshRoomsBtn" class="poe-chisel-btn sm-btn" type="button">REFRESH</button>
+        </div>
+
+        <div class="room-browser-table-wrap">
+          <table class="room-browser-table">
+            <thead>
+              <tr>
+                <th>CODE</th>
+                <th>INSTANCE</th>
+                <th>EXILES</th>
+                <th>ZONE</th>
+                <th>ACTION</th>
+              </tr>
+            </thead>
+            <tbody id="roomBrowserBody"></tbody>
+          </table>
+        </div>
+
+        <div class="poe-section-title" style="margin-top:16px">
+          <span>DIRECT INSTANCE GATEWAY</span>
+        </div>
+        <div class="login-row">
+          <div class="input-group">
+            <label for="roomCodeInput">INSTANCE CODE</label>
+            <input id="roomCodeInput" type="text" maxlength="8" placeholder="ORIATH" value="ORIATH" />
+          </div>
+          <div class="input-group">
+            <label for="roomNameInput">PARTY DESCRIPTION</label>
+            <input id="roomNameInput" type="text" maxlength="22" placeholder="Oriath Docks" value="Oriath Docks" />
+          </div>
+        </div>
+
+        <div class="lobby-modal-actions">
+          <button id="backToCharCreateBtn" class="poe-chisel-btn" type="button">
+            BACK
+          </button>
+          <button id="joinCustomRoomBtn" class="poe-gold-btn large-btn" type="button">
+            JOIN / SWITCH INSTANCE
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TOP HUD: POE PARTY PORTRAITS (LEFT), ALTAR DRAFT (CENTER), MAP (RIGHT)-->
+  <!-- ===================================================================== -->
+  <div id="topHud" class="top-hud hidden">
+    <!-- Top-Left: PoE 1 Vertical Party Portrait Stack & Ready Control -->
+    <div class="hud-left-stack">
+      <div class="poe-party-header-bar">
+        <button id="readyToggleBtn" class="poe-chisel-btn ready-chisel" title="Toggle Party Ready State (F4)">
+          READY UP [F4]
+        </button>
+        <button id="switchClassBtn" class="poe-chisel-btn switch-class-btn" title="Switch or Create Persisted Exile Character">
+          CHARACTERS
+        </button>
+        <button id="openLobbyHudBtn" class="poe-chisel-btn lobby-hud-btn" title="Open Multiplayer Party &amp; Instance Lobby (Key: L)">
+          PARTY LOBBY [L]
+        </button>
+      </div>
+      <div class="poe-gold-chest-bar">
+        <div class="poe-gold-pill" title="In-Run Gold is spent on Golden Chests &amp; Draft Rerolls; unspent earned Gold banks to your Hideout Stash!">
+          <span class="gold-coin-icon">🪙</span>
+          <span id="hudGoldVal" class="gold-val-num">0</span>
+          <span id="hudGoldLbl" class="gold-lbl">STASH GOLD</span>
+        </div>
+        <div id="buyChestBtn" class="poe-chisel-btn buy-chest-btn hidden" style="cursor:default" title="Walk up to a Golden Chest in the arena and press [E] or Left-Click it to open (+25% Heal &amp; Gem/Boon Draft)">
+          NEXT CHEST: <span id="hudChestCost">50</span>g [E NEAR CHEST]
+        </div>
+        <button id="openBlackMarketBtn" class="poe-chisel-btn buy-chest-btn can-afford" type="button" title="Open Black Market Panel on Left [Key: V] to Gamble Gear &amp; Sell/Buyback Items">
+          BLACK MARKET [V]
+        </button>
+      </div>
+      <div id="partyRoster" class="party-portraits-stack"></div>
+    </div>
+
+    <!-- Top-Center: Survivors Wave Gem Draft Altar & Non-Overlapping Wave Announcement -->
+    <div class="hud-center-stack">
+      <div id="gemDraftBanner" class="gem-draft-banner hidden">
+        <div class="draft-banner-header">
+          <span class="draft-ornament-left">◆</span>
+          <span id="draftReasonTitle">DIVINE GEM FONT — INSCRIBE 1 GEM LINK</span>
+          <span id="draftQueueBadge" class="draft-queue-pill">1</span>
+          <button id="rerollDraftBtn" class="poe-chisel-btn sm-btn" style="margin-left:8px;padding:3px 9px;font-size:0.74rem;color:#ffd43b;border-color:#9c7a38" type="button" title="Spend Gold to Reroll these 3 choices">
+            REROLL (<span id="draftRerollCost">15</span>g)
+          </button>
+          <span class="draft-ornament-right">◆</span>
+        </div>
+        <div id="gemDraftChoicesRow" class="gem-draft-choices"></div>
+      </div>
+
+      <!-- Center Dramatic Area / Boss Announcement Plaque (Stacks below Gem Draft so it never blocks it!) -->
+      <div id="bannerAnnouncement" class="banner-announcement hidden">
+        <div class="banner-rule"></div>
+        <div id="bannerTitle" class="banner-title"></div>
+        <div id="bannerSub" class="banner-sub"></div>
+        <div class="banner-rule"></div>
+      </div>
+    </div>
+
+    <!-- Top-Right: Authentic PoE 1 Zone Info Readout & Corner Overlay Radar -->
+    <div class="hud-right-stack">
+      <div class="poe-zone-info">
+        <div id="waveTitle" class="zone-title-line">Oriath Sanctuary</div>
+        <div id="waveSubInfo" class="zone-sub-line">Hideout Instance</div>
+        <div class="zone-meta-line">
+          <span>Instance: <strong id="hudRoomCode">ORIATH</strong></span>
+          <span class="zone-sep">•</span>
+          <span id="hudModeBadge">Hideout</span>
+        </div>
+        <div id="waveProgressBarWrap" class="wave-progress-wrap hidden">
+          <div class="wave-progress-header">
+            <span id="waveProgressLabel">WAVE 1</span>
+            <span id="waveProgressPct">0%</span>
+          </div>
+          <div class="wave-progress-track">
+            <div id="waveProgressFill" class="wave-progress-fill"></div>
+          </div>
+        </div>
+      </div>
+      <div class="minimap-frame" title="Corner Map Overlay (Press TAB to Toggle Size)">
+        <div class="frame-rivet tl"></div>
+        <div class="frame-rivet tr"></div>
+        <div class="frame-rivet bl"></div>
+        <div class="frame-rivet br"></div>
+        <canvas id="minimapCanvas" width="172" height="172"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- PoE 1 Bottom-Left Chat Box (Above Left Life Globe) -->
+  <div id="chatWidget" class="poe-chat-widget hidden">
+    <div id="chatMessages" class="chat-messages"></div>
+    <div class="chat-input-row">
+      <input id="chatInput" type="text" maxlength="120" placeholder="Press Enter to speak in Party..." />
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- AUTHENTIC PATH OF EXILE 1 BOTTOM HUD (CORNER GLOBES, FLASKS, SKILLS)  -->
+  <!-- ===================================================================== -->
+  <div id="bottomHud" class="bottom-hud hidden">
+    <!-- Bottom-Left: Oversized PoE 1 Life & Curved Energy Shield Globe -->
+    <div class="poe-corner-globe left-globe-dock">
+      <div class="globe-num-plate">
+        <span class="plate-lbl">LIFE</span>
+        <span id="lifeText" class="plate-val">130 / 130</span>
+        <span id="esText" class="plate-es-val"></span>
+      </div>
+      <div class="globe-orb-wrapper">
+        <div class="globe-sphere life-sphere">
+          <!-- Crimson Blood Fill -->
+          <div id="lifeFill" class="globe-fill life-fill">
+            <div class="liquid-meniscus"></div>
+          </div>
+          <!-- PoE 1 Curved Right-Side Energy Shield Crescent -->
+          <div class="es-crescent-track">
+            <div id="esOverlay" class="es-crescent-fill"></div>
+          </div>
+          <!-- Specular Dark Glass Overlay -->
+          <div class="globe-specular"></div>
+        </div>
+        <!-- Ornate SVG Gothic Metal Frame Around Left Globe -->
+        <svg class="globe-metal-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <defs>
+            <linearGradient id="bronzeGradL" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#a88c5c"/>
+              <stop offset="45%" stop-color="#5c4728"/>
+              <stop offset="100%" stop-color="#21180c"/>
+            </linearGradient>
+          </defs>
+          <!-- Outer chiselled iron ring -->
+          <circle cx="100" cy="100" r="88" fill="none" stroke="#14100b" stroke-width="10"/>
+          <circle cx="100" cy="100" r="86" fill="none" stroke="url(#bronzeGradL)" stroke-width="5"/>
+          <circle cx="100" cy="100" r="81" fill="none" stroke="#080604" stroke-width="2"/>
+          <!-- Gothic Solaris wing flourishes -->
+          <path d="M12,96 L4,82 L15,74 L10,58 L24,54 L26,38 L42,40 L52,22 L66,28" fill="none" stroke="url(#bronzeGradL)" stroke-width="3.5"/>
+          <path d="M100,10 L106,2 L112,11 M188,96 L196,84 L185,74" fill="none" stroke="url(#bronzeGradL)" stroke-width="3"/>
+          <!-- Rim rivets -->
+          <circle cx="100" cy="14" r="3" fill="#c8b38a"/>
+          <circle cx="38" cy="38" r="3" fill="#c8b38a"/>
+          <circle cx="162" cy="38" r="3" fill="#c8b38a"/>
+          <circle cx="14" cy="100" r="3" fill="#c8b38a"/>
+          <circle cx="186" cy="100" r="3" fill="#c8b38a"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Center Deck: Left Flask Belt + Bottom XP Bar + Right Skill Grid & Micro-Menu -->
+    <div class="poe-center-deck">
+      <div class="deck-upper-row">
+        <!-- PoE 1 5-Slot Ornate Flask Rack (Docked next to Life Globe) -->
+        <div class="poe-flask-rack">
+          <div id="flaskBeltContainer" class="flask-slots-row"></div>
+        </div>
+
+        <!-- Center Spacer (Keeps center ground visible like PoE 1) -->
+        <div class="deck-center-gap"></div>
+
+        <!-- PoE 1 Recessed Skill Bar & Micro-Menu Buttons (Docked next to Right Globe) -->
+        <div class="poe-skill-tray">
+          <div id="activeSkillLinksBar" class="skill-links-row"></div>
+
+          <!-- Flame Dash Movement Skill Socket (Space) -->
+          <button id="dashBtn" class="poe-skill-socket dash-socket" title="Flame Dash — Blink & Evade Slams (Spacebar)">
+            <div class="skill-art-wrap" id="dashSkillArt"></div>
+            <span class="socket-key-tag">SPC</span>
+            <span id="dashCdText" class="socket-cd-tag">RDY</span>
+          </button>
+
+          <!-- Vaal Ultimate Skill Socket (Key: R) -->
+          <button id="vaalBtn" class="poe-skill-socket vaal-socket" title="Vaal Ultimate Skill — Harvest Souls & Unleash (Key: R)">
+            <div id="vaalSoulFill" class="vaal-soul-fill"></div>
+            <div class="skill-art-wrap" id="vaalSkillArt"></div>
+            <span class="socket-key-tag vaal-key-tag">R</span>
+            <span id="vaalSoulText" class="socket-cd-tag vaal-soul-tag">0/45</span>
+          </button>
+
+          <!-- Vertical Brass Divider -->
+          <div class="tray-divider"></div>
+
+          <!-- PoE 1 Chiseled Micro-Menu Bar -->
+          <div class="poe-micro-menu">
+            <button id="toggleInventoryBtn" class="poe-menu-btn" title="Inventory, Paper-Doll &amp; Currency Crafting (Key: I)">
+              <span class="menu-key">I</span>
+              <span class="menu-lbl">INV</span>
+            </button>
+            <button id="toggleGemsBtn" class="poe-menu-btn" title="Character Sheet &amp; Skill Gem Links (Key: C or G)">
+              <span class="menu-key">C</span>
+              <span class="menu-lbl">CHAR</span>
+              <span id="pendingDraftBadge" class="notify-pip hidden">!</span>
+            </button>
+            <button id="toggleTreeBtn" class="poe-menu-btn" title="Passive Skill Tree (Key: P)">
+              <span class="menu-key">P</span>
+              <span class="menu-lbl">TREE</span>
+              <span id="unspentPassiveBadge" class="notify-pip">2</span>
+            </button>
+            <button id="toggleMapDeviceBtn" class="poe-menu-btn map-menu-btn" title="Atlas Map Device &amp; Party Staging (Key: M)">
+              <span class="menu-key">M</span>
+              <span class="menu-lbl">MAP</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Full-Width Bottom-Edge Segmented Experience Bar -->
+      <div class="poe-xp-bar-container" title="Character Experience">
+        <div id="xpBarFill" class="poe-xp-bar-fill"></div>
+        <div id="xpBarTicks" class="poe-xp-bar-ticks"></div>
+        <span id="xpBarText" class="poe-xp-bar-text">LEVEL 1 MARAUDER • 0 / 90 XP (0%)</span>
+      </div>
+    </div>
+
+    <!-- Bottom-Right: Oversized PoE 1 Arcane Ward & Defences Globe -->
+    <div class="poe-corner-globe right-globe-dock">
+      <div class="globe-num-plate">
+        <span class="plate-lbl">DEFENCES &amp; WARD</span>
+      </div>
+      <div class="globe-orb-wrapper">
+        <div class="globe-sphere mana-sphere">
+          <div class="globe-fill mana-fill">
+            <div class="liquid-meniscus mana-meniscus"></div>
+          </div>
+          <div class="stats-mini-list">
+            <div><span>ARMOUR</span> <strong id="hudArmor">0</strong></div>
+            <div><span>EVASION</span> <strong id="hudEvasion">0</strong></div>
+            <div><span>RESISTS</span> <strong id="hudRes">0%</strong></div>
+            <div><span>CRIT</span> <strong id="hudCrit">5%</strong></div>
+            <div><span>SPEED</span> <strong id="hudMoveSpd">100%</strong></div>
+          </div>
+          <div class="globe-specular"></div>
+        </div>
+        <svg class="globe-metal-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <circle cx="100" cy="100" r="88" fill="none" stroke="#14100b" stroke-width="10"/>
+          <circle cx="100" cy="100" r="86" fill="none" stroke="url(#bronzeGradL)" stroke-width="5"/>
+          <circle cx="100" cy="100" r="81" fill="none" stroke="#080604" stroke-width="2"/>
+          <path d="M188,96 L196,82 L185,74 L190,58 L176,54 L174,38 L158,40 L148,22 L134,28" fill="none" stroke="url(#bronzeGradL)" stroke-width="3.5"/>
+          <circle cx="100" cy="14" r="3" fill="#c8b38a"/>
+          <circle cx="38" cy="38" r="3" fill="#c8b38a"/>
+          <circle cx="162" cy="38" r="3" fill="#c8b38a"/>
+          <circle cx="14" cy="100" r="3" fill="#c8b38a"/>
+          <circle cx="186" cy="100" r="3" fill="#c8b38a"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- POE 1 RIGHT-DOCKED INVENTORY & PAPER-DOLL PANEL (KEY: I)              -->
+  <!-- ===================================================================== -->
+  <div id="inventoryDrawer" class="poe-dock-panel right-dock-panel hidden">
+    <div class="poe-window-header">
+      <span class="header-ornament">◆</span>
+      <h2>INVENTORY &amp; EQUIPMENT</h2>
+      <button class="window-close" data-close="inventoryDrawer">✕</button>
+    </div>
+
+    <div class="poe-inventory-body">
+      <!-- Authentic PoE 1 Spatial Paper-Doll Equipment Layout -->
+      <div class="poe-paperdoll-stage">
+        <div id="equippedSlotsContainer" class="poe-paperdoll-canvas"></div>
+      </div>
+
+      <!-- Customizable 5-Slot Flask Belt Rack (Place any Flask into any Slot 1-5) -->
+      <div class="poe-sub-header">
+        <span>5-SLOT FLASK BELT [KEYS 1–5]</span>
+        <span id="flaskBeltHint" class="craft-hint-inline">Click 2 Slots to Swap • R-Click: Unequip to Bag</span>
+      </div>
+      <div id="invFlaskBeltRow" class="inv-flask-belt-row"></div>
+
+      <!-- Currency Crafting Socket Bar -->
+      <div class="poe-sub-header">
+        <span>CURRENCY ORB BENCH</span>
+        <span id="craftStatusBanner" class="craft-hint-inline">Right-Click Orb, then Left-Click Gear</span>
+      </div>
+      <div id="currencyBar" class="poe-currency-row"></div>
+
+      <!-- Authentic PoE 1 8x4 Dark-Iron Grid Inventory Bag -->
+      <div class="poe-sub-header">
+        <span>STASH GRID <strong id="invCountLabel">(0/32)</strong></span>
+        <span id="invActionHint" class="craft-hint-inline">L-Click: Equip • R-Click: Drop on Ground</span>
+      </div>
+      <div id="inventoryGrid" class="poe-bag-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- POE 1 LEFT-DOCKED BLACK MARKET GAMBLER & BUYBACK PANEL (KEY: V)       -->
+  <!-- ===================================================================== -->
+  <div id="blackMarketDrawer" class="poe-dock-panel left-dock-panel hidden">
+    <div class="poe-window-header">
+      <span class="header-ornament">◆</span>
+      <h2>BLACK MARKET GAMBLER</h2>
+      <button class="window-close" data-close="blackMarketDrawer">✕</button>
+    </div>
+
+    <div class="poe-gems-body">
+      <div class="poe-sub-header">
+        <span>MYSTERY GAMBLE <strong id="bmStashGoldVal" style="color:#ffd43b">(0 GOLD)</strong></span>
+        <span id="bmTierIlvlLabel" class="craft-hint-inline">Scales with Character Level</span>
+      </div>
+      <div style="font-size:0.8rem;color:#b8a68e;margin-bottom:4px;line-height:1.3">
+        Spend Stash Gold to gamble mystery Magic, Rare, or Unique equipment scaled to your Character Level.
+      </div>
+      <div id="blackMarketBar" class="bm-gamble-grid"></div>
+
+      <div class="poe-sub-header" style="margin-top:10px">
+        <span>SELL &amp; BUYBACK</span>
+        <span class="craft-hint-inline" style="color:#ffd43b">R-Click Inventory [I] Items to Sell</span>
+      </div>
+      <div style="font-size:0.8rem;color:#b8a68e;margin-bottom:4px;line-height:1.3">
+        While this Black Market panel is open, Right-Click any item in your Inventory [I] to sell it for Gold. Sold items appear below for Buyback:
+      </div>
+      <div id="buybackList" class="bm-buyback-list"></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- POE 1 LEFT-DOCKED CHARACTER SHEET & SKILL GEMS PANEL (KEY: C or G)    -->
+  <!-- ===================================================================== -->
+  <div id="gemsDrawer" class="poe-dock-panel left-dock-panel hidden">
+    <div class="poe-window-header">
+      <span class="header-ornament">◆</span>
+      <h2>CHARACTER SHEET &amp; GEMS</h2>
+      <button class="window-close" data-close="gemsDrawer">✕</button>
+    </div>
+
+    <div class="poe-gems-body">
+      <div class="poe-sub-header">
+        <span id="charSheetHeaderTitle">EXILE CHARACTER SHEET</span>
+        <span class="craft-hint-inline">Attributes, Defences &amp; Offence</span>
+      </div>
+      <div id="charStatsSummary" class="poe-stats-strip"></div>
+
+      <div class="poe-sub-header" style="margin-top:6px">
+        <span>ACTIVE SKILL LINK SOCKETS (4 SLOTS)</span>
+        <span class="craft-hint-inline">Independent of Equipped Gear</span>
+      </div>
+      <div id="gemLinksBoard" class="gem-links-board"></div>
+
+      <div class="poe-sub-header" style="margin-top:6px">
+        <span>SUPPORT GEM RESERVE</span>
+        <span class="craft-hint-inline">Click Support, then click Active Row</span>
+      </div>
+      <div id="supportReserveGrid" class="support-reserve-grid"></div>
+
+      <div class="poe-sub-header" style="margin-top:4px">
+        <span>ACTIVE ROGUE-LITE RUN BOONS</span>
+        <span class="craft-hint-inline">Persists during current Map Run</span>
+      </div>
+      <div id="runBoonsList" class="run-boons-list"></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- FULLSCREEN RADIAL PASSIVE SKILL TREE (KEY: P)                         -->
+  <!-- ===================================================================== -->
+  <div id="passiveTreeModal" class="poe-window fullscreen-window hidden">
+    <div class="poe-window-header">
+      <div>
+        <h2>ROGUE-LITE SKILL TREE</h2>
+        <span class="header-sub">Drag to Pan • Scroll to Zoom • Left-Click any node to Allocate Path • Right-Click to Refund (Free) • Points Persist Across Runs</span>
+      </div>
+      <div class="tree-header-controls">
+        <div class="passive-points-pill">Unspent Points: <strong id="treePointsCount">2</strong></div>
+        <div class="passive-points-pill regret-pill">Allocated: <strong id="treeAllocatedCount">0</strong> / 45</div>
+        <button id="resetPassiveTreeBtn" class="poe-chisel-btn sm-btn" title="Refund all allocated nodes for free">Reset Tree (Free)</button>
+        <button id="resetTreeViewBtn" class="poe-chisel-btn sm-btn">Center View</button>
+        <button class="window-close" data-close="passiveTreeModal">✕</button>
+      </div>
+    </div>
+    <div class="tree-canvas-container">
+      <canvas id="passiveTreeCanvas"></canvas>
+      <div id="passiveNodeTooltip" class="poe-tooltip hidden"></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- ATLAS MAP DEVICE & PARTY STAGING MODAL (KEY: M)                       -->
+  <!-- ===================================================================== -->
+  <div id="mapDeviceModal" class="poe-window map-window hidden">
+    <div class="poe-window-header">
+      <span class="header-ornament">◆</span>
+      <h2>MAP DEVICE</h2>
+      <button class="window-close" data-close="mapDeviceModal">✕</button>
+    </div>
+    <div id="atlasMapGrid" class="atlas-map-grid"></div>
+    <div class="map-device-actions">
+      <button id="launchMapBtn" class="poe-gold-btn large-btn">ACTIVATE MAP DEVICE</button>
+      <button id="extractHideoutBtn" class="poe-gold-btn danger-btn large-btn hidden">ABANDON RUN &amp; RETURN TO HIDEOUT</button>
+    </div>
+  </div>
+
+  <!-- Global PoE 1 Item & Skill Comparison Tooltip -->
+  <div id="floatingTooltip" class="poe-tooltip hidden"></div>
+
+  <script src="/shared/classesAndSkills.js"></script>
+  <script src="/shared/itemsAndCrafting.js"></script>
+  <script src="/shared/passiveTreeData.js"></script>
+  <script src="/shared/worldAndStats.js"></script>
+  <script src="/shared/gameData.js"></script>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

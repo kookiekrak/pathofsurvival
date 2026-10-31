@@ -1,0 +1,13 @@
+{
+  "name": "exile-survivors",
+  "version": "1.0.0",
+  "description": "Path of Exile 1 styled multiplayer web survivors game with skill gem links, currency crafting, and radial passive skill tree.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "three": "^0.187.0",
+    "ws": "^8.18.0"
+  }
+}

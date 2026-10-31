@@ -1,0 +1,808 @@
+// Shared GameData Module
+(function (exports) {
+
+  // ============================================================================
+  // 4. 5 FLASKS, 6 CURRENCIES, 8 GEAR SLOTS, STAT LABELS, AFFIXES & UNIQUES
+  // ============================================================================
+  const FLASKS = [
+    { id: 'life', slot: 1, key: '1', name: 'Eternal Life Flask', color: '#c92a2a', maxCharges: 15, cost: 5, duration: 0, desc: 'Instantly recovers 45% of Maximum Life.' },
+    { id: 'quicksilver', slot: 2, key: '2', name: 'Quicksilver Flask', color: '#2b8a3e', maxCharges: 20, cost: 10, duration: 4.5, desc: '+40% increased Movement Speed for 4.5 seconds.' },
+    { id: 'granite', slot: 3, key: '3', name: 'Granite Flask', color: '#868e96', maxCharges: 20, cost: 10, duration: 5.0, desc: '+160 to Armour and 20% Physical Damage Reduction for 5 seconds.' },
+    { id: 'diamond', slot: 4, key: '4', name: 'Diamond Flask', color: '#3bc9db', maxCharges: 20, cost: 10, duration: 4.5, desc: '+80% increased Critical Strike Chance & +40% Crit Multiplier for 4.5 seconds.' },
+    { id: 'quartz', slot: 5, key: '5', name: 'Quartz Ward Flask', color: '#7950f2', maxCharges: 20, cost: 10, duration: 4.5, desc: 'Restores 40% Energy Shield & grants +20% Dodge Chance for 4.5 seconds.' },
+    { id: 'silver', slot: 2, key: '2', name: 'Silver Onslaught Flask', color: '#dee2e6', maxCharges: 20, cost: 10, duration: 4.5, desc: 'Grants Onslaught: +22% Skill Cooldown Recovery & +20% Movement Speed for 4.5 seconds.' },
+    { id: 'amethyst', slot: 3, key: '3', name: 'Amethyst Ward Flask', color: '#ae3ec9', maxCharges: 20, cost: 10, duration: 5.0, desc: 'Instantly restores 20% Life & ES and grants +25% All Elemental Resistances for 5 seconds.' }
+  ];
+
+  const CURRENCIES = {
+    transmute: {
+      id: 'transmute',
+      name: 'Orb of Transmutation',
+      short: 'Transmute',
+      color: '#5c9eff',
+      icon: '◈',
+      description: 'Upgrades a Normal (White) gear piece to a Magic (Blue) item with 1-2 affixes.'
+    },
+    alteration: {
+      id: 'alteration',
+      name: 'Orb of Alteration',
+      short: 'Alteration',
+      color: '#4785ff',
+      icon: '❖',
+      description: 'Reforges a Magic (Blue) gear piece with new random modifiers.'
+    },
+    alchemy: {
+      id: 'alchemy',
+      name: 'Orb of Alchemy',
+      short: 'Alchemy',
+      color: '#ffd147',
+      icon: '❂',
+      description: 'Upgrades a Normal (White) gear piece to a Rare (Yellow) item with 3-5 affixes.'
+    },
+    chaos: {
+      id: 'chaos',
+      name: 'Chaos Orb',
+      short: 'Chaos',
+      color: '#e6b800',
+      icon: '◉',
+      description: 'Reforges a Rare (Yellow) gear piece with 4-5 new random modifiers.'
+    },
+    exalted: {
+      id: 'exalted',
+      name: 'Exalted Orb',
+      short: 'Exalted',
+      color: '#ff9933',
+      icon: '✦',
+      description: 'Augments a Rare (Yellow) gear piece with a new high-tier modifier (up to 6 max).'
+    },
+    divine: {
+      id: 'divine',
+      name: 'Divine Orb',
+      short: 'Divine',
+      color: '#fff3bf',
+      icon: '✧',
+      description: 'Randomises the numeric values of all explicit modifiers on a Magic, Rare, or Unique item within their current Affix Tier roll ranges!'
+    },
+    regret: {
+      id: 'regret',
+      name: 'Orb of Scouring',
+      short: 'Scouring',
+      color: '#e0e0e0',
+      icon: '↺',
+      description: 'Removes all modifiers from a Magic or Rare gear piece, returning it to Normal (White) rarity.'
+    }
+  };
+
+  const GEAR_SLOTS = ['weapon', 'helm', 'body', 'gloves', 'boots', 'belt', 'ring', 'amulet'];
+
+  const GEAR_BASES = {
+    weapon: [
+      { id: 'karui_chopper', name: 'Vaal Great-Axe', slot: 'weapon', implicits: { flatDmg: 16, physDmgPct: 16 } },
+      { id: 'harbinger_bow', name: 'Harbinger Bow', slot: 'weapon', implicits: { flatDmg: 14, critChance: 15, projDmgPct: 12 } },
+      { id: 'prophecy_wand', name: 'Prophecy Wand', slot: 'weapon', implicits: { flatDmg: 15, spellDmgPct: 16 } },
+      { id: 'imperial_skean', name: 'Imperial Rune Dagger', slot: 'weapon', implicits: { flatDmg: 14, critMulti: 18 } },
+      { id: 'jewelled_foil', name: 'Jewelled Foil', slot: 'weapon', implicits: { flatDmg: 14, critMulti: 14, cdrPct: 6 } },
+      { id: 'opal_sceptre', name: 'Opal Sceptre', slot: 'weapon', implicits: { flatDmg: 15, eleDmgPct: 16 } }
+    ],
+    helm: [
+      { id: 'royal_burgonet', name: 'Royal Burgonet', slot: 'helm', implicits: { maxLife: 18, armor: 42 } },
+      { id: 'lion_pelt', name: 'Lion Pelt', slot: 'helm', implicits: { maxLife: 18, evasion: 46 } },
+      { id: 'hubris_circlet', name: 'Hubris Circlet', slot: 'helm', implicits: { maxEs: 32 } },
+      { id: 'bone_helmet', name: 'Praetor Crown', slot: 'helm', implicits: { maxLife: 14, armor: 24, maxEs: 18 } }
+    ],
+    body: [
+      { id: 'astral_plate', name: 'Astral Plate', slot: 'body', implicits: { maxLife: 34, armor: 80, allRes: 8 } },
+      { id: 'assassin_garb', name: "Assassin's Garb", slot: 'body', implicits: { maxLife: 28, evasion: 85, moveSpeedPct: 5 } },
+      { id: 'vaal_regalia', name: 'Vaal Regalia', slot: 'body', implicits: { maxLife: 20, maxEs: 52 } },
+      { id: 'triumphant_lamellar', name: 'Triumphant Lamellar', slot: 'body', implicits: { maxLife: 30, armor: 48, evasion: 48 } }
+    ],
+    gloves: [
+      { id: 'spiked_gloves', name: 'Spiked Gloves', slot: 'gloves', implicits: { flatDmg: 5, physDmgPct: 12 } },
+      { id: 'gripped_gloves', name: 'Gripped Gloves', slot: 'gloves', implicits: { flatDmg: 5, projDmgPct: 12 } },
+      { id: 'fingerless_silk', name: 'Fingerless Silk Gloves', slot: 'gloves', implicits: { flatDmg: 5, spellDmgPct: 12 } },
+      { id: 'apothecary_gloves', name: 'Apothecary Gloves', slot: 'gloves', implicits: { flatDmg: 5, eleDmgPct: 12 } }
+    ],
+    boots: [
+      { id: 'titan_greaves', name: 'Titan Greaves', slot: 'boots', implicits: { maxLife: 16, armor: 30, moveSpeedPct: 12 } },
+      { id: 'slink_boots', name: 'Slink Boots', slot: 'boots', implicits: { maxLife: 14, evasion: 36, moveSpeedPct: 14 } },
+      { id: 'sorcerer_boots', name: 'Sorcerer Boots', slot: 'boots', implicits: { maxEs: 24, moveSpeedPct: 12 } },
+      { id: 'two_toned_boots', name: 'Two-Toned Boots', slot: 'boots', implicits: { allRes: 8, moveSpeedPct: 12 } }
+    ],
+    belt: [
+      { id: 'stygian_vise', name: 'Stygian Vise', slot: 'belt', implicits: { maxLife: 32 } },
+      { id: 'crystal_belt', name: 'Crystal Belt', slot: 'belt', implicits: { maxEs: 32 } },
+      { id: 'vanguard_belt', name: 'Vanguard Belt', slot: 'belt', implicits: { maxLife: 18, armor: 34, evasion: 34 } }
+    ],
+    ring: [
+      { id: 'vermilion_ring', name: 'Vermilion Ring', slot: 'ring', implicits: { maxLife: 24 } },
+      { id: 'opal_ring', name: 'Opal Ring', slot: 'ring', implicits: { flatDmg: 5, eleDmgPct: 14 } },
+      { id: 'two_stone_ring', name: 'Prismatic Ring', slot: 'ring', implicits: { allRes: 10 } },
+      { id: 'steel_ring', name: 'Steel Ring', slot: 'ring', implicits: { flatDmg: 6, physDmgPct: 14 } }
+    ],
+    amulet: [
+      { id: 'onyx_amulet', name: 'Onyx Amulet', slot: 'amulet', implicits: { str: 12, dex: 12, int: 12 } },
+      { id: 'marble_amulet', name: 'Marble Amulet', slot: 'amulet', implicits: { maxLife: 20, lifeRegen: 4 } },
+      { id: 'jade_amulet', name: 'Citrine Talisman', slot: 'amulet', implicits: { flatDmg: 6, cdrPct: 6 } }
+    ]
+  };
+
+  const STAT_LABELS = {
+    flatDmg: 'Base Skill & Weapon Damage',
+    maxLife: 'Maximum Life',
+    maxLifePct: '% Increased Maximum Life',
+    maxEs: 'Maximum Energy Shield',
+    armor: 'Armour',
+    evasion: 'Evasion Rating',
+    allRes: '% All Elemental Resistances',
+    moveSpeedPct: '% Movement Speed',
+    physDmgPct: '% Physical Damage',
+    eleDmgPct: '% Elemental Damage',
+    spellDmgPct: '% Spell Damage',
+    projDmgPct: '% Projectile Damage',
+    aoeDmgPct: '% Area Damage',
+    areaPct: '% Area of Effect Radius',
+    cdrPct: '% Cooldown Recovery',
+    critChance: '% Critical Strike Chance',
+    critMulti: '% Critical Strike Multiplier',
+    lifeOnHit: 'Life gained on Hit',
+    lifeOnKill: 'Life gained on Kill',
+    lifeRegen: 'Life Regen / sec',
+    extraProj: 'Additional Projectiles',
+    extraChain: 'Additional Chains',
+    str: 'Strength',
+    dex: 'Dexterity',
+    int: 'Intelligence',
+    globalDmgMulti: '% More Global Damage',
+    startingGold: 'Starting Run Gold',
+    headhunter: 'Headhunter Soul Stealer (Steals Rare Mods)',
+    mageblood: 'Mageblood Eternal Utility Flasks (+25% Flask Effect)',
+    allGemLevels: 'to Level of All Active Skill Gems',
+    supportLevelBonus: 'to Level of All Support Gems',
+    starforgeShock: 'Physical Hits Shock & Chill Enemies',
+    voidBattery: 'Power Charge Mastery (+18% Base Crit & +60% Spell Dmg)',
+    windripperCull: 'Elemental Hits Chill, Shock & Cull at 15% Life',
+    kaomsFireBonus: 'Molten Caldera Aura (Burns Nearby Enemies for 18% of Max Life/s)',
+    shavronneWard: 'Uninterruptible Energy Shield Recharge (+12% ES/sec)',
+    atziriInstantLeech: 'Vaal Pact (Critical Strikes Instantly Leech 3% Life & ES)',
+    crownOfEyes: 'Transfiguration of Soul (150% of Spell Dmg applies to Attacks)',
+    sevenLeagueDash: 'Mirage Stride (-45% Dash Cooldown & Immune to Chill)',
+    lorisLucky: 'Prismatic Ward (-25% Enemy Damage Taken on Low/Mid Life)',
+    vaalSoulGainPct: '% Increased Vaal Soul Gain',
+    goldGainPct: '% Increased Gold & Loot Rarity',
+    dodgeChance: '% Chance to Dodge Attacks & Spells',
+    esMoreMulti: '% MORE Maximum Energy Shield',
+    mjolnerProc: 'Thunderous Strike (Hits Trigger Chaining Lightning Bolts)',
+    cospriProc: 'Glacial Malice (Critical Strikes Trigger Frost Nova)',
+    arakaaliVenom: 'Queen\'s Venom (Critical Strikes Wither Enemies for +20% Damage Taken)',
+    inpulsaExplode: 'Shocked Enemies Explode for 22% Max Life as Lightning',
+    brassDome: 'Juggernaut Fortress (20% Less Damage Taken from Hits & Slams)',
+    brotherhoodChill: '100% of Lightning Hits Also Chill & Freeze Enemies'
+  };
+
+  const AFFIX_POOL = [
+    { id: 'flat_dmg', label: '+{val} to Base Skill & Weapon Damage', stat: 'flatDmg', min: 6, max: 24 },
+    { id: 'life', label: '+{val} to Maximum Life', stat: 'maxLife', min: 18, max: 58 },
+    { id: 'life_pct', label: '{val}% increased Maximum Life', stat: 'maxLifePct', min: 5, max: 16 },
+    { id: 'es', label: '+{val} to Maximum Energy Shield', stat: 'maxEs', min: 15, max: 48 },
+    { id: 'armor', label: '+{val} to Armour', stat: 'armor', min: 28, max: 96 },
+    { id: 'evasion', label: '+{val} to Evasion Rating', stat: 'evasion', min: 28, max: 96 },
+    { id: 'phys_dmg', label: '{val}% increased Physical Damage', stat: 'physDmgPct', min: 14, max: 36 },
+    { id: 'ele_dmg', label: '{val}% increased Elemental Damage', stat: 'eleDmgPct', min: 14, max: 36 },
+    { id: 'spell_dmg', label: '{val}% increased Spell Damage', stat: 'spellDmgPct', min: 14, max: 36 },
+    { id: 'proj_dmg', label: '{val}% increased Projectile Damage', stat: 'projDmgPct', min: 14, max: 34 },
+    { id: 'aoe_dmg', label: '{val}% increased Area Damage', stat: 'aoeDmgPct', min: 14, max: 34 },
+    { id: 'area_rad', label: '{val}% increased Area of Effect Radius', stat: 'areaPct', min: 6, max: 18 },
+    { id: 'atk_spd', label: '{val}% increased Skill Cooldown Recovery', stat: 'cdrPct', min: 5, max: 14 },
+    { id: 'crit_chance', label: '+{val}% to Critical Strike Chance', stat: 'critChance', min: 12, max: 30 },
+    { id: 'crit_multi', label: '+{val}% to Global Critical Strike Multiplier', stat: 'critMulti', min: 12, max: 28 },
+    { id: 'move_spd', label: '{val}% increased Movement Speed', stat: 'moveSpeedPct', min: 7, max: 18 },
+    { id: 'all_res', label: '+{val}% to all Elemental Resistances', stat: 'allRes', min: 7, max: 18 },
+    { id: 'life_regen', label: 'Regenerate {val} Life per second', stat: 'lifeRegen', min: 3, max: 10 },
+    { id: 'life_on_hit', label: '+{val} Life gained for each Enemy Hit', stat: 'lifeOnHit', min: 2, max: 5 },
+    { id: 'str', label: '+{val} to Strength', stat: 'str', min: 10, max: 28 },
+    { id: 'dex', label: '+{val} to Dexterity', stat: 'dex', min: 10, max: 28 },
+    { id: 'int', label: '+{val} to Intelligence', stat: 'int', min: 10, max: 28 }
+  ];
+
+  const UNIQUE_TEMPLATES = [
+    // =======================================================================
+    // TIER 0 CHASE UNIQUES (dropWeight: 0.25 - 0.35)
+    // =======================================================================
+    {
+      name: 'Mageblood',
+      baseName: 'Heavy Belt',
+      slot: 'belt',
+      rarity: 'unique',
+      dropWeight: 0.22,
+      implicits: { str: 25 },
+      affixes: [
+        { stat: 'mageblood', val: 1, binary: true, text: 'Equipped Utility Flasks in your Belt are permanently active at 100% uptime with +25% increased Flask Effect' },
+        { stat: 'maxLife', min: 35, max: 65, val: 50, text: '+{val} to Maximum Life' },
+        { stat: 'allRes', min: 14, max: 25, val: 20, text: '+{val}% to all Elemental Resistances' },
+        { stat: 'moveSpeedPct', min: 10, max: 20, val: 15, text: '{val}% increased Movement Speed' },
+        { stat: 'dex', min: 20, max: 40, val: 30, text: '+{val} to Dexterity' }
+      ],
+      flavor: '"Rivers of power course through your veins."'
+    },
+    {
+      name: 'Ashes of the Stars',
+      baseName: 'Onyx Amulet',
+      slot: 'amulet',
+      rarity: 'unique',
+      dropWeight: 0.25,
+      implicits: { str: 16, dex: 16, int: 16 },
+      affixes: [
+        { stat: 'allGemLevels', val: 1, binary: true, text: '+1 to Level of all Active Skill Gems' },
+        { stat: 'supportLevelBonus', val: 1, binary: true, text: '+1 to Level of all Linked Support Gems (+20% Gem Quality)' },
+        { stat: 'cdrPct', min: 14, max: 26, val: 20, text: '{val}% increased Skill Cooldown Recovery' },
+        { stat: 'vaalSoulGainPct', min: 25, max: 50, val: 40, noIlvlScale: true, text: '{val}% increased Vaal Soul Gain & Reservation Efficiency' },
+        { stat: 'allRes', min: 10, max: 20, val: 15, text: '+{val}% to all Elemental Resistances' }
+      ],
+      flavor: '"What fell from the heavens forever altered the realm."'
+    },
+    {
+      name: 'Headhunter',
+      baseName: 'Leather Belt',
+      slot: 'belt',
+      rarity: 'unique',
+      dropWeight: 0.24,
+      implicits: { maxLife: 40 },
+      affixes: [
+        { stat: 'headhunter', val: 1, binary: true, text: 'Killing a Rare monster steals its Modifiers for 20s (Up to 8 Stacks: +10% MORE Damage, +8% Speed, +8% AoE & +35 Life/Ward per stack)' },
+        { stat: 'str', min: 20, max: 38, val: 28, text: '+{val} to Strength' },
+        { stat: 'dex', min: 20, max: 38, val: 28, text: '+{val} to Dexterity' },
+        { stat: 'maxLife', min: 40, max: 70, val: 55, text: '+{val} to Maximum Life' },
+        { stat: 'moveSpeedPct', min: 8, max: 16, val: 12, text: '{val}% increased Movement Speed' }
+      ],
+      flavor: '"A man\'s soul rules from a cavern of bone, learn to judge the housing and the prize is yours."'
+    },
+    {
+      name: 'Starforge',
+      baseName: 'Infernal Sword',
+      slot: 'weapon',
+      rarity: 'unique',
+      dropWeight: 0.30,
+      implicits: { flatDmg: 22, physDmgPct: 24 },
+      affixes: [
+        { stat: 'starforgeShock', val: 1, binary: true, text: 'Your Physical Damage can Shock & Chill Enemies (Shocked enemies take +20% increased Damage)' },
+        { stat: 'flatDmg', min: 14, max: 24, val: 18, text: '+{val} to Base Physical Weapon Damage' },
+        { stat: 'physDmgPct', min: 35, max: 60, val: 45, text: '{val}% increased Physical Damage' },
+        { stat: 'areaPct', min: 20, max: 35, val: 30, noIlvlScale: true, text: '{val}% increased Area of Effect Radius' },
+        { stat: 'maxLife', min: 40, max: 70, val: 55, text: '+{val} to Maximum Life' }
+      ],
+      flavor: '"The end is written in the stars."'
+    },
+    {
+      name: 'Void Battery',
+      baseName: 'Prophecy Wand',
+      slot: 'weapon',
+      rarity: 'unique',
+      dropWeight: 0.32,
+      implicits: { flatDmg: 18, spellDmgPct: 24 },
+      affixes: [
+        { stat: 'voidBattery', val: 1, binary: true, text: 'Power Charge Mastery: Grants 6 Maximum Power Charges (+18% Base Crit Chance, +35% Crit Multi & +65% Spell Damage)' },
+        { stat: 'extraProj', val: 1, binary: true, text: 'Skills fire +1 Additional Projectile' },
+        { stat: 'flatDmg', min: 10, max: 18, val: 14, text: '+{val} to Base Spell & Skill Damage' },
+        { stat: 'cdrPct', min: 12, max: 22, val: 16, text: '{val}% increased Cast & Cooldown Speed' },
+        { stat: 'maxEs', min: 35, max: 65, val: 48, text: '+{val} to Maximum Energy Shield' }
+      ],
+      flavor: '"Nothingness channeled into a single point of devastation."'
+    },
+    {
+      name: 'Windripper',
+      baseName: 'Harbinger Bow',
+      slot: 'weapon',
+      rarity: 'unique',
+      dropWeight: 0.32,
+      implicits: { flatDmg: 17, projDmgPct: 22 },
+      affixes: [
+        { stat: 'extraProj', val: 2, binary: true, text: 'Skills fire +2 Additional Projectiles' },
+        { stat: 'windripperCull', val: 1, binary: true, text: 'Hits Chill & Shock Enemies • Culls Enemies below 15% Life' },
+        { stat: 'flatDmg', min: 10, max: 18, val: 14, text: '+{val} to Base Elemental & Bow Damage' },
+        { stat: 'critChance', min: 25, max: 45, val: 35, text: '+{val}% to Critical Strike Chance' },
+        { stat: 'goldGainPct', min: 15, max: 35, val: 25, noIlvlScale: true, text: '{val}% increased Gold & Loot Quantity from Frozen/Shocked Enemies' }
+      ],
+      flavor: '"It pierces the gale before the string even sings."'
+    },
+    {
+      name: "Kaom's Heart",
+      baseName: 'Glorious Plate',
+      slot: 'body',
+      rarity: 'unique',
+      dropWeight: 0.32,
+      implicits: { armor: 80 },
+      affixes: [
+        { stat: 'kaomsFireBonus', val: 1, binary: true, text: 'Molten Caldera: Pulses Righteous Fire Damage equal to 18% of your Maximum Life per second to nearby enemies' },
+        { stat: 'maxLife', min: 125, max: 195, val: 160, text: '+{val} to Maximum Life' },
+        { stat: 'maxLifePct', min: 15, max: 25, val: 20, noIlvlScale: true, text: '{val}% increased Maximum Life' },
+        { stat: 'eleDmgPct', min: 30, max: 50, val: 40, text: '{val}% increased Fire & Elemental Damage' },
+        { stat: 'lifeRegen', min: 8, max: 16, val: 12, text: 'Regenerate {val} Life per second' }
+      ],
+      flavor: '"The warrior needs no trinkets when his blood burns like the caldera."'
+    },
+    {
+      name: "Shavronne's Wrappings",
+      baseName: 'Occultist Vestment',
+      slot: 'body',
+      rarity: 'unique',
+      dropWeight: 0.32,
+      implicits: { maxEs: 65 },
+      affixes: [
+        { stat: 'shavronneWard', val: 1, binary: true, text: 'Aether Ward: Energy Shield Recharge is NEVER interrupted by damage (+12% of Max ES regenerated per second) & Reflects Lightning Nova on Hit' },
+        { stat: 'maxEs', min: 70, max: 120, val: 95, text: '+{val} to Maximum Energy Shield' },
+        { stat: 'esMoreMulti', min: 15, max: 25, val: 20, noIlvlScale: true, text: '{val}% MORE Maximum Energy Shield' },
+        { stat: 'spellDmgPct', min: 24, max: 42, val: 32, text: '{val}% increased Spell & Lightning Damage' },
+        { stat: 'allRes', min: 12, max: 22, val: 16, text: '+{val}% to all Elemental Resistances' }
+      ],
+      flavor: '"Shavronne of Umbra wove lightning and aether into an impenetrable ward."'
+    },
+    {
+      name: "Atziri's Acuity",
+      baseName: 'Vaal Gauntlets',
+      slot: 'gloves',
+      rarity: 'unique',
+      dropWeight: 0.35,
+      implicits: { armor: 45 },
+      affixes: [
+        { stat: 'atziriInstantLeech', val: 1, binary: true, text: 'Vaal Pact: Critical Strikes Instantly Leech 3% of Maximum Life & Energy Shield (bypasses Leech cap)' },
+        { stat: 'critChance', min: 24, max: 42, val: 32, text: '+{val}% to Critical Strike Chance' },
+        { stat: 'critMulti', min: 18, max: 34, val: 25, text: '+{val}% to Critical Strike Multiplier' },
+        { stat: 'cdrPct', min: 8, max: 16, val: 12, text: '{val}% increased Attack & Cast Speed' },
+        { stat: 'maxLife', min: 35, max: 60, val: 45, text: '+{val} to Maximum Life' }
+      ],
+      flavor: '"A hand guided by the Queen never misses the heart."'
+    },
+
+    // =======================================================================
+    // TIER 1 & TIER 2 BUILD-DEFINING UNIQUES (dropWeight: 0.55 - 1.35)
+    // =======================================================================
+    {
+      name: 'Mjölner',
+      baseName: 'Vaal Great-Axe',
+      slot: 'weapon',
+      rarity: 'unique',
+      dropWeight: 0.45,
+      implicits: { flatDmg: 19, eleDmgPct: 20 },
+      affixes: [
+        { stat: 'mjolnerProc', val: 1, binary: true, text: 'Thunderous Strike: Hits Trigger Chaining Lightning Bolts to 3 nearby enemies (0.38s cooldown)' },
+        { stat: 'extraChain', val: 1, binary: true, text: 'Skills Chain +1 Additional Time' },
+        { stat: 'flatDmg', min: 12, max: 22, val: 16, text: '+{val} to Base Lightning & Weapon Damage' },
+        { stat: 'eleDmgPct', min: 32, max: 55, val: 42, text: '{val}% increased Lightning & Elemental Damage' },
+        { stat: 'str', min: 25, max: 45, val: 35, text: '+{val} to Strength' }
+      ],
+      flavor: '"Look the storm in the eye and you will have its respect."'
+    },
+    {
+      name: "Cospri's Malice",
+      baseName: 'Jewelled Foil',
+      slot: 'weapon',
+      rarity: 'unique',
+      dropWeight: 0.45,
+      implicits: { flatDmg: 17, critMulti: 22 },
+      affixes: [
+        { stat: 'cospriProc', val: 1, binary: true, text: 'Glacial Malice: Critical Strikes Trigger a Chilling Frost Nova Burst on Target (0.42s cooldown)' },
+        { stat: 'flatDmg', min: 11, max: 19, val: 15, text: '+{val} to Base Cold & Spell Damage' },
+        { stat: 'spellDmgPct', min: 28, max: 48, val: 38, text: '{val}% increased Cold & Spell Damage' },
+        { stat: 'critChance', min: 24, max: 40, val: 32, text: '+{val}% to Critical Strike Chance' },
+        { stat: 'cdrPct', min: 10, max: 20, val: 15, text: '{val}% increased Attack & Cooldown Speed' }
+      ],
+      flavor: '"Browse the cold markets of Eternal Frost and find your demise."'
+    },
+    {
+      name: "Arakaali's Fang",
+      baseName: 'Imperial Rune Dagger',
+      slot: 'weapon',
+      rarity: 'unique',
+      dropWeight: 0.55,
+      implicits: { flatDmg: 16, critMulti: 20 },
+      affixes: [
+        { stat: 'arakaaliVenom', val: 1, binary: true, text: "Queen's Venom: Critical Strikes Wither & Shock Enemies for 4s (+20% increased Damage Taken)" },
+        { stat: 'flatDmg', min: 10, max: 18, val: 14, text: '+{val} to Base Dagger & Skill Damage' },
+        { stat: 'critMulti', min: 25, max: 48, val: 36, text: '+{val}% to Global Critical Strike Multiplier' },
+        { stat: 'cdrPct', min: 10, max: 18, val: 14, text: '{val}% increased Attack & Cooldown Speed' },
+        { stat: 'lifeOnHit', min: 3, max: 7, val: 5, text: '+{val} Life gained for each Enemy Hit' }
+      ],
+      flavor: '"All children must eat."'
+    },
+    {
+      name: 'Quill Rain',
+      baseName: 'Harbinger Bow',
+      slot: 'weapon',
+      rarity: 'unique',
+      dropWeight: 1.15,
+      implicits: { flatDmg: 11, projDmgPct: 14 },
+      affixes: [
+        { stat: 'extraProj', val: 2, binary: true, text: 'Skills fire +2 Additional Projectiles' },
+        { stat: 'cdrPct', min: 35, max: 55, val: 45, noIlvlScale: true, text: '{val}% increased Attack & Skill Cooldown Recovery' },
+        { stat: 'projDmgPct', min: 18, max: 32, val: 25, text: '{val}% increased Projectile Damage' },
+        { stat: 'lifeOnHit', min: 3, max: 6, val: 4, text: '+{val} Life gained for each Enemy Hit' },
+        { stat: 'dex', min: 18, max: 34, val: 26, text: '+{val} to Dexterity' }
+      ],
+      flavor: '"Hundreds of feathered needles blot out the sun."'
+    },
+    {
+      name: "The Poet's Pen",
+      baseName: 'Prophecy Wand',
+      slot: 'weapon',
+      rarity: 'unique',
+      dropWeight: 0.85,
+      implicits: { flatDmg: 15, spellDmgPct: 18 },
+      affixes: [
+        { stat: 'allGemLevels', val: 1, binary: true, text: '+1 to Level of all Active Skill Gems' },
+        { stat: 'cdrPct', min: 14, max: 24, val: 19, text: '{val}% increased Cast & Cooldown Speed' },
+        { stat: 'spellDmgPct', min: 22, max: 38, val: 30, text: '{val}% increased Spell Damage' },
+        { stat: 'flatDmg', min: 9, max: 16, val: 12, text: '+{val} to Base Spell & Skill Damage' },
+        { stat: 'maxEs', min: 25, max: 45, val: 35, text: '+{val} to Maximum Energy Shield' }
+      ],
+      flavor: '"Inscribed in blood, every verse is an execution."'
+    },
+    {
+      name: "Inpulsa's Broken Heart",
+      baseName: "Assassin's Garb",
+      slot: 'body',
+      rarity: 'unique',
+      dropWeight: 0.55,
+      implicits: { evasion: 80, moveSpeedPct: 5 },
+      affixes: [
+        { stat: 'inpulsaExplode', val: 1, binary: true, text: 'Shocked Enemies You Kill Explode, dealing 22% of their Maximum Life as Lightning Area Damage' },
+        { stat: 'maxLife', min: 50, max: 85, val: 68, text: '+{val} to Maximum Life' },
+        { stat: 'eleDmgPct', min: 28, max: 48, val: 38, text: '{val}% increased Elemental & Shock Damage' },
+        { stat: 'moveSpeedPct', min: 7, max: 14, val: 10, text: '{val}% increased Movement Speed' },
+        { stat: 'evasion', min: 45, max: 80, val: 60, text: '+{val} to Evasion Rating' }
+      ],
+      flavor: '"Calmness is a lie told by those who cannot feel the storm."'
+    },
+    {
+      name: 'Carcass Jack',
+      baseName: 'Triumphant Lamellar',
+      slot: 'body',
+      rarity: 'unique',
+      dropWeight: 0.85,
+      implicits: { armor: 48, evasion: 48 },
+      affixes: [
+        { stat: 'areaPct', min: 25, max: 45, val: 35, noIlvlScale: true, text: '{val}% increased Area of Effect Radius' },
+        { stat: 'aoeDmgPct', min: 28, max: 50, val: 40, text: '{val}% increased Area Damage' },
+        { stat: 'maxLife', min: 45, max: 75, val: 60, text: '+{val} to Maximum Life' },
+        { stat: 'allRes', min: 9, max: 16, val: 12, text: '+{val}% to all Elemental Resistances' },
+        { stat: 'evasion', min: 40, max: 70, val: 55, text: '+{val} to Evasion Rating' }
+      ],
+      flavor: '"oso-warm and slick with crimson, yet light as a whisper."'
+    },
+    {
+      name: 'The Brass Dome',
+      baseName: 'Astral Plate',
+      slot: 'body',
+      rarity: 'unique',
+      dropWeight: 0.65,
+      implicits: { armor: 95, allRes: 8 },
+      affixes: [
+        { stat: 'brassDome', val: 1, binary: true, text: 'Juggernaut Fortress: Take 20% Less Damage from All Hits & Boss Slams' },
+        { stat: 'armor', min: 180, max: 310, val: 245, text: '+{val} to Armour' },
+        { stat: 'allRes', min: 14, max: 22, val: 18, text: '+{val}% to all Elemental Resistances' },
+        { stat: 'maxLife', min: 40, max: 70, val: 55, text: '+{val} to Maximum Life' }
+      ],
+      flavor: '"The turtle hides within its shell, untouched by the falling sky."'
+    },
+    {
+      name: 'Crown of Eyes',
+      baseName: 'Hubris Circlet',
+      slot: 'helm',
+      rarity: 'unique',
+      dropWeight: 0.60,
+      implicits: { maxLife: 25, maxEs: 35 },
+      affixes: [
+        { stat: 'crownOfEyes', val: 1, binary: true, text: 'Transfiguration of Soul: Increases to Spell Damage ALSO apply to Physical & Attack Damage at 150% of their value' },
+        { stat: 'spellDmgPct', min: 20, max: 36, val: 28, text: '{val}% increased Spell Damage' },
+        { stat: 'maxEs', min: 40, max: 70, val: 55, text: '+{val} to Maximum Energy Shield' },
+        { stat: 'lifeOnHit', min: 3, max: 7, val: 5, text: '+{val} Life & Energy Shield gained for each Enemy Hit' }
+      ],
+      flavor: '"Gazes inward to see the threads of slaughter."'
+    },
+    {
+      name: 'Goldrim',
+      baseName: 'Lion Pelt',
+      slot: 'helm',
+      rarity: 'unique',
+      dropWeight: 1.35,
+      implicits: { evasion: 42 },
+      affixes: [
+        { stat: 'allRes', min: 28, max: 40, val: 35, noIlvlScale: true, text: '+{val}% to all Elemental Resistances' },
+        { stat: 'moveSpeedPct', min: 8, max: 15, val: 12, text: '{val}% increased Movement Speed' },
+        { stat: 'evasion', min: 35, max: 65, val: 50, text: '+{val} to Evasion Rating' },
+        { stat: 'maxLife', min: 25, max: 45, val: 35, text: '+{val} to Maximum Life' }
+      ],
+      flavor: '"No metal rings truer than pure gold."'
+    },
+    {
+      name: 'Abyssus',
+      baseName: 'Royal Burgonet',
+      slot: 'helm',
+      rarity: 'unique',
+      dropWeight: 0.75,
+      implicits: { armor: 55 },
+      affixes: [
+        { stat: 'flatDmg', min: 16, max: 28, val: 22, text: '+{val} to Base Physical & Weapon Damage' },
+        { stat: 'critMulti', min: 50, max: 85, val: 68, noIlvlScale: true, text: '+{val}% to Global Critical Strike Multiplier' },
+        { stat: 'armor', min: 50, max: 90, val: 70, text: '+{val} to Armour' },
+        { stat: 'str', min: 20, max: 35, val: 28, text: '+{val} to Strength' }
+      ],
+      flavor: '"When you peer into the abyss, only violence peers back."'
+    },
+    {
+      name: "Devoto's Devotion",
+      baseName: 'Praetor Crown',
+      slot: 'helm',
+      rarity: 'unique',
+      dropWeight: 0.80,
+      implicits: { armor: 30, evasion: 30 },
+      affixes: [
+        { stat: 'moveSpeedPct', min: 20, max: 30, val: 25, noIlvlScale: true, text: '{val}% increased Movement Speed' },
+        { stat: 'cdrPct', min: 14, max: 22, val: 18, text: '{val}% increased Attack & Cooldown Speed' },
+        { stat: 'dex', min: 35, max: 60, val: 48, text: '+{val} to Dexterity' },
+        { stat: 'armor', min: 45, max: 80, val: 62, text: '+{val} to Armour' },
+        { stat: 'maxLife', min: 30, max: 50, val: 40, text: '+{val} to Maximum Life' }
+      ],
+      flavor: '"Swift as mercury, relentless as the tide."'
+    },
+    {
+      name: 'Hands of the High Templar',
+      baseName: 'Apothecary Gloves',
+      slot: 'gloves',
+      rarity: 'unique',
+      dropWeight: 0.55,
+      implicits: { flatDmg: 6, eleDmgPct: 14 },
+      affixes: [
+        { stat: 'allGemLevels', val: 1, binary: true, text: '+1 to Level of all Active Skill Gems' },
+        { stat: 'cdrPct', min: 10, max: 18, val: 14, text: '{val}% increased Attack & Cast Speed' },
+        { stat: 'eleDmgPct', min: 20, max: 35, val: 28, text: '{val}% increased Elemental Damage' },
+        { stat: 'maxLife', min: 40, max: 70, val: 55, text: '+{val} to Maximum Life' },
+        { stat: 'allRes', min: 10, max: 18, val: 14, text: '+{val}% to all Elemental Resistances' }
+      ],
+      flavor: '"Sanctified in blood and corruption, yet unbroken."'
+    },
+    {
+      name: 'Shadows and Dust',
+      baseName: 'Gripped Gloves',
+      slot: 'gloves',
+      rarity: 'unique',
+      dropWeight: 0.90,
+      implicits: { flatDmg: 5, projDmgPct: 12 },
+      affixes: [
+        { stat: 'critMulti', min: 22, max: 38, val: 30, text: '+{val}% to Global Critical Strike Multiplier' },
+        { stat: 'critChance', min: 20, max: 35, val: 28, text: '+{val}% to Critical Strike Chance' },
+        { stat: 'moveSpeedPct', min: 8, max: 15, val: 12, text: '{val}% increased Movement Speed' },
+        { stat: 'lifeOnHit', min: 3, max: 6, val: 4, text: '+{val} Life gained for each Enemy Hit' },
+        { stat: 'evasion', min: 35, max: 65, val: 50, text: '+{val} to Evasion Rating' }
+      ],
+      flavor: '"Out of the light, only blades remain."'
+    },
+    {
+      name: 'Facebreaker',
+      baseName: 'Spiked Gloves',
+      slot: 'gloves',
+      rarity: 'unique',
+      dropWeight: 1.15,
+      implicits: { flatDmg: 6, physDmgPct: 14 },
+      affixes: [
+        { stat: 'physDmgPct', min: 38, max: 65, val: 52, text: '{val}% increased Physical Damage' },
+        { stat: 'critMulti', min: 30, max: 55, val: 42, text: '+{val}% to Global Critical Strike Multiplier' },
+        { stat: 'flatDmg', min: 10, max: 18, val: 14, text: '+{val} to Base Physical & Skill Damage' },
+        { stat: 'maxLife', min: 25, max: 45, val: 35, text: '+{val} to Maximum Life' }
+      ],
+      flavor: '"Why use a sword when knuckles shatter bone just as well?"'
+    },
+    {
+      name: 'Seven-League Step',
+      baseName: 'Rawhide Boots',
+      slot: 'boots',
+      rarity: 'unique',
+      dropWeight: 0.45,
+      implicits: { evasion: 40 },
+      affixes: [
+        { stat: 'sevenLeagueDash', val: 1, binary: true, text: 'Mirage Stride: -45% Flame Dash Cooldown, Immune to Chill & Leaves a Shocking Spark Wake when Dashing' },
+        { stat: 'moveSpeedPct', min: 35, max: 50, val: 42, noIlvlScale: true, text: '{val}% increased Movement Speed' },
+        { stat: 'dodgeChance', min: 10, max: 18, val: 14, noIlvlScale: true, text: '+{val}% Chance to Dodge Attacks & Spells' },
+        { stat: 'maxLife', min: 25, max: 48, val: 35, text: '+{val} to Maximum Life' }
+      ],
+      flavor: '"Cross a continent in a single breath."'
+    },
+    {
+      name: 'Skyforth',
+      baseName: 'Sorcerer Boots',
+      slot: 'boots',
+      rarity: 'unique',
+      dropWeight: 0.48,
+      implicits: { maxEs: 28, moveSpeedPct: 12 },
+      affixes: [
+        { stat: 'moveSpeedPct', min: 24, max: 35, val: 30, noIlvlScale: true, text: '{val}% increased Movement Speed' },
+        { stat: 'vaalSoulGainPct', min: 25, max: 45, val: 35, noIlvlScale: true, text: '{val}% increased Vaal Soul Gain' },
+        { stat: 'critChance', min: 22, max: 38, val: 30, text: '+{val}% to Critical Strike Chance' },
+        { stat: 'maxEs', min: 50, max: 85, val: 68, text: '+{val} to Maximum Energy Shield' },
+        { stat: 'cdrPct', min: 10, max: 18, val: 14, text: '{val}% increased Skill Cooldown Recovery' }
+      ],
+      flavor: '"Walk among the stars and never look down."'
+    },
+    {
+      name: "Death's Door",
+      baseName: 'Titan Greaves',
+      slot: 'boots',
+      rarity: 'unique',
+      dropWeight: 0.75,
+      implicits: { maxLife: 18, armor: 36, moveSpeedPct: 12 },
+      affixes: [
+        { stat: 'moveSpeedPct', min: 22, max: 32, val: 27, noIlvlScale: true, text: '{val}% increased Movement Speed' },
+        { stat: 'str', min: 28, max: 48, val: 38, text: '+{val} to Strength' },
+        { stat: 'maxLife', min: 50, max: 80, val: 65, text: '+{val} to Maximum Life' },
+        { stat: 'armor', min: 65, max: 115, val: 90, text: '+{val} to Armour' },
+        { stat: 'allRes', min: 12, max: 20, val: 16, text: '+{val}% to all Elemental Resistances' }
+      ],
+      flavor: '"Knock, and the grave shall answer."'
+    },
+    {
+      name: 'Wanderlust',
+      baseName: 'Sorcerer Boots',
+      slot: 'boots',
+      rarity: 'unique',
+      dropWeight: 1.35,
+      implicits: { maxEs: 24, moveSpeedPct: 12 },
+      affixes: [
+        { stat: 'sevenLeagueDash', val: 1, binary: true, text: 'Cannot be Chilled • -45% Flame Dash Cooldown' },
+        { stat: 'moveSpeedPct', min: 18, max: 28, val: 23, noIlvlScale: true, text: '{val}% increased Movement Speed' },
+        { stat: 'maxEs', min: 30, max: 55, val: 42, text: '+{val} to Maximum Energy Shield' },
+        { stat: 'int', min: 14, max: 26, val: 20, text: '+{val} to Intelligence' }
+      ],
+      flavor: '"All who wander are not lost."'
+    },
+    {
+      name: "Ryslatha's Coil",
+      baseName: 'Stygian Vise',
+      slot: 'belt',
+      rarity: 'unique',
+      dropWeight: 0.75,
+      implicits: { maxLife: 34 },
+      affixes: [
+        { stat: 'flatDmg', min: 10, max: 20, val: 15, text: '+{val} to Base Physical & Skill Damage' },
+        { stat: 'physDmgPct', min: 28, max: 48, val: 38, text: '{val}% increased Physical Damage' },
+        { stat: 'maxLife', min: 45, max: 80, val: 62, text: '+{val} to Maximum Life' },
+        { stat: 'lifeRegen', min: 6, max: 12, val: 9, text: 'Regenerate {val} Life per second' },
+        { stat: 'str', min: 20, max: 35, val: 28, text: '+{val} to Strength' }
+      ],
+      flavor: '"Tighter and tighter the broodmother squeezes."'
+    },
+    {
+      name: "Lori's Lantern",
+      baseName: 'Prismatic Ring',
+      slot: 'ring',
+      rarity: 'unique',
+      dropWeight: 0.90,
+      implicits: { allRes: 10 },
+      affixes: [
+        { stat: 'lorisLucky', val: 1, binary: true, text: 'Prismatic Ward: Enemies hitting you are Unlucky (-25% Damage Taken while below 65% Life & +20% Low-Life Speed)' },
+        { stat: 'allRes', min: 14, max: 24, val: 20, text: '+{val}% to all Elemental Resistances' },
+        { stat: 'eleDmgPct', min: 24, max: 40, val: 32, text: '{val}% increased Elemental Damage' },
+        { stat: 'maxLife', min: 28, max: 48, val: 35, text: '+{val} to Maximum Life' }
+      ],
+      flavor: '"A steady flame against the encroaching abyss."'
+    },
+    {
+      name: 'Call of the Brotherhood',
+      baseName: 'Prismatic Ring',
+      slot: 'ring',
+      rarity: 'unique',
+      dropWeight: 0.65,
+      implicits: { allRes: 10 },
+      affixes: [
+        { stat: 'brotherhoodChill', val: 1, binary: true, text: '100% of your Lightning Hits also Chill & Freeze Enemies (triggers Herald of Ice Shatter on Kill!)' },
+        { stat: 'eleDmgPct', min: 24, max: 42, val: 33, text: '{val}% increased Lightning & Cold Damage' },
+        { stat: 'cdrPct', min: 10, max: 18, val: 14, text: '{val}% increased Cast & Cooldown Speed' },
+        { stat: 'int', min: 18, max: 32, val: 25, text: '+{val} to Intelligence' },
+        { stat: 'maxEs', min: 25, max: 45, val: 35, text: '+{val} to Maximum Energy Shield' }
+      ],
+      flavor: '"Lightning and frost, bound by blood."'
+    },
+    {
+      name: "Ventor's Gamble",
+      baseName: 'Vermilion Ring',
+      slot: 'ring',
+      rarity: 'unique',
+      dropWeight: 0.70,
+      implicits: { maxLife: 24 },
+      affixes: [
+        { stat: 'maxLife', min: 5, max: 75, val: 40, text: '+{val} to Maximum Life' },
+        { stat: 'goldGainPct', min: 10, max: 60, val: 35, noIlvlScale: true, text: '{val}% increased Gold & Loot Rarity' },
+        { stat: 'allRes', min: 4, max: 28, val: 16, noIlvlScale: true, text: '+{val}% to all Elemental Resistances' },
+        { stat: 'moveSpeedPct', min: 5, max: 18, val: 12, noIlvlScale: true, text: '{val}% increased Movement Speed' },
+        { stat: 'critChance', min: 8, max: 38, val: 22, text: '+{val}% to Critical Strike Chance' }
+      ],
+      flavor: '"In a blaze of glory, or a whisper of ruin, the dice decide."'
+    },
+    {
+      name: 'Le Heup of All',
+      baseName: 'Steel Ring',
+      slot: 'ring',
+      rarity: 'unique',
+      dropWeight: 1.20,
+      implicits: { flatDmg: 6, physDmgPct: 14 },
+      affixes: [
+        { stat: 'str', min: 15, max: 30, val: 22, text: '+{val} to Strength' },
+        { stat: 'dex', min: 15, max: 30, val: 22, text: '+{val} to Dexterity' },
+        { stat: 'int', min: 15, max: 30, val: 22, text: '+{val} to Intelligence' },
+        { stat: 'physDmgPct', min: 18, max: 34, val: 26, text: '{val}% increased Physical Damage' },
+        { stat: 'eleDmgPct', min: 18, max: 34, val: 26, text: '{val}% increased Elemental Damage' },
+        { stat: 'allRes', min: 12, max: 22, val: 17, text: '+{val}% to all Elemental Resistances' }
+      ],
+      flavor: '"One ring to master every discipline."'
+    },
+    {
+      name: 'Astramentis',
+      baseName: 'Onyx Amulet',
+      slot: 'amulet',
+      rarity: 'unique',
+      dropWeight: 0.65,
+      implicits: { str: 16, dex: 16, int: 16 },
+      affixes: [
+        { stat: 'str', min: 45, max: 85, val: 65, text: '+{val} to Strength' },
+        { stat: 'dex', min: 45, max: 85, val: 65, text: '+{val} to Dexterity' },
+        { stat: 'int', min: 45, max: 85, val: 65, text: '+{val} to Intelligence' },
+        { stat: 'flatDmg', min: 8, max: 16, val: 12, text: '+{val} to Base Skill & Weapon Damage' },
+        { stat: 'maxLife', min: 30, max: 55, val: 42, text: '+{val} to Maximum Life' }
+      ],
+      flavor: '"Mind, body, and soul aligned with the cosmos."'
+    },
+    {
+      name: 'Badge of the Brotherhood',
+      baseName: 'Citrine Talisman',
+      slot: 'amulet',
+      rarity: 'unique',
+      dropWeight: 0.60,
+      implicits: { flatDmg: 7, cdrPct: 8 },
+      affixes: [
+        { stat: 'extraChain', val: 1, binary: true, text: 'Skills Chain +1 Additional Time' },
+        { stat: 'moveSpeedPct', min: 16, max: 28, val: 22, noIlvlScale: true, text: '{val}% increased Movement Speed' },
+        { stat: 'cdrPct', min: 14, max: 26, val: 20, text: '{val}% increased Skill Cooldown Recovery' },
+        { stat: 'critMulti', min: 22, max: 40, val: 30, text: '+{val}% to Global Critical Strike Multiplier' },
+        { stat: 'maxLife', min: 30, max: 55, val: 42, text: '+{val} to Maximum Life' }
+      ],
+      flavor: '"What is mine is yours, until the last drop of blood."'
+    }
+  ];
+
+  const AFFIX_TIER_BRACKETS = [
+    { tierRank: 5, tierNum: 5, tierName: 'T5', minIlvl: 1, minFrac: 0.0, maxFrac: 0.25 },
+    { tierRank: 4, tierNum: 4, tierName: 'T4', minIlvl: 3, minFrac: 0.25, maxFrac: 0.50 },
+    { tierRank: 3, tierNum: 3, tierName: 'T3', minIlvl: 6, minFrac: 0.50, maxFrac: 0.78 },
+    { tierRank: 2, tierNum: 2, tierName: 'T2', minIlvl: 10, minFrac: 0.78, maxFrac: 1.00 },
+    { tierRank: 1, tierNum: 1, tierName: 'T1', minIlvl: 15, minFrac: 1.02, maxFrac: 1.30 }
+  ];
+
+  function computeAffixTierRange(affix, ilvl = 1) {
+    if (!affix) return null;
+    if (typeof affix.rollMin === 'number' && typeof affix.rollMax === 'number') {
+      return { rollMin: affix.rollMin, rollMax: affix.rollMax, baseTier: affix.baseTier || String(affix.tierName || 'T5').split(' ')[0] };
+    }
+    const cleanIlvl = Math.max(1, Math.floor(ilvl || 1));
+    const poolDef = AFFIX_POOL.find(p => p.id === affix.id || p.stat === affix.stat);
+    if (!poolDef) return null;
+    const rawTierStr = String(affix.baseTier || affix.tierName || (affix.tierNum ? `T${affix.tierNum}` : 'T5')).split(' ')[0];
+    const bracket = AFFIX_TIER_BRACKETS.find(b => b.tierName === rawTierStr || b.tierRank === affix.tierRank || b.tierNum === affix.tierNum) || AFFIX_TIER_BRACKETS[0];
+    const baseMin = typeof poolDef.min === 'number' ? poolDef.min : 10;
+    const baseMax = typeof poolDef.max === 'number' ? poolDef.max : 30;
+    const span = Math.max(1, baseMax - baseMin);
+    let tMin;
+    let tMax;
+    if (bracket.tierRank === 1) {
+      tMin = Math.max(baseMax, Math.round(baseMax * bracket.minFrac));
+      tMax = Math.max(tMin + 1, Math.round(baseMax * bracket.maxFrac));
+    } else {
+      tMin = Math.max(1, Math.round(baseMin + span * bracket.minFrac));
+      tMax = Math.max(tMin + 1, Math.round(baseMin + span * bracket.maxFrac));
+    }
+    const isFlatStat = ['flatDmg', 'maxLife', 'maxEs', 'armor', 'evasion', 'lifeRegen', 'lifeOnHit'].includes(poolDef.stat);
+    const flatIlvlMult = isFlatStat ? (1 + Math.max(0, cleanIlvl - 1) * 0.24) : 1.0;
+    const rollMin = Math.max(1, Math.round(tMin * flatIlvlMult));
+    const rollMax = Math.max(rollMin + 1, Math.round(tMax * flatIlvlMult));
+    return { rollMin, rollMax, baseTier: bracket.tierName, labelTemplate: poolDef.label };
+  }
+
+  Object.assign(exports, { FLASKS, CURRENCIES, GEAR_SLOTS, GEAR_BASES, STAT_LABELS, AFFIX_POOL, AFFIX_TIER_BRACKETS, computeAffixTierRange, UNIQUE_TEMPLATES });
+})(typeof exports === "undefined" ? (window.GameData = window.GameData || {}) : exports);
