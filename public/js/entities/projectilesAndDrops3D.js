@@ -334,33 +334,19 @@
 
   function playNeverSinkLootSound(drop) {
     if (!drop || window.__POS_CTX__.sfxMuted) return;
-    let soundId = 0;
-    let vol = 0.78;
     const cId = drop.currencyId || null;
-    const isT0 = Boolean(drop.t0 || drop.rarity === 'divine' || cId === 'divine' || cId === 'exalted');
+    const isT0 = Boolean(
+      drop.t0 ||
+      drop.rarity === 'unique' ||
+      drop.rarity === 'divine' ||
+      cId === 'divine' ||
+      cId === 'exalted'
+    );
+    // Cut all drop SFX for low-tier items; only play the T0 drop sound (AlertSound6)!
+    if (!isT0) return;
 
-    if (isT0) {
-      soundId = 6;
-      vol = 1.0;
-    } else if (drop.rarity === 'unique') {
-      soundId = 3;
-      vol = 0.90;
-    } else if (drop.dt === 'flask' || drop.rarity === 'flask') {
-      soundId = 4;
-      vol = 0.82;
-    } else if (cId === 'chaos' || cId === 'alchemy' || drop.rarity === 'currency_high') {
-      soundId = 2;
-      vol = 0.86;
-    } else if (drop.rarity === 'rare') {
-      const ilvl = (drop.item && drop.item.ilvl) || 1;
-      soundId = ilvl >= 12 ? 5 : 1;
-      vol = ilvl >= 12 ? 0.82 : 0.72;
-    } else if (drop.dt === 'currency' || drop.rarity === 'currency') {
-      soundId = 1;
-      vol = 0.68;
-    }
-
-    if (!soundId) return;
+    const soundId = 6;
+    const vol = 1.0;
     const now = performance.now();
     if (now - (lastSoundTimeById[soundId] || 0) < 75) return;
     lastSoundTimeById[soundId] = now;

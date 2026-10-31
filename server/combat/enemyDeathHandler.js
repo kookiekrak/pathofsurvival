@@ -33,17 +33,17 @@ function onEnemyKilled(room, enemy, killer) {
   // Grant Persistent Character XP, Un-inflated In-Run Rogue-Lite XP, Scaled-Down Gold, Flask Charges & Vaal Souls
   const mapDef = GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId) || GameData.ATLAS_MAPS[0];
   const mapTier = room.activeRaidDef ? room.activeRaidDef.tier : (mapDef ? mapDef.tier : 1);
-  const goldMult = room.activeRaidDef ? (room.activeRaidDef.goldMult || 1.0) : (mapDef ? (mapDef.goldMult || 1.0) : 1.0);
+  const tierGoldMult = 1 + Math.pow(Math.max(0, mapTier - 1), 0.6) * 0.18;
   const baseGoldGain = (enemy.rarity === 'boss' || enemy.rarity === 'unique')
-    ? 32 + mapTier * 8
+    ? 16 + Math.round(mapTier * 1.5)
     : enemy.typeId === 'gilded_goblin'
-      ? 65 + mapTier * 10
+      ? 28 + mapTier * 2
       : enemy.rarity === 'rare'
-        ? 6 + Math.round(mapTier * 1.5)
+        ? 3 + Math.floor(mapTier * 0.4)
         : enemy.rarity === 'magic'
-          ? 2 + Math.floor(mapTier * 0.4)
-          : (Math.random() < 0.65 ? 1 : 0);
-  const goldGain = baseGoldGain > 0 ? Math.max(1, Math.round(baseGoldGain * goldMult)) : 0;
+          ? 1 + (mapTier >= 8 ? 1 : 0)
+          : (Math.random() < 0.25 ? 1 : 0);
+  const goldGain = baseGoldGain > 0 ? Math.max(1, Math.round(baseGoldGain * tierGoldMult)) : 0;
 
   // Un-inflated In-Run Rogue-lite XP (tier-independent so entering higher-tier maps NEVER grants 10 levels instantly!)
   const baseRunXpGain = (enemy.rarity === 'boss' || enemy.rarity === 'unique')
@@ -99,7 +99,7 @@ function onEnemyKilled(room, enemy, killer) {
       }
 
       if (enemy.rarity === 'boss' || enemy.rarity === 'unique') {
-        const bossStashBounty = Math.round((35 + mapTier * 10) * goldMult);
+        const bossStashBounty = Math.round((14 + mapTier * 2.5) * tierGoldMult);
         p.gold = (p.gold || 0) + bossStashBounty;
         p.bossKills = (p.bossKills || (p.currencies && p.currencies._bossKills) || 0) + 1;
         if (p.currencies) p.currencies._bossKills = p.bossKills;
@@ -162,25 +162,25 @@ function onEnemyKilled(room, enemy, killer) {
   if (enemy.isBreachMob && Array.isArray(room.activeBreaches) && room.activeBreaches.length > 0) {
     const activeB = room.activeBreaches[0];
     activeB.kills = (activeB.kills || 0) + 1;
-    activeB.duration = Math.min(activeB.maxDuration || 26, activeB.duration + 0.32);
-    activeB.maxRadius = Math.min(560, (activeB.maxRadius || 480) + 2.5);
   }
   const breachMult = enemy.isBreachMob ? 0.22 : 1.0;
-  const rawQtyMult = ((mapDef && mapDef.lootQuantity) || 100) / 100;
+  const totalLootQuantity = ((mapDef && mapDef.lootQuantity) || 100) + ((room.mapModStats && room.mapModStats.quant) || 0);
+  const totalRarityBonus = ((mapDef && mapDef.lootRarityBonus) || 0) + ((room.mapModStats && room.mapModStats.rarity) || 0);
+  const rawQtyMult = totalLootQuantity / 100;
   // Dampen high-tier map quantity scaling so T10-T16 maps reward higher quality without flooding the screen with items!
   const dropQtyMult = 1 + Math.pow(Math.max(0, rawQtyMult - 1), 0.55) * 0.32;
   const baseIlvl = (mapTier - 1) * 3 + Math.ceil((room.wave || 1) / 2);
 
   if (enemy.rarity === 'boss' || enemy.rarity === 'unique') {
     const bossOrbs = 1 + Math.min(3, Math.floor(mapTier / 5));
-    const bossGearCount = 1 + Math.min(2, Math.floor(mapTier / 6));
+    const bossGearCount = 1 + (mapTier >= 10 && Math.random() < 0.35 ? 1 : 0);
     const bossIlvl = baseIlvl + 2;
     for (let i = 0; i < bossOrbs; i++) {
       spawnGroundDrop(room, enemy.x - 20 + i * 16, enemy.y, 'currency');
     }
     for (let i = 0; i < bossGearCount; i++) {
-      const uniqueChance = 0.08 + (mapTier - 1) * 0.02;
-      spawnGroundDrop(room, enemy.x + 20 + i * 18, enemy.y, 'gear', Math.random() < uniqueChance ? 'unique' : 'rare', bossIlvl);
+      const uniqueChance = 0.022 + (mapTier - 1) * 0.0025;
+      spawnGroundDrop(room, enemy.x + 20 + i * 18, enemy.y, 'gear', Math.random() < uniqueChance ? 'unique' : 'rare', bossIlvl, totalRarityBonus);
     }
     // Map Bosses have a 3.5% chance to drop a Flask
     if (Math.random() < 0.035) {
@@ -203,7 +203,7 @@ function onEnemyKilled(room, enemy, killer) {
     for (let k = 0; k < 2; k++) {
       spawnGroundDrop(room, enemy.x + randInt(-24, 24), enemy.y + randInt(-24, 24), 'currency');
     }
-    spawnGroundDrop(room, enemy.x, enemy.y, 'gear', Math.random() < 0.22 ? 'unique' : 'rare', baseIlvl + 2);
+    spawnGroundDrop(room, enemy.x, enemy.y, 'gear', Math.random() < 0.015 ? 'unique' : 'rare', baseIlvl + 2, totalRarityBonus);
     addRoomChat(room, 'Perandus', `🪙 ${killer ? killer.name : 'The party'} slayed the Perandus Treasure Hoarder — Jackpot Loot Explosion!`, '#fcc419');
     return;
   }
@@ -219,9 +219,9 @@ function onEnemyKilled(room, enemy, killer) {
 
   if (gearChance > 0 && Math.random() < gearChance) {
     const dropIlvl = baseIlvl + (enemy.rarity === 'rare' ? 1 : 0);
-    spawnGroundDrop(room, enemy.x, enemy.y, 'gear', null, dropIlvl);
+    spawnGroundDrop(room, enemy.x, enemy.y, 'gear', null, dropIlvl, totalRarityBonus);
   } else if (Math.random() < currencyChance) {
-    spawnGroundDrop(room, enemy.x, enemy.y, 'currency');
+    spawnGroundDrop(room, enemy.x, enemy.y, 'currency', null, 1, totalRarityBonus);
   }
 }
 

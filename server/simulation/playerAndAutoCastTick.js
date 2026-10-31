@@ -76,7 +76,10 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
 
     // Regenerate Life (small passive regen), refill Life-on-Hit cap budget (max 24 HP/sec), & Energy Shield
     p.lohBudget = Math.min(6, (p.lohBudget || 0) + 24 * dt);
-    p.hp = Math.min(p.maxHp, p.hp + (p.stats.lifeRegen || 1.5) * dt);
+    const regenMult = (room.mapModStats && room.mapModStats.lessRegen)
+      ? Math.max(0.1, 1 - room.mapModStats.lessRegen / 100)
+      : 1;
+    p.hp = Math.min(p.maxHp, p.hp + (p.stats.lifeRegen || 1.5) * regenMult * dt);
     if (p.maxEs > 0) {
       if (p.stats && p.stats.shavronneWard > 0) {
         p.es = Math.min(p.maxEs, p.es + p.maxEs * 0.12 * dt);
@@ -261,13 +264,13 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
         sendPrivateProfile(p);
       } else if (drop.dropType === 'flask' && p.targetDropId === drop.id && d <= 125) {
         p.targetDropId = null;
-        if ((p.inventory || []).length < 32) {
+        if ((p.inventory || []).length < 50) {
           room.groundDrops.splice(i, 1);
           pickupGroundFlask(room, p, drop);
         }
       } else if (drop.dropType === 'gear' && p.targetDropId === drop.id && d <= 125) {
         p.targetDropId = null;
-        if (p.inventory.length < 32) {
+        if (p.inventory.length < 50) {
           p.inventory.push(drop.item);
           room.groundDrops.splice(i, 1);
           sendPrivateProfile(p);

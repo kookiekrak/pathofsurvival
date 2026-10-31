@@ -6,14 +6,25 @@
   letter-spacing: 0.3px;
 }
 
-/* Authentic PoE 1 8x4 Dark-Iron Grid Inventory Bag */
+/* Authentic PoE 1 10x5 Dark-Iron Grid Character Inventory Bag (50 Slots) */
 .poe-bag-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  grid-template-rows: repeat(4, 30px);
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(5, 25px);
   background: #040302;
   border: 1px solid var(--poe-brass-dark);
   box-shadow: inset 0 0 14px #000;
+  flex-shrink: 0;
+}
+
+/* Persistent Account Stash 10x8 Large Left-Panel Storage Grid (80 Slots) */
+.poe-stash-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(8, 38px);
+  background: #040302;
+  border: 1px solid var(--poe-brass-mid);
+  box-shadow: inset 0 0 18px #000;
   flex-shrink: 0;
 }
 
@@ -97,11 +108,16 @@
 }
 
 .bag-cell-art {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.poe-stash-grid .bag-cell-art {
+  width: 28px;
+  height: 28px;
 }
 
 .bag-cell-slot-tag {
@@ -321,6 +337,18 @@
   font-size: 0.78rem;
   color: #a3937c;
   line-height: 1.22;
+}
+
+.map-crafting-bar {
+  margin: 0 10px 6px;
+  padding: 5px 10px;
+  background: #070504;
+  border: 1px solid #4a3b28;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .map-device-actions {

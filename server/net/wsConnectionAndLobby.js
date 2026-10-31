@@ -5,6 +5,9 @@ function switchPlayerRoom(ws, msg, connState) {
   let roomCode = ((msg.roomCode || 'ORIATH').toUpperCase().replace(/[^A-Z0-9]/g, '') || 'ORIATH').slice(0, 8);
   let room = rooms.get(roomCode);
   if (!room) room = createRoom(roomCode, msg.roomName);
+  if (roomCode !== 'ORIATH' && typeof msg.isPrivate === 'boolean') {
+    room.isPrivate = msg.isPrivate;
+  }
 
   // ORIATH is an uncapped Public Town Hub; other party instances cap at 6 players
   if (roomCode !== 'ORIATH' && room.players.size >= 6 && (!connState.currentPlayer || !room.players.has(connState.currentPlayer.id))) {
@@ -167,7 +170,7 @@ wss.on('connection', (ws) => {
         } else if (drop.dropType === 'flask') {
           currentRoom.groundDrops.splice(idx, 1);
           pickupGroundFlask(currentRoom, currentPlayer, drop);
-        } else if (currentPlayer.inventory.length < 32) {
+        } else if (currentPlayer.inventory.length < 50) {
           currentPlayer.inventory.push(drop.item);
           currentRoom.groundDrops.splice(idx, 1);
           sendPrivateProfile(currentPlayer);
@@ -229,6 +232,10 @@ wss.on('connection', (ws) => {
     } else if (msg.type === 'select_map') {
       if (GameData.ATLAS_MAPS.some(m => m.id === msg.mapId)) {
         currentRoom.selectedMapId = msg.mapId;
+        if (!currentRoom.craftedMap || currentRoom.craftedMap.mapId !== msg.mapId) {
+          currentRoom.craftedMap = { mapId: msg.mapId, rarity: 'normal', mods: [], scoured: false };
+          currentRoom.mapModStats = null;
+        }
         for (const p of currentRoom.players.values()) {
           p.currentMapId = msg.mapId;
           sendPrivateProfile(p);
@@ -236,6 +243,55 @@ wss.on('connection', (ws) => {
         const mDef = GameData.ATLAS_MAPS.find(m => m.id === msg.mapId);
         addRoomChat(currentRoom, 'Map Device', `${currentPlayer.name} selected ${mDef.name}.`, '#f2c76e');
       }
+    } else if (msg.type === 'craft_map') {
+      const res = craftRoomMapWithOrb(currentRoom, currentPlayer, msg.orb || msg.currencyId);
+      ws.send(JSON.stringify({ type: 'craft_feedback', ok: res.ok, msg: res.ok ? res.msg : res.reason }));
+      if (res.ok) {
+        addRoomChat(currentRoom, 'Map Device', `${currentPlayer.name}: ${res.msg}`, '#ffd43b');
+      }
+      sendPrivateProfile(currentPlayer);
+    } else if (msg.type === 'toggle_room_privacy') {
+      if (currentRoom.code !== 'ORIATH') {
+        currentRoom.isPrivate = typeof msg.isPrivate === 'boolean' ? msg.isPrivate : !currentRoom.isPrivate;
+        addRoomChat(
+          currentRoom,
+          'Party',
+          `${currentPlayer.name} set party instance to ${currentRoom.isPrivate ? '🔒 PRIVATE (Code Only)' : '🌐 PUBLIC (Listed in Lobby)'}.`,
+          currentRoom.isPrivate ? '#ffd43b' : '#69db7c'
+        );
+      }
+    } else if (msg.type === 'deposit_stash_item') {
+      if (!Array.isArray(currentPlayer.accountStash)) {
+        currentPlayer.accountStash = getAccountStash(currentPlayer.accountId);
+      }
+      if (currentPlayer.accountStash.length >= 80) {
+        ws.send(JSON.stringify({ type: 'craft_feedback', ok: false, msg: 'Account Stash is full (80/80)!' }));
+        return;
+      }
+      const invIdx = typeof msg.invIdx === 'number'
+        ? msg.invIdx
+        : currentPlayer.inventory.findIndex(i => i && i.id === msg.itemId);
+      if (invIdx < 0 || !currentPlayer.inventory[invIdx]) return;
+      const [item] = currentPlayer.inventory.splice(invIdx, 1);
+      currentPlayer.accountStash.push(item);
+      saveAccountStash(currentPlayer.accountId, currentPlayer.accountStash);
+      sendPrivateProfile(currentPlayer);
+    } else if (msg.type === 'withdraw_stash_item') {
+      if (!Array.isArray(currentPlayer.accountStash)) {
+        currentPlayer.accountStash = getAccountStash(currentPlayer.accountId);
+      }
+      if (currentPlayer.inventory.length >= 50) {
+        ws.send(JSON.stringify({ type: 'craft_feedback', ok: false, msg: 'Character Inventory is full (50/50)!' }));
+        return;
+      }
+      const stashIdx = typeof msg.stashIdx === 'number'
+        ? msg.stashIdx
+        : currentPlayer.accountStash.findIndex(i => i && i.id === msg.itemId);
+      if (stashIdx < 0 || !currentPlayer.accountStash[stashIdx]) return;
+      const [item] = currentPlayer.accountStash.splice(stashIdx, 1);
+      currentPlayer.inventory.push(item);
+      saveAccountStash(currentPlayer.accountId, currentPlayer.accountStash);
+      sendPrivateProfile(currentPlayer);
     } else if (msg.type === 'start_map' || msg.type === 'open_map' || msg.type === 'start_atlas_map') {
       if (currentRoom.code === 'ORIATH') {
         ws.send(JSON.stringify({

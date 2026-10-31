@@ -153,12 +153,13 @@
     },
     notable_far_shot: {
       id: 'notable_far_shot',
-      name: 'Endless Munitions',
+      name: 'Far Shot',
       type: 'notable',
       color: '#38d9a9',
       x: 465,
       y: -5,
-      stats: { extraProj: 1, pierceCount: 1, projDmgPct: 36, critChance: 32 },
+      stats: { pierceCount: 1, projDmgPct: 18, attackSpeedPct: 10, critChance: 32 },
+      desc: ['Projectiles Pierce +1 additional Target & 18% increased Projectile Damage', '10% increased Attack Speed & +32% to Critical Strike Chance'],
       neighbors: ['dex_sniper_1', 'dex_sniper_2', 'keystone_ghost_dance']
     },
     keystone_ghost_dance: {

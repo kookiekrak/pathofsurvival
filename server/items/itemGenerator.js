@@ -175,7 +175,7 @@ function generateGearItem(slotArg, rarityArg, itemLevel = 1, rarityBonusPct = 0)
   if (!rarity) {
     // Map Tier rarity bonus scales up Unique, Rare, and Magic roll thresholds!
     const rarityMult = 1 + Math.max(0, rarityBonusPct) / 100;
-    const uniqueThresh = Math.min(0.035, 0.005 * rarityMult);
+    const uniqueThresh = Math.min(0.003, 0.0007 * rarityMult);
     const rareThresh = uniqueThresh + Math.min(0.24, 0.055 * rarityMult);
     const magicThresh = rareThresh + Math.min(0.45, 0.26 * Math.sqrt(rarityMult));
     const roll = Math.random();

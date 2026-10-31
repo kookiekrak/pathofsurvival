@@ -226,12 +226,14 @@ const httpServer = http.createServer((req, res) => {
   if (urlPath === '/api/rooms') {
     const list = [];
     for (const room of rooms.values()) {
+      if (room.isPrivate && room.code !== 'ORIATH') continue;
       const playersArr = Array.from(room.players.values());
       list.push({
         code: room.code,
         roomName: room.roomName || `${room.code} Party`,
         hostName: playersArr[0] ? playersArr[0].name : 'Oriath Host',
         state: room.state,
+        isPrivate: !!room.isPrivate,
         mapId: room.selectedMapId,
         playerCount: room.players.size,
         maxPlayers: room.code === 'ORIATH' ? 999 : 6,

@@ -18,7 +18,8 @@
     if (k === 'a' || k === 'arrowleft') keys.left = true;
     if (k === 'd' || k === 'arrowright') keys.right = true;
 
-    if (k === 'i' || k === 'b') toggleDrawer('inventoryDrawer');
+    if (k === 'i') toggleDrawer('inventoryDrawer');
+    if (k === 'b') toggleDrawer('stashDrawer');
     if (k === 'v') toggleDrawer('blackMarketDrawer');
     if (k === 'c' || k === 'g') toggleDrawer('gemsDrawer');
     if (k === 'p') toggleDrawer('passiveTreeModal');
@@ -93,6 +94,7 @@
         if (typeof renderCurrencyBench === 'function' && myProfile) renderCurrencyBench();
       }
       document.getElementById('inventoryDrawer').classList.add('hidden');
+      document.getElementById('stashDrawer')?.classList.add('hidden');
       document.getElementById('blackMarketDrawer')?.classList.add('hidden');
       document.getElementById('gemsDrawer').classList.add('hidden');
       document.getElementById('leaderboardModal')?.classList.add('hidden');
@@ -236,8 +238,14 @@
     if (worldState.mode === 'HIDEOUT') {
       if (Math.hypot(wx - 0, wz - 0) < 95) {
         toggleDrawer('mapDeviceModal');
-      } else if (Math.hypot(wx - (-140), wz - (-90)) < 65 || Math.hypot(wx - 140, wz - (-90)) < 65) {
-        toggleDrawer('inventoryDrawer');
+      } else if (Math.hypot(wx - (-140), wz - (-90)) < 65) {
+        document.getElementById('stashDrawer')?.classList.remove('hidden');
+        document.getElementById('inventoryDrawer')?.classList.remove('hidden');
+        if (typeof renderStashInventory === 'function' && myProfile) renderStashInventory();
+      } else if (Math.hypot(wx - 140, wz - (-90)) < 65) {
+        document.getElementById('blackMarketDrawer')?.classList.remove('hidden');
+        document.getElementById('inventoryDrawer')?.classList.remove('hidden');
+        if (typeof renderStashInventory === 'function' && myProfile) renderStashInventory();
       }
     } else if (worldState.mode === 'RUN' && worldState.portalsOpen && Math.hypot(wx - 0, wz - 0) < 95) {
       ws.send(JSON.stringify({ type: 'return_hideout' }));

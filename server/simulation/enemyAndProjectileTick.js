@@ -2,60 +2,50 @@
 const GameData = global.GameData || require('../../public/shared/gameData.js');
 
 function pushEnemyBolt(room, x, y, ang, speed, radius, damage, damageType, duration) {
+  if (room.projectiles.length >= 42) room.projectiles.shift();
   room.projectiles.push({
-    id: uid('eprj'),
-    ownerId: 'enemy',
-    skillId: 'enemy_bolt',
-    behavior: 'standard',
-    damageType,
-    x,
-    y,
-    vx: Math.cos(ang) * speed,
-    vy: Math.sin(ang) * speed,
-    speed,
-    radius,
-    damage,
-    duration
+    id: uid('eprj'), ownerId: 'enemy', skillId: 'enemy_bolt', behavior: 'standard',
+    damageType, x, y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed, speed, radius, damage, duration
   });
 }
 
 function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
+  const enemyList = Array.from(room.enemies.values());
+
   // Update Projectiles
   for (let i = room.projectiles.length - 1; i >= 0; i--) {
     const prj = room.projectiles[i];
     prj.duration -= dt;
     if (prj.duration <= 0) {
       if (prj.behavior === 'tornado_burst') {
-        const secCount = 6;
         room.fxEvents.push({ kind: 'nova', x: Math.round(prj.x), y: Math.round(prj.y), r: 56, color: '#ffe066' });
-        for (let s = 0; s < secCount; s++) {
-          const ang = (Math.PI * 2 * s) / secCount;
+        for (let k = 0; k < 2; k++) {
+          const ang = (Math.PI * 2 * k) / 2 + (prj.vx ? Math.atan2(prj.vy, prj.vx) : 0);
+          if (room.projectiles.length >= 42) room.projectiles.shift();
           room.projectiles.push({
-            ...prj,
-            id: uid('prj'),
-            behavior: 'standard',
-            vx: Math.cos(ang) * 540,
-            vy: Math.sin(ang) * 540,
-            duration: 0.42,
-            maxDuration: 0.42,
-            hitIds: new Set()
+            ...prj, id: uid('prj'), behavior: 'standard', vx: Math.cos(ang) * 540, vy: Math.sin(ang) * 540,
+            duration: 0.42, maxDuration: 0.42, hitIds: new Set()
           });
         }
       } else if (prj.behavior === 'molten_lob') {
-        // Lobbed magma spheres always detonate on landing!
         const owner = room.players.get(prj.ownerId);
         const splashRadius = prj.aoeRadius || 68;
         room.fxEvents.push({ kind: 'nova', x: Math.round(prj.x), y: Math.round(prj.y), r: splashRadius, color: '#ff6b4a' });
-        for (const m of room.enemies.values()) {
-          if (dist(prj.x, prj.y, m.x, m.y) <= splashRadius + m.radius) {
+        for (let eIdx = 0; eIdx < enemyList.length; eIdx++) {
+          const enemy = enemyList[eIdx];
+          if (enemy.hp <= 0) continue;
+          const hitR = splashRadius + (enemy.radius || 16);
+          if (Math.abs(prj.x - enemy.x) > hitR || Math.abs(prj.y - enemy.y) > hitR) continue;
+          if (dist(prj.x, prj.y, enemy.x, enemy.y) <= hitR) {
             const { dmg, isCrit } = rollSkillDamage(prj.exec);
-            damageEnemy(room, m, dmg, isCrit, owner, prj.exec ? prj.exec.lifeOnHit : 0, 'fire');
+            damageEnemy(room, enemy, dmg, isCrit, owner, prj.exec ? prj.exec.lifeOnHit : 0, 'fire');
           }
         }
       } else if (prj.behavior === 'eye_of_winter') {
         room.fxEvents.push({ kind: 'nova', sub: 'ice_nova', x: Math.round(prj.x), y: Math.round(prj.y), r: 78, color: '#74c0fc' });
-        for (let s = 0; s < 8; s++) {
-          const ang = (Math.PI * 2 * s) / 8;
+        for (let k = 0; k < 2; k++) {
+          const ang = (Math.PI * 2 * k) / 2;
+          if (room.projectiles.length >= 42) room.projectiles.shift();
           room.projectiles.push({
             ...prj, id: uid('prj'), behavior: 'standard', vx: Math.cos(ang) * 480, vy: Math.sin(ang) * 480,
             radius: 10, duration: 0.36, maxDuration: 0.36, hitIds: new Set()
@@ -67,31 +57,25 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
     }
 
     if (prj.behavior === 'ball_lightning' || prj.behavior === 'eye_of_winter') {
-      prj.pulseCd = (prj.pulseCd || 0.22) - dt;
+      prj.pulseCd = (prj.pulseCd || 0.28) - dt;
       if (prj.pulseCd <= 0) {
-        prj.pulseCd = 0.24;
+        prj.pulseCd = 0.28;
         const owner = room.players.get(prj.ownerId);
-        if (prj.behavior === 'ball_lightning') {
-          let zaps = 0;
-          const zapR = prj.aoeRadius || 125;
-          for (const m of room.enemies.values()) {
-            if (dist(prj.x, prj.y, m.x, m.y) <= zapR + m.radius) {
-              const { dmg, isCrit } = rollSkillDamage(prj.exec);
-              damageEnemy(room, m, dmg, isCrit, owner, prj.exec ? prj.exec.lifeOnHit : 0, 'lightning');
-              if (room.fxEvents.length < 22) {
-                room.fxEvents.push({ kind: 'chain', x1: Math.round(prj.x), y1: Math.round(prj.y), x2: Math.round(m.x), y2: Math.round(m.y), color: '#74c0fc' });
-              }
-              if (++zaps >= 4) break;
+        const isBall = prj.behavior === 'ball_lightning';
+        const pulseR = prj.aoeRadius || (isBall ? 125 : 95);
+        let hits = 0;
+        for (let eIdx = 0; eIdx < enemyList.length; eIdx++) {
+          const enemy = enemyList[eIdx];
+          if (enemy.hp <= 0) continue;
+          const hitR = pulseR + (enemy.radius || 16);
+          if (Math.abs(prj.x - enemy.x) > hitR || Math.abs(prj.y - enemy.y) > hitR) continue;
+          if (dist(prj.x, prj.y, enemy.x, enemy.y) <= hitR) {
+            const { dmg, isCrit } = rollSkillDamage(prj.exec);
+            damageEnemy(room, enemy, dmg, isCrit, owner, prj.exec ? prj.exec.lifeOnHit : 0, isBall ? 'lightning' : 'cold');
+            if (isBall && room.fxEvents.length < 22) {
+              room.fxEvents.push({ kind: 'chain', x1: Math.round(prj.x), y1: Math.round(prj.y), x2: Math.round(enemy.x), y2: Math.round(enemy.y), color: '#74c0fc' });
             }
-          }
-        } else {
-          prj.spiralAng = (prj.spiralAng || 0) + 0.85;
-          for (let k = 0; k < 2; k++) {
-            const sAng = prj.spiralAng + k * Math.PI;
-            room.projectiles.push({
-              ...prj, id: uid('prj'), behavior: 'standard', vx: Math.cos(sAng) * 440, vy: Math.sin(sAng) * 440,
-              radius: 9, duration: 0.28, maxDuration: 0.28, hitIds: new Set()
-            });
+            if (++hits >= 3) break;
           }
         }
       }
@@ -128,64 +112,64 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
 
     const owner = room.players.get(prj.ownerId);
     const isVaalHit = !!(prj.isVaalProj || (prj.exec && prj.exec.isVaal));
-    for (const m of room.enemies.values()) {
-      if (prj.hitIds.has(m.id)) continue;
-      const hitR = prj.radius + m.radius;
-      if (Math.abs(prj.x - m.x) > hitR || Math.abs(prj.y - m.y) > hitR) continue;
-      if (dist(prj.x, prj.y, m.x, m.y) <= hitR) {
-        prj.hitIds.add(m.id);
+    for (let eIdx = 0; eIdx < enemyList.length; eIdx++) {
+      const enemy = enemyList[eIdx];
+      if (enemy.hp <= 0 || prj.hitIds.has(enemy.id)) continue;
+      const hitR = (prj.radius || 8) + (enemy.radius || 16);
+      if (Math.abs(prj.x - enemy.x) > hitR || Math.abs(prj.y - enemy.y) > hitR) continue;
+      if (dist(prj.x, prj.y, enemy.x, enemy.y) <= hitR) {
+        prj.hitIds.add(enemy.id);
         const { dmg, isCrit } = rollSkillDamage(prj.exec);
-        damageEnemy(room, m, dmg, isCrit, owner, prj.exec.lifeOnHit, prj.damageType, false, isVaalHit);
+        damageEnemy(room, enemy, dmg, isCrit, owner, prj.exec.lifeOnHit, prj.damageType, false, isVaalHit);
 
         if ((prj.behavior === 'fireball_explode' || prj.behavior === 'molten_lob') && prj.hitIds.size <= 2) {
           if (room.fxEvents.length < 22) {
             room.fxEvents.push({
-              kind: 'nova', x: Math.round(m.x), y: Math.round(m.y),
+              kind: 'nova', x: Math.round(enemy.x), y: Math.round(enemy.y),
               r: prj.aoeRadius, color: prj.damageType === 'fire' ? '#ff6b4a' : '#d99b66'
             });
           }
           let splashHits = 0;
-          for (const other of room.enemies.values()) {
-            if (other.id === m.id) continue;
-            const splashR = prj.aoeRadius + other.radius;
-            if (Math.abs(m.x - other.x) > splashR || Math.abs(m.y - other.y) > splashR) continue;
-            if (dist(m.x, m.y, other.x, other.y) <= splashR) {
+          for (let oIdx = 0; oIdx < enemyList.length; oIdx++) {
+            const other = enemyList[oIdx];
+            if (other.id === enemy.id || other.hp <= 0) continue;
+            const splashR = prj.aoeRadius + (other.radius || 16);
+            if (Math.abs(enemy.x - other.x) > splashR || Math.abs(enemy.y - other.y) > splashR) continue;
+            if (dist(enemy.x, enemy.y, other.x, other.y) <= splashR) {
               const splash = rollSkillDamage(prj.exec);
               damageEnemy(room, other, Math.round(splash.dmg * 0.75), splash.isCrit, owner, 0, prj.damageType, true);
-              if (++splashHits >= 8) break;
+              if (++splashHits >= 6) break;
             }
           }
         } else if (prj.behavior === 'lightning_arrow' && prj.hitIds.size <= 2) {
-          // Lightning Arrow shocks target and arcs lightning bolts to 2 nearby enemies within 240 units!
-          m.shockTimer = Math.max(m.shockTimer || 0, 4.0);
+          enemy.shockTimer = Math.max(enemy.shockTimer || 0, 4.0);
           let arcs = 0;
-          for (const other of room.enemies.values()) {
-            if (other.id === m.id) continue;
-            if (Math.abs(m.x - other.x) > 240 || Math.abs(m.y - other.y) > 240) continue;
-            if (dist(m.x, m.y, other.x, other.y) <= 240) {
+          for (let oIdx = 0; oIdx < enemyList.length; oIdx++) {
+            const other = enemyList[oIdx];
+            if (other.id === enemy.id || other.hp <= 0) continue;
+            if (Math.abs(enemy.x - other.x) > 240 || Math.abs(enemy.y - other.y) > 240) continue;
+            if (dist(enemy.x, enemy.y, other.x, other.y) <= 240) {
               other.shockTimer = Math.max(other.shockTimer || 0, 3.0);
               const arcRoll = rollSkillDamage(prj.exec);
               damageEnemy(room, other, Math.round(arcRoll.dmg * 0.7), arcRoll.isCrit, owner, 0, 'lightning', true);
               if (room.fxEvents.length < 22) {
                 room.fxEvents.push({
-                  kind: 'chain', x1: Math.round(m.x), y1: Math.round(m.y),
+                  kind: 'chain', x1: Math.round(enemy.x), y1: Math.round(enemy.y),
                   x2: Math.round(other.x), y2: Math.round(other.y), color: '#70b8ff'
                 });
               }
-              arcs++;
-              if (arcs >= 2) break;
+              if (++arcs >= 2) break;
             }
           }
         }
 
         if (prj.behavior === 'tornado_burst' && prj.hitIds.size === 1) {
-          // Tornado Shot pierces 35 units into the pack and then bursts into 6 secondary arrows right on the enemies!
           prj.duration = Math.min(prj.duration, 0.06);
         }
 
         if (prj.chainsLeft > 0) {
           prj.chainsLeft--;
-          const nextTarget = findNearestEnemy(room, m.x, m.y, 260, prj.hitIds);
+          const nextTarget = findNearestEnemy(room, enemy.x, enemy.y, 260, prj.hitIds);
           if (nextTarget) {
             const ang = Math.atan2(nextTarget.y - prj.y, nextTarget.x - prj.x);
             prj.vx = Math.cos(ang) * prj.speed;

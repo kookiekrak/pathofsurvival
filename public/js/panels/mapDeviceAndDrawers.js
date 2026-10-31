@@ -83,6 +83,57 @@
           ? 'LAUNCH PINNACLE BOSS RAID'
           : 'ACTIVATE MAP DEVICE';
     }
+
+    const craftBar = document.getElementById('mapCraftingBar');
+    if (craftBar) {
+      if (selectedRaidId) {
+        craftBar.innerHTML = `<span style="color:#ffa8a8;font-size:0.78rem">Pinnacle Boss Raids have fixed 3-Phase mechanics and cannot be modified with Currency Orbs.</span>`;
+      } else {
+        const mDef = GameData.ATLAS_MAPS.find(m => m.id === (selectedMapId || 'strand')) || GameData.ATLAS_MAPS[0];
+        const cm = (worldState && worldState.craftedMap && worldState.craftedMap.mapId === mDef.id)
+          ? worldState.craftedMap
+          : { mapId: mDef.id, rarity: 'normal', mods: [] };
+        const mods = Array.isArray(cm.mods) ? cm.mods : [];
+        const rarCol = cm.rarity === 'rare' ? '#ffd43b' : cm.rarity === 'magic' ? '#74c0fc' : '#dee2e6';
+        let bQuant = 0, bRar = 0, bPack = 0;
+        for (const md of mods) {
+          bQuant += md.quant || 0;
+          bRar += md.rarity || 0;
+          bPack += md.packSize || 0;
+        }
+        const cur = (myProfile && myProfile.currencies) || {};
+        const modText = mods.length > 0
+          ? mods.map(md => `<span style="color:#74c0fc">${md.name}</span>`).join(' • ')
+          : `<span style="color:#9e8d73">Uncrafted Normal Map (Rolls 1–2 random mods on launch, or craft with Orbs for higher Quantity!)</span>`;
+        const bonusTag = mods.length > 0
+          ? `<span style="color:#69db7c;font-weight:700;margin-left:6px">[+${bQuant}% Qty • +${bRar}% Rarity • +${bPack}% Pack Size]</span>`
+          : '';
+        const orbBtns = [
+          ['transmute', 'TRN', 'Normal → Magic (1-2 Mods)'],
+          ['alteration', 'ALT', 'Reroll Magic Map'],
+          ['alchemy', 'ALC', 'Normal → Rare (4 Mods)'],
+          ['chaos', 'CHA', 'Reroll Rare Map (4-5 Mods)'],
+          ['exalted', 'EXA', '+1 Mod to Rare Map (Max 6)'],
+          ['scour', 'SCR', 'Scour Map to Normal (0 Mods)']
+        ].map(([orbKey, shortLbl, tip]) => {
+          const cKey = orbKey === 'scour' ? 'regret' : orbKey;
+          const cnt = cur[cKey] || 0;
+          return `<button class="poe-chisel-btn sm-btn map-orb-btn" data-orb="${orbKey}" style="padding:2px 7px;font-size:0.7rem;opacity:${cnt > 0 ? 1 : 0.45}" title="${tip} (${cnt} left)" type="button">${shortLbl} (${cnt})</button>`;
+        }).join('');
+        craftBar.innerHTML = `
+          <div style="flex:1;min-width:260px;font-size:0.74rem;line-height:1.25">
+            <div><strong style="color:${rarCol};font-family:var(--font-serif)">${mDef.name.toUpperCase()} (${(cm.rarity || 'normal').toUpperCase()})</strong>${bonusTag}</div>
+            <div style="margin-top:2px">${modText}</div>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${orbBtns}</div>
+        `;
+        craftBar.querySelectorAll('.map-orb-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (ws) ws.send(JSON.stringify({ type: 'craft_map', orb: btn.dataset.orb }));
+          });
+        });
+      }
+    }
   }
   initMapDeviceModal();
 
@@ -122,16 +173,15 @@
     const el = document.getElementById(id);
     if (!el) return;
     const isHidden = el.classList.contains('hidden');
-    // Left Drawer (Character/Gems OR Black Market) and Right Drawer (Inventory) can be open simultaneously!
-    // Opening a full modal (Passive Tree, Map Device, Lobby) closes docked drawers.
-    if (id === 'inventoryDrawer' || id === 'gemsDrawer' || id === 'blackMarketDrawer') {
+    // Left Drawer (Account Stash, Character/Gems, OR Run Vendor) and Right Drawer (Character Inventory) can be open simultaneously!
+    if (id === 'inventoryDrawer' || id === 'stashDrawer' || id === 'gemsDrawer' || id === 'blackMarketDrawer') {
       document.getElementById('passiveTreeModal').classList.add('hidden');
       document.getElementById('mapDeviceModal').classList.add('hidden');
       document.getElementById('lobbyModal')?.classList.add('hidden');
-      if (id === 'gemsDrawer' && isHidden) {
-        document.getElementById('blackMarketDrawer')?.classList.add('hidden');
-      } else if (id === 'blackMarketDrawer' && isHidden) {
-        document.getElementById('gemsDrawer')?.classList.add('hidden');
+      if (id !== 'inventoryDrawer' && isHidden) {
+        for (const leftId of ['stashDrawer', 'gemsDrawer', 'blackMarketDrawer']) {
+          if (leftId !== id) document.getElementById(leftId)?.classList.add('hidden');
+        }
       }
       el.classList.toggle('hidden', !isHidden);
       if (typeof renderStashInventory === 'function' && myProfile) {
@@ -142,7 +192,9 @@
     }
 
     document.getElementById('inventoryDrawer').classList.add('hidden');
+    document.getElementById('stashDrawer')?.classList.add('hidden');
     document.getElementById('gemsDrawer').classList.add('hidden');
+    document.getElementById('blackMarketDrawer')?.classList.add('hidden');
     document.getElementById('leaderboardModal')?.classList.add('hidden');
     document.getElementById('passiveTreeModal').classList.add('hidden');
     document.getElementById('mapDeviceModal').classList.add('hidden');
@@ -252,12 +304,14 @@
   document.getElementById('lbTabStandard')?.addEventListener('click', () => { leaderboardFilter = 'standard'; renderLeaderboardRows(); });
 
   document.getElementById('toggleInventoryBtn').addEventListener('click', () => toggleDrawer('inventoryDrawer'));
+  document.getElementById('toggleStashBtn')?.addEventListener('click', () => toggleDrawer('stashDrawer'));
   document.getElementById('toggleBlackMarketBtn')?.addEventListener('click', () => toggleDrawer('blackMarketDrawer'));
   document.getElementById('toggleGemsBtn').addEventListener('click', () => toggleDrawer('gemsDrawer'));
   document.getElementById('toggleTreeBtn').addEventListener('click', () => toggleDrawer('passiveTreeModal'));
   document.getElementById('toggleMapDeviceBtn').addEventListener('click', () => toggleDrawer('mapDeviceModal'));
   document.getElementById('switchClassBtn')?.addEventListener('click', () => {
     document.getElementById('inventoryDrawer').classList.add('hidden');
+    document.getElementById('stashDrawer')?.classList.add('hidden');
     document.getElementById('gemsDrawer').classList.add('hidden');
     document.getElementById('blackMarketDrawer')?.classList.add('hidden');
     document.getElementById('passiveTreeModal').classList.add('hidden');

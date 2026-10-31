@@ -43,33 +43,36 @@ function populateMapInteractables(room) {
     { kind: 'shrine', sub: 'brutal', label: 'Brutal Shrine (+45% More Damage & +35% AoE)', color: '#ff6b6b' }
   ];
 
-  // Spawn 5 Active PoE Shrines across the map
-  for (let i = 0; i < 5; i++) {
+  // Spawn 1 Active PoE Shrine on the map
+  const shrineCount = 1;
+  for (let i = 0; i < shrineCount; i++) {
     const pos = randArenaPos(320, 1100, room.interactables);
-    const st = shrineTypes[i % shrineTypes.length];
+    const st = pick(shrineTypes);
     room.interactables.push({
       id: uid('shr'), kind: 'shrine', sub: st.sub, label: st.label, color: st.color,
       x: pos.x, y: pos.y, used: false
     });
   }
 
-  // Spawn 3 PoE Strongboxes (Arcanist, Armourer, Diviner)
+  // Spawn 1 PoE Strongbox (Arcanist, Armourer, Diviner)
   const boxTypes = [
     { sub: 'arcanist', label: "Arcanist's Strongbox (Currency & Ambush)", color: '#ffd43b' },
     { sub: 'armourer', label: "Armourer's Strongbox (Rare Gear & Ambush)", color: '#ff922b' },
     { sub: 'diviner', label: "Diviner's Strongbox (High-Tier Loot & Elites)", color: '#38d9a9' }
   ];
-  for (let i = 0; i < 3; i++) {
+  const boxCount = 1;
+  for (let i = 0; i < boxCount; i++) {
     const pos = randArenaPos(420, 1080, room.interactables);
-    const bt = boxTypes[i % boxTypes.length];
+    const bt = pick(boxTypes);
     room.interactables.push({
       id: uid('box'), kind: 'strongbox', sub: bt.sub, label: bt.label, color: bt.color,
       x: pos.x, y: pos.y, used: false
     });
   }
 
-  // Spawn 2 Breach Hands across the map
-  for (let i = 0; i < 2; i++) {
+  // Spawn 0 or 1 Breach Hand across the map
+  const breachCount = Math.random() < 0.65 ? 1 : 0;
+  for (let i = 0; i < breachCount; i++) {
     const pos = randArenaPos(400, 920, room.interactables);
     room.interactables.push({
       id: uid('brc'), kind: 'breach', sub: 'chayula',
@@ -78,25 +81,21 @@ function populateMapInteractables(room) {
     });
   }
 
-  // Spawn 2 Essence Monoliths (Frozen Multi-Essence Bosses that drop guaranteed Currency & Rare Gear)
-  for (let i = 0; i < 2; i++) {
-    const pos = randArenaPos(380, 900, room.interactables);
-    room.interactables.push({
-      id: uid('ess'), kind: 'essence', sub: 'screaming',
-      label: 'Essence Monolith — Release Crystal Rare & Orbs [E]', color: '#3bc9db',
-      x: pos.x, y: pos.y, used: false
-    });
-  }
+  // Spawn 1 Essence Monolith
+  const posEss = randArenaPos(380, 900, room.interactables);
+  room.interactables.push({
+    id: uid('ess'), kind: 'essence', sub: 'screaming',
+    label: 'Essence Monolith — Release Crystal Rare & Orbs [E]', color: '#3bc9db',
+    x: posEss.x, y: posEss.y, used: false
+  });
 
-  // Spawn 2 Blood Ritual Altars (Summons Ritual Circle Wave + Grants Free Party Boon Draft & Gold)
-  for (let i = 0; i < 2; i++) {
-    const pos = randArenaPos(420, 940, room.interactables);
-    room.interactables.push({
-      id: uid('rit'), kind: 'ritual', sub: 'tribute',
-      label: 'Ritual Altar — Tribute Wave & Free Party Upgrade [E]', color: '#ff4d6d',
-      x: pos.x, y: pos.y, used: false
-    });
-  }
+  // Spawn 1 Blood Ritual Altar
+  const posRit = randArenaPos(420, 940, room.interactables);
+  room.interactables.push({
+    id: uid('rit'), kind: 'ritual', sub: 'tribute',
+    label: 'Ritual Altar — Tribute Wave & Free Party Upgrade [E]', color: '#ff4d6d',
+    x: posRit.x, y: posRit.y, used: false
+  });
 
   // Spawn 1 Delirium Mirror (Triggers 24s of Delirium Fog with Bonus Rewards on Expiry)
   const delPos = randArenaPos(320, 720, room.interactables);
@@ -106,9 +105,10 @@ function populateMapInteractables(room) {
     x: delPos.x, y: delPos.y, used: false
   });
 
-  // Spawn 4 Golden Upgrade Chests across the map (ONLY in room.upgradeChests — never duplicated in room.interactables!)
+  // Spawn 2 Golden Upgrade Chests across the map (ONLY in room.upgradeChests — never duplicated in room.interactables!)
+  const chestCount = 2;
   room.upgradeChests = [];
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < chestCount; i++) {
     const pos = randArenaPos(260, 740, [...room.interactables, ...room.upgradeChests]);
     const chestId = `uchest_${uid('uc')}`;
     room.upgradeChests.push({ id: chestId, x: pos.x, y: pos.y, opened: false });
@@ -265,13 +265,11 @@ function activateInteractable(room, player, it) {
       const gy = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(it.y + Math.sin(ang) * ambushDist)));
       spawnMonster(room, false, { x: gx, y: gy, exact: true }, k === 0 ? 'rare' : k <= 2 ? 'magic' : 'normal');
     }
-    // Scarce Strongbox completion drops: main reward comes from slaying the Ambush pack!
+    // Strongbox drops 1 Currency Orb and 1 Magic/Rare gear item (0.3% Unique chance)
     const dropIlvl = (mapDef.tier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 1;
-    if (it.sub === 'armourer' && Math.random() < 0.35) {
-      spawnGroundDrop(room, it.x - 12, it.y, 'gear', null, dropIlvl);
-    } else if (Math.random() < 0.45) {
-      spawnGroundDrop(room, it.x + 12, it.y, 'currency');
-    }
+    const boxRarity = Math.random() < 0.003 ? 'unique' : (Math.random() < 0.45 ? 'rare' : 'magic');
+    spawnGroundDrop(room, it.x - 14, it.y, 'currency');
+    spawnGroundDrop(room, it.x + 14, it.y, 'gear', boxRarity, dropIlvl);
   } else if (it.kind === 'breach') {
     room.fxEvents.push({ kind: 'nova', x: it.x, y: it.y, r: 140, color: '#cc5de8' });
     if (!Array.isArray(room.activeBreaches)) room.activeBreaches = [];
@@ -279,21 +277,21 @@ function activateInteractable(room, player, it) {
       id: `breach_${it.id}`,
       x: it.x,
       y: it.y,
-      radius: 95,
-      maxRadius: 480,
-      duration: 20,
-      maxDuration: 26,
+      radius: 24,
+      maxRadius: 240,
+      duration: 11.0,
+      maxDuration: 11.0,
       elapsed: 0,
-      spawnTimer: 1.1,
+      spawnTimer: 0.2,
       wavesSpawned: 1,
       kills: 0
     };
     room.activeBreaches.push(breachObj);
 
-    // Initial Breach ring burst: 12 Breach Swarmers + 2 Magic + 1 Rare along the opening ring edge
-    for (let k = 0; k < 12; k++) {
-      const ang = (Math.PI * 2 * k) / 12 + (Math.random() - 0.5) * 0.25;
-      const bDist = randInt(105, 165);
+    // Initial Breach ring burst: 8 Breach Swarmers + 2 Magic + 1 Rare along the opening ring edge
+    for (let k = 0; k < 8; k++) {
+      const ang = (Math.PI * 2 * k) / 8 + (Math.random() - 0.5) * 0.25;
+      const bDist = randInt(95, 165);
       spawnMonster(room, false, { x: it.x + Math.cos(ang) * bDist, y: it.y + Math.sin(ang) * bDist, exact: true }, 'normal', null, true);
     }
     for (let k = 0; k < 2; k++) {
@@ -302,11 +300,11 @@ function activateInteractable(room, player, it) {
     }
     spawnMonster(room, false, { x: it.x, y: it.y - 155, exact: true }, 'rare', null, true);
 
-    addRoomChat(room, 'Breach', `${player.name} ripped open an expanding Chayula Breach Ring! Slay Breach monsters to extend the rift!`, '#cc5de8');
+    addRoomChat(room, 'Breach', `${player.name} ripped open an expanding Chayula Breach Ring (11s)!`, '#cc5de8');
     broadcastRoomEvent(room, {
       type: 'announcement',
       title: 'Chayula Breach Ripped Open!',
-      subtitle: 'Expanding Void Ring opened! Continuous Breach waves emerge along the ring perimeter!',
+      subtitle: 'Void Ring opened for 11 seconds! Slay Breach hordes before it collapses!',
       color: '#cc5de8'
     });
   }

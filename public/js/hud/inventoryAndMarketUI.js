@@ -214,22 +214,56 @@
     }
   }
 
-  // Authentic PoE 1 8x4 Dark-Iron Grid Bag (32 Recessed Cells)
+  // Authentic PoE 1 10x5 Dark-Iron Character Inventory Bag (50 Recessed Cells) & 10x8 Persistent Account Stash (80 Cells)
+  function renderAccountStashGrid() {
+    const grid = document.getElementById('accountStashGrid');
+    if (!grid || !myProfile) return;
+    grid.innerHTML = '';
+    const stash = myProfile.accountStash || [];
+    const countLbl = document.getElementById('stashCountLabel');
+    if (countLbl) countLbl.textContent = `(${stash.length}/80)`;
+
+    for (let idx = 0; idx < 80; idx++) {
+      const entry = stash[idx];
+      const cell = document.createElement('div');
+      if (!entry) {
+        cell.className = 'bag-cell';
+      } else {
+        const isFlaskItem = entry.slot === 'flask';
+        cell.className = `bag-cell occupied rarity-${entry.rarity}`;
+        cell.innerHTML = `<div class="bag-cell-art">${getGearSvg(entry)}</div><span class="bag-cell-slot-tag">${isFlaskItem ? 'FLK' : entry.slot.slice(0, 3).toUpperCase()}</span>`;
+        const withdrawFn = (ev) => {
+          ev.preventDefault();
+          hideTooltip();
+          if (ws) ws.send(JSON.stringify({ type: 'withdraw_stash_item', itemId: entry.id, stashIdx: idx }));
+        };
+        cell.addEventListener('click', withdrawFn);
+        cell.addEventListener('contextmenu', withdrawFn);
+        cell.addEventListener('mouseenter', (ev) => showItemTooltip(ev, entry, true));
+        cell.addEventListener('mouseleave', hideTooltip);
+      }
+      grid.appendChild(cell);
+    }
+  }
+
   function renderStashInventory() {
     const grid = document.getElementById('inventoryGrid');
     grid.innerHTML = '';
     const inv = myProfile.inventory || [];
-    document.getElementById('invCountLabel').textContent = `(${inv.length}/32)`;
+    document.getElementById('invCountLabel').textContent = `(${inv.length}/50)`;
+    const isStashOpen = !document.getElementById('stashDrawer')?.classList.contains('hidden');
     const isVendorOpen = !document.getElementById('blackMarketDrawer')?.classList.contains('hidden');
     const hintEl = document.getElementById('invActionHint');
     if (hintEl) {
-      hintEl.textContent = isVendorOpen
-        ? 'L-Click: Equip • R-Click: Salvage for Shards!'
-        : 'L-Click: Equip • R-Click: Drop on Ground';
-      hintEl.style.color = isVendorOpen ? '#ffd43b' : '#a3937c';
+      hintEl.textContent = isStashOpen
+        ? 'L-Click: Equip • R-Click: Deposit to Account Stash [B]!'
+        : isVendorOpen
+          ? 'L-Click: Equip • R-Click: Salvage for Shards!'
+          : 'L-Click: Equip • R-Click: Drop on Ground';
+      hintEl.style.color = (isStashOpen || isVendorOpen) ? '#ffd43b' : '#a3937c';
     }
 
-    for (let idx = 0; idx < 32; idx++) {
+    for (let idx = 0; idx < 50; idx++) {
       const entry = inv[idx];
       const cell = document.createElement('div');
       if (!entry) {
@@ -259,7 +293,7 @@
           if (ev.shiftKey) {
             hideTooltip();
             ws.send(JSON.stringify({
-              type: 'drop_item',
+              type: isStashOpen ? 'deposit_stash_item' : 'drop_item',
               itemId: entry.id,
               invIdx: idx
             }));
@@ -325,9 +359,10 @@
             renderCurrencyBench();
             return;
           }
+          const stashOpen = !document.getElementById('stashDrawer')?.classList.contains('hidden');
           const vendorOpen = !document.getElementById('blackMarketDrawer')?.classList.contains('hidden');
           ws.send(JSON.stringify({
-            type: vendorOpen ? 'salvage_item' : 'drop_item',
+            type: stashOpen ? 'deposit_stash_item' : vendorOpen ? 'salvage_item' : 'drop_item',
             itemId: entry.id,
             invIdx: idx
           }));
@@ -335,10 +370,11 @@
       }
       grid.appendChild(cell);
     }
+    renderAccountStashGrid();
   }
 
   Object.assign(window.__POS_CTX__, {
-    renderEquipmentPaperDoll, renderBlackMarketBar, renderCurrencyBench, renderStashInventory
+    renderEquipmentPaperDoll, renderBlackMarketBar, renderCurrencyBench, renderStashInventory, renderAccountStashGrid
   });
   }
 })();

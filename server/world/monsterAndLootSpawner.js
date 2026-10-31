@@ -58,13 +58,18 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
   const mapDef = GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId) || GameData.ATLAS_MAPS[0];
   const mapTier = mapDef.tier || 1;
   const partyMult = 1 + (room.players.size - 1) * 0.55;
+  const modHpMult = (room.mapModStats && room.mapModStats.hpMult) || 1;
+  const modDmgMult = (room.mapModStats && room.mapModStats.dmgMult) || 1;
+  const modSpeedMult = (room.mapModStats && room.mapModStats.speedMult) || 1;
+  const modArmorMult = (room.mapModStats && room.mapModStats.armorMult) || 1;
+
   // Exponential Wave & Map Tier HP, Armor, Speed + Damage Scaling
   const waveHpMult = Math.pow(1.12, room.wave - 1) * (1 + (room.wave - 1) * 0.04);
-  const totalHpScale = mapDef.monsterScale * partyMult * waveHpMult;
+  const totalHpScale = mapDef.monsterScale * partyMult * waveHpMult * modHpMult;
   const tierDmgScale = mapDef.dmgScale || Math.pow(mapDef.monsterScale, 0.72);
-  const waveDmgMult = Math.pow(1.055, room.wave - 1) * tierDmgScale;
-  const tierArmor = mapDef.monsterArmor || 0;
-  const tierSpeedScale = mapDef.speedScale || (1 + (mapTier - 1) * 0.12);
+  const waveDmgMult = Math.pow(1.055, room.wave - 1) * tierDmgScale * modDmgMult;
+  const tierArmor = (mapDef.monsterArmor || 0) * modArmorMult;
+  const tierSpeedScale = (mapDef.speedScale || (1 + (mapTier - 1) * 0.12)) * modSpeedMult;
   const tierEliteBonus = mapDef.eliteBonus || 0;
   const xpScale = 1 + (mapTier - 1) * 0.55 + Math.pow(mapTier - 1, 1.4) * 0.18;
 
@@ -149,7 +154,11 @@ function spawnMonsterPack(room) {
   const mapDef = GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId) || GameData.ATLAS_MAPS[0];
   const mapTier = mapDef.tier || 1;
   const tierEliteBonus = mapDef.eliteBonus || 0;
-  const extraPackMobs = Math.floor((mapTier - 1) * 0.65);
+  const basePackMobs = Math.floor((mapTier - 1) * 0.5);
+  const modPackBonus = (room.mapModStats && room.mapModStats.packSize > 0)
+    ? Math.min(2, Math.max(1, Math.round((3 + basePackMobs) * (room.mapModStats.packSize / 100))))
+    : 0;
+  const extraPackMobs = basePackMobs + modPackBonus;
 
   const anchor = pick(alivePlayers);
   const angle = Math.random() * Math.PI * 2;
@@ -216,11 +225,13 @@ function spawnGroundHazard(room, x, y, radius, fuseSec, damage, title = 'Vaal Fl
   });
 }
 
-function spawnGroundDrop(room, x, y, dropCategory, forceRarity = null, itemLevel = 1) {
+function spawnGroundDrop(room, x, y, dropCategory, forceRarity = null, itemLevel = 1, rarityBonusOverride = null) {
   if (room.groundDrops.length > 35) room.groundDrops.shift();
   const mapDef = GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId) || GameData.ATLAS_MAPS[0];
   const mapTier = mapDef ? mapDef.tier : 1;
-  const rarityBonusPct = mapDef ? (mapDef.lootRarityBonus || 0) : 0;
+  const rarityBonusPct = rarityBonusOverride !== null
+    ? rarityBonusOverride
+    : ((mapDef ? (mapDef.lootRarityBonus || 0) : 0) + ((room.mapModStats && room.mapModStats.rarity) || 0));
 
   if (dropCategory === 'flask') {
     const allFlasks = GameData.FLASKS;

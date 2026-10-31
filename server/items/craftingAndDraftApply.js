@@ -224,7 +224,7 @@ function generatePlayerVendorStock(player, mapTierOverride = null) {
     const itemIlvl = Math.max(1, baseIlvl + (idx >= 3 ? 1 : 0));
     let rarity = 'magic';
     if (idx === 5) {
-      rarity = Math.random() < 0.06 ? 'unique' : 'rare';
+      rarity = 'rare';
     } else if (idx === 3 || Math.random() < 0.42) {
       rarity = 'rare';
     }

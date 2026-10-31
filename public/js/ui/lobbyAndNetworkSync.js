@@ -1,7 +1,27 @@
 // Client Module: Multiplayer Party Lobby, WebSocket Connection, Chat & World Entity Sync
 (function () {
   with (window.__POS_CTX__) {
+  window.__POS_CTX__.roomPrivacyPrivate = false;
+
+  function syncPrivacyBtnUI() {
+    const btn = document.getElementById('roomPrivacyToggleBtn');
+    if (!btn) return;
+    const isPriv = !!window.__POS_CTX__.roomPrivacyPrivate;
+    btn.textContent = isPriv ? '🔒 PRIVATE PARTY (CODE ONLY)' : '🌐 PUBLIC PARTY';
+    btn.style.color = isPriv ? '#ffd43b' : '#69db7c';
+    btn.style.borderColor = isPriv ? '#9c7a38' : '#2b8a3e';
+  }
+
+  document.getElementById('roomPrivacyToggleBtn')?.addEventListener('click', () => {
+    window.__POS_CTX__.roomPrivacyPrivate = !window.__POS_CTX__.roomPrivacyPrivate;
+    syncPrivacyBtnUI();
+    if (ws && ws.readyState === 1 && worldState && worldState.roomCode !== 'ORIATH') {
+      ws.send(JSON.stringify({ type: 'toggle_room_privacy', isPrivate: window.__POS_CTX__.roomPrivacyPrivate }));
+    }
+  });
+
   function openLobbyModal() {
+    syncPrivacyBtnUI();
     document.getElementById('lobbyModal')?.classList.remove('hidden');
     fetchActiveRooms();
   }
@@ -85,7 +105,8 @@
 
     socket.addEventListener('open', () => {
       socket.send(JSON.stringify({
-        type: 'join', name, roomCode, roomName, classId, accountId: myAccountId, characterId
+        type: 'join', name, roomCode, roomName, classId, accountId: myAccountId, characterId,
+        isPrivate: !!window.__POS_CTX__.roomPrivacyPrivate
       }));
       document.getElementById('loginModal')?.classList.add('hidden');
       document.getElementById('lobbyModal')?.classList.add('hidden');
@@ -109,6 +130,10 @@
         updateProfileUI();
       } else if (msg.type === 'state') {
         worldState = msg;
+        if (typeof msg.isPrivate === 'boolean' && window.__POS_CTX__.roomPrivacyPrivate !== msg.isPrivate) {
+          window.__POS_CTX__.roomPrivacyPrivate = msg.isPrivate;
+          syncPrivacyBtnUI();
+        }
         worldState.raidBeams = msg.raidBeams || [];
         worldState.raidSanctuary = msg.raidSanctuary || null;
         worldState.deliriumRem = msg.deliriumRem || 0;
@@ -217,23 +242,13 @@
       }
 
       const isMoving = Math.hypot(p.vx || 0, p.vy || 0) > 10;
-      if (p.dead) {
-        switchBaseAction(ent, ent.actions.death);
-      } else if (p.dashing && ent.actions.dash) {
-        switchBaseAction(ent, ent.actions.dash);
-      } else if (isMoving && ent.actions.run) {
-        switchBaseAction(ent, ent.actions.run);
-        ent.yaw = Math.atan2(p.vx, p.vy);
-      } else if (ent.actions.idle) {
-        switchBaseAction(ent, ent.actions.idle);
-      }
+      if (p.dead) switchBaseAction(ent, ent.actions.death);
+      else if (p.dashing && ent.actions.dash) switchBaseAction(ent, ent.actions.dash);
+      else if (isMoving && ent.actions.run) { switchBaseAction(ent, ent.actions.run); ent.yaw = Math.atan2(p.vx, p.vy); }
+      else if (ent.actions.idle) switchBaseAction(ent, ent.actions.idle);
     }
     for (const [id, ent] of playerEntities.entries()) {
-      if (!seenPlayers.has(id)) {
-        playersGroup.remove(ent.group);
-        cleanupEntity3D(ent);
-        playerEntities.delete(id);
-      }
+      if (!seenPlayers.has(id)) { playersGroup.remove(ent.group); cleanupEntity3D(ent); playerEntities.delete(id); }
     }
 
     // 2. Sync Enemies
@@ -251,9 +266,7 @@
       const isChilled = Boolean(m.chilled);
       if (ent.lastChilled !== isChilled) {
         ent.lastChilled = isChilled;
-        for (const mat of ent.materials) {
-          mat.color.setHex(isChilled ? 0x66d9e8 : 0xffffff);
-        }
+        for (const mat of ent.materials) mat.color.setHex(isChilled ? 0x66d9e8 : 0xffffff);
       }
     }
     let deathBursts = 0;
@@ -261,11 +274,7 @@
       if (!seenEnemies.has(id)) {
         if (deathBursts < 2) {
           deathBursts++;
-          spawnDeathBurst3D(
-            ent.group.position.x,
-            ent.group.position.z,
-            ent.rarity === 'rare' ? 0xffd43b : 0xd93829
-          );
+          spawnDeathBurst3D(ent.group.position.x, ent.group.position.z, ent.rarity === 'rare' ? 0xffd43b : 0xd93829);
         }
         releaseEnemy3D(ent);
         enemyEntities.delete(id);
@@ -281,11 +290,7 @@
       if (prj.vx || prj.vy) ent.group.rotation.y = Math.atan2(prj.vx, prj.vy);
     }
     for (const [id, ent] of projEntities.entries()) {
-      if (!seenProjs.has(id)) {
-        projectilesGroup.remove(ent.group);
-        cleanupEntity3D(ent);
-        projEntities.delete(id);
-      }
+      if (!seenProjs.has(id)) { projectilesGroup.remove(ent.group); cleanupEntity3D(ent); projEntities.delete(id); }
     }
 
     // 4. Sync Telegraphed Ground Hazards
@@ -296,28 +301,16 @@
       ent.innerFill.scale.setScalar(Math.max(0.08, h.prog));
     }
     for (const [id, ent] of hazardEntities.entries()) {
-      if (!seenHaz.has(id)) {
-        hazardsGroup.remove(ent.group);
-        cleanupEntity3D(ent);
-        hazardEntities.delete(id);
-      }
+      if (!seenHaz.has(id)) { hazardsGroup.remove(ent.group); cleanupEntity3D(ent); hazardEntities.delete(id); }
     }
 
-    // 5. Sync Map Interactables (Shrines, Strongboxes & Breaches)
+    // 5. Sync Map Interactables, Upgrade Chests, Breaches & Ground Drops
     const seenInt = new Set();
-    for (const it of (worldState.interactables || [])) {
-      seenInt.add(it.id);
-      getOrCreateInteractable3D(it);
-    }
+    for (const it of (worldState.interactables || [])) { seenInt.add(it.id); getOrCreateInteractable3D(it); }
     for (const [id, ent] of interactableEntities.entries()) {
-      if (!seenInt.has(id)) {
-        interactablesGroup.remove(ent.group);
-        cleanupEntity3D(ent);
-        interactableEntities.delete(id);
-      }
+      if (!seenInt.has(id)) { interactablesGroup.remove(ent.group); cleanupEntity3D(ent); interactableEntities.delete(id); }
     }
 
-    // 5B. Sync Scaling Gold Upgrade Chests
     const seenChests = new Set();
     for (const ch of (worldState.upgradeChests || [])) {
       if (ch.opened) continue;
@@ -325,39 +318,19 @@
       getOrCreateUpgradeChest3D(ch);
     }
     for (const [id, ent] of upgradeChestEntities.entries()) {
-      if (!seenChests.has(id)) {
-        interactablesGroup.remove(ent.group);
-        cleanupEntity3D(ent);
-        upgradeChestEntities.delete(id);
-      }
+      if (!seenChests.has(id)) { interactablesGroup.remove(ent.group); cleanupEntity3D(ent); upgradeChestEntities.delete(id); }
     }
 
-    // 5C. Sync Active Expanding PoE Breach Rings
     const seenBreaches = new Set();
-    for (const b of (worldState.breaches || [])) {
-      seenBreaches.add(b.id);
-      getOrCreateBreachRing3D(b);
-    }
+    for (const b of (worldState.breaches || [])) { seenBreaches.add(b.id); getOrCreateBreachRing3D(b); }
     for (const [id, ent] of breachRingEntities.entries()) {
-      if (!seenBreaches.has(id)) {
-        interactablesGroup.remove(ent.group);
-        cleanupEntity3D(ent);
-        breachRingEntities.delete(id);
-      }
+      if (!seenBreaches.has(id)) { interactablesGroup.remove(ent.group); cleanupEntity3D(ent); breachRingEntities.delete(id); }
     }
 
-    // 6. Sync Ground Loot Drops
     const seenDrops = new Set();
-    for (const d of worldState.drops) {
-      seenDrops.add(d.id);
-      getOrCreateDrop3D(d);
-    }
+    for (const d of worldState.drops) { seenDrops.add(d.id); getOrCreateDrop3D(d); }
     for (const [id, ent] of dropEntities.entries()) {
-      if (!seenDrops.has(id)) {
-        dropsGroup.remove(ent.group);
-        cleanupEntity3D(ent);
-        dropEntities.delete(id);
-      }
+      if (!seenDrops.has(id)) { dropsGroup.remove(ent.group); cleanupEntity3D(ent); dropEntities.delete(id); }
     }
 
     // 7. Extraction Portal

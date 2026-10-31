@@ -275,6 +275,8 @@
       if (!s.noEs) s.maxEs += hhStacks * 35;
     }
 
+    s.extraProj = Math.min(2, s.extraProj || 0);
+    s.extraChain = Math.min(2, s.extraChain || 0);
     s.finalMoveSpeed = Math.round(s.moveSpeed * (1 + s.moveSpeedPct / 100));
     s.finalCritChance = s.resoluteTechnique ? 0 : Math.min(95, +(s.critChance * (1 + s.critChanceInc / 100)).toFixed(1));
     s.allRes = Math.min(78, s.allRes);

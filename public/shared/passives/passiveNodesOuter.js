@@ -321,8 +321,8 @@
       color: '#28e64c',
       x: 290,
       y: 310,
-      stats: { extraProj: 1, projDmgPct: 16, areaPct: -10 },
-      desc: ['Skills fire +1 additional Projectile & 16% increased Projectile Damage', '10% reduced Area of Effect Radius'],
+      stats: { projDmgPct: 18, attackSpeedPct: 10, cdrPct: 10, areaPct: -10 },
+      desc: ['18% increased Projectile Damage & 10% increased Attack Speed', '10% reduced Area of Effect Radius'],
       neighbors: ['dex_proj_2', 'dex_notable_raider', 'duel_leech_2']
     },
     keystone_acrobatics: {

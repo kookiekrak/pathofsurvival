@@ -32,7 +32,45 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_characters_account ON characters(account_id, updated_at DESC);
   DROP INDEX IF EXISTS idx_characters_account_name;
   CREATE UNIQUE INDEX IF NOT EXISTS idx_characters_account_name_class ON characters(account_id, lower(name), class_id);
+  CREATE TABLE IF NOT EXISTS account_stash (
+    account_id TEXT PRIMARY KEY,
+    stash_json TEXT NOT NULL DEFAULT '[]',
+    updated_at INTEGER NOT NULL DEFAULT 0
+  );
 `);
+
+const stmtGetAccountStash = db.prepare(`SELECT stash_json FROM account_stash WHERE account_id = ?`);
+const stmtUpsertAccountStash = db.prepare(`
+  INSERT INTO account_stash (account_id, stash_json, updated_at)
+  VALUES (?, ?, ?)
+  ON CONFLICT(account_id) DO UPDATE SET
+    stash_json = excluded.stash_json,
+    updated_at = excluded.updated_at
+`);
+
+function getAccountStash(accountId) {
+  const cleanId = String(accountId || 'global').slice(0, 64);
+  try {
+    const row = stmtGetAccountStash.get(cleanId);
+    if (row && row.stash_json) {
+      const parsed = JSON.parse(row.stash_json);
+      if (Array.isArray(parsed)) return parsed.slice(0, 80);
+    }
+  } catch (err) {
+    console.error('SQLite getAccountStash error:', err.message);
+  }
+  return [];
+}
+
+function saveAccountStash(accountId, items) {
+  const cleanId = String(accountId || 'global').slice(0, 64);
+  const safeArr = Array.isArray(items) ? items.slice(0, 80) : [];
+  try {
+    stmtUpsertAccountStash.run(cleanId, JSON.stringify(safeArr), Date.now());
+  } catch (err) {
+    console.error('SQLite saveAccountStash error:', err.message);
+  }
+}
 
 const stmtListCharacters = db.prepare(`
   SELECT id, account_id, name, class_id, level, xp, xp_next, passive_points, equipment_json, inventory_json, currencies_json, gold, updated_at
@@ -107,6 +145,9 @@ function saveCharacterToDb(player) {
       Math.max(0, Math.floor(player.gold || 0)),
       Date.now()
     );
+    if (Array.isArray(player.accountStash)) {
+      saveAccountStash(player.accountId || 'global', player.accountStash);
+    }
   } catch (err) {
     console.error('SQLite saveCharacterToDb error:', err.message);
   }
@@ -155,6 +196,8 @@ const exportsObj = {
   stmtGetCharacterByName,
   stmtUpsertCharacter,
   stmtDeleteCharacter,
+  getAccountStash,
+  saveAccountStash,
   saveCharacterToDb,
   flushAllCharactersToDb,
   uid,

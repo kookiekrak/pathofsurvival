@@ -153,6 +153,9 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
       room.bossSpawned = true;
       room.lastBossWave = room.wave;
       spawnMonster(room, true);
+      if (room.mapModStats && room.mapModStats.twinned) {
+        spawnMonster(room, true);
+      }
       const mapDef = GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId) || GameData.ATLAS_MAPS[0];
       broadcastRoomEvent(room, {
         type: 'announcement',
@@ -186,38 +189,35 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
       }
     }
 
-    // Update Active Expanding Breach Rings (continuous ring expansion + monster surge along ring edge!)
+    // Update Active Expanding Breach Rings (fast expansion to 240 maxRadius + monster surge along ring edge!)
     if (Array.isArray(room.activeBreaches) && room.activeBreaches.length > 0) {
       for (let bi = room.activeBreaches.length - 1; bi >= 0; bi--) {
         const b = room.activeBreaches[bi];
         b.elapsed = (b.elapsed || 0) + dt;
         b.duration -= dt;
-        b.radius = Math.min(b.maxRadius || 480, 95 + b.elapsed * 24);
+        b.radius = Math.min(b.maxRadius || 240, b.radius + 95 * dt);
         b.spawnTimer = (b.spawnTimer || 0) - dt;
 
         if (b.spawnTimer <= 0 && b.duration > 0) {
-          b.spawnTimer = 1.1;
+          b.spawnTimer = 1.2;
           b.wavesSpawned = (b.wavesSpawned || 0) + 1;
 
-          // Spawn 7 to 10 Breach monsters along the expanding Breach Ring perimeter!
-          const swarmerCount = randInt(6, 8);
+          // Spawn 5 to 7 Breach monsters along the Breach Ring perimeter!
+          const swarmerCount = randInt(5, 7);
           for (let k = 0; k < swarmerCount; k++) {
             const ang = (Math.PI * 2 * k) / swarmerCount + (Math.random() - 0.5) * 0.45 + b.wavesSpawned * 0.37;
-            const ringDist = Math.round(b.radius * (0.86 + Math.random() * 0.18));
+            const ringDist = Math.round(b.radius * (0.86 + Math.random() * 0.14));
             const bx = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(b.x + Math.cos(ang) * ringDist)));
             const by = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(b.y + Math.sin(ang) * ringDist)));
             spawnMonster(room, false, { x: bx, y: by, exact: true }, 'normal', null, true);
           }
 
-          // 1-2 Magic Breach Elites on every ring pulse
-          const magicCount = Math.random() < 0.5 ? 2 : 1;
-          for (let mIdx = 0; mIdx < magicCount; mIdx++) {
-            const mAng = Math.random() * Math.PI * 2;
-            const mDist = Math.round(b.radius * 0.94);
-            const mx = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(b.x + Math.cos(mAng) * mDist)));
-            const my = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(b.y + Math.sin(mAng) * mDist)));
-            spawnMonster(room, false, { x: mx, y: my, exact: true }, 'magic', null, true);
-          }
+          // 1 Magic Breach Elite on every ring pulse
+          const mAng = Math.random() * Math.PI * 2;
+          const mDist = Math.round(b.radius * 0.94);
+          const mx = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(b.x + Math.cos(mAng) * mDist)));
+          const my = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(b.y + Math.sin(mAng) * mDist)));
+          spawnMonster(room, false, { x: mx, y: my, exact: true }, 'magic', null, true);
 
           // Spawn a Rare Breach Lord every 3rd pulse along the ring edge
           if (b.wavesSpawned % 3 === 0) {
@@ -236,9 +236,9 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
             r: Math.round(b.radius * 0.65),
             color: '#cc5de8'
           });
-          if ((b.kills || 0) >= 12 && Math.random() < 0.65) {
-            spawnGroundDrop(room, b.x, b.y, 'currency');
-          }
+          const dropIlvl = ((activeMapDef.tier || 1) - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
+          spawnGroundDrop(room, b.x - 14, b.y, 'currency');
+          spawnGroundDrop(room, b.x + 14, b.y, 'gear', Math.random() < 0.008 ? 'unique' : 'rare', dropIlvl);
           addRoomChat(room, 'Breach', `The Breach collapsed back into the Void (${b.kills || 0} Breach monsters slain)!`, '#cc5de8');
           room.activeBreaches.splice(bi, 1);
         }

@@ -227,7 +227,7 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
     const slotIdx = Math.max(0, Math.min(4, Math.floor(Number(msg.slotIndex) || 0)));
     const fId = currentPlayer.flaskBelt[slotIdx];
     const prevMeta = currentPlayer.flaskBeltItems[slotIdx] || null;
-    if (!fId || currentPlayer.inventory.length >= 32) return true;
+    if (!fId || currentPlayer.inventory.length >= 50) return true;
     currentPlayer.flaskBelt[slotIdx] = null;
     currentPlayer.flaskBeltItems[slotIdx] = null;
     currentPlayer.flaskSlotCharges[slotIdx] = 0;
@@ -240,7 +240,7 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
   if (msg.type === 'unequip_item') {
     const slot = msg.slot;
     const item = slot ? currentPlayer.equipment[slot] : null;
-    if (!item || currentPlayer.inventory.length >= 32) return true;
+    if (!item || currentPlayer.inventory.length >= 50) return true;
     currentPlayer.equipment[slot] = null;
     currentPlayer.inventory.push(item);
     recalcPlayer(currentPlayer, false);
@@ -346,8 +346,8 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
       sendCraftFeedback(ws, false, `Need ${entry.cost} ${isRun ? 'Run Gold' : 'Gold'} to purchase ${entry.item.name}!`);
       return true;
     }
-    if (currentPlayer.inventory.length >= 32) {
-      sendCraftFeedback(ws, false, 'Inventory is full (32/32)! Salvage or drop items first.');
+    if (currentPlayer.inventory.length >= 50) {
+      sendCraftFeedback(ws, false, 'Character Inventory is full (50/50)! Deposit to Stash [S] or salvage items first.');
       return true;
     }
     if (isRun) currentPlayer.runGold -= entry.cost;
@@ -370,8 +370,8 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
       sendCraftFeedback(ws, false, `Need ${entry.price} Gold to buy back ${entry.item.name}!`);
       return true;
     }
-    if (currentPlayer.inventory.length >= 32) {
-      sendCraftFeedback(ws, false, 'Inventory is full (32/32)!');
+    if (currentPlayer.inventory.length >= 50) {
+      sendCraftFeedback(ws, false, 'Character Inventory is full (50/50)!');
       return true;
     }
     if (isRun) currentPlayer.runGold -= entry.price;

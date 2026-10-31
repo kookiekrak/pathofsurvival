@@ -15,9 +15,26 @@
       excludeTags: ['Aura'],
       mods: {
         extraProjectiles: 2,
+        projBonus: 2,
         damageMulti: 0.78
       },
       description: 'Supported Projectile Skills fire +2 additional Projectiles (22% less per-hit damage).'
+    },
+    lmp: {
+      id: 'lmp',
+      name: 'Lesser Multiple Projectiles',
+      short: 'LMP',
+      type: 'support',
+      color: 'G',
+      tags: ['Projectile'],
+      requireTags: ['Projectile'],
+      excludeTags: ['Aura'],
+      mods: {
+        extraProjectiles: 1,
+        projBonus: 1,
+        damageMulti: 0.90
+      },
+      description: 'Supported Projectile Skills fire +1 additional Projectile (10% less per-hit damage).'
     },
     multistrike: {
       id: 'multistrike',
@@ -326,11 +343,12 @@
       requireTags: ['Projectile'],
       excludeTags: ['Aura', 'Melee'],
       mods: {
-        extraProjectiles: 2,
+        extraProjectiles: 1,
+        projBonus: 1,
         cooldownMulti: 0.90,
-        damageMulti: 0.84
+        damageMulti: 0.88
       },
-      description: 'Supported Projectile Skills fire +2 Volley Projectiles and recover cooldown 10% faster.'
+      description: 'Supported Projectile Skills fire +1 Volley Projectile and recover cooldown 10% faster (12% less per-hit damage).'
     },
     trinity: {
       id: 'trinity',

@@ -32,9 +32,11 @@
       modeBadge.textContent = `Monster Level ${67 + mapDef.tier}`;
       waveTitle.textContent = `${mapDef.name} — Wave ${worldState.wave}`;
       const delSub = worldState.deliriumRem > 0 ? ` • DELIRIUM FOG (${worldState.deliriumRem}s • ${worldState.deliriumKills || 0} Slain)` : '';
+      const modQuant = (worldState.mapModStats && worldState.mapModStats.quant) || 0;
+      const totalQuant = Math.max(0, (mapDef.lootQuantity || 100) - 100 + modQuant);
       waveSub.textContent = (worldState.portalsOpen
         ? `Boss Slain • Extraction Portal Open at (0,0) • Endless Waves Active`
-        : `${mapDef.bossName} • ${mins}:${secs} • +${mapDef.lootQuantity}% Item Quantity`) + delSub;
+        : `${mapDef.bossName} • ${mins}:${secs} • +${totalQuant}% Item Quantity`) + delSub;
 
       if (waveProgWrap) {
         waveProgWrap.classList.remove('hidden');
@@ -219,6 +221,9 @@
     renderCharStatsSummary();
     if (!document.getElementById('passiveTreeModal').classList.contains('hidden')) {
       renderPassiveTree();
+    }
+    if (!document.getElementById('mapDeviceModal').classList.contains('hidden') && typeof initMapDeviceModal === 'function') {
+      initMapDeviceModal();
     }
   }
 

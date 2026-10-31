@@ -1,8 +1,31 @@
 // Server Combat Module: Active Skill Setup Execution & Vaal Ultimate Triggers
 const GameData = global.GameData || require('../../public/shared/gameData.js');
 
+const HEAVY_AOE_SKILLS = new Set([
+  'ball_lightning', 'fireball', 'glacial_cascade', 'volcanic_fissure', 'sunder', 'eye_of_winter', 'molten_strike'
+]);
+
+const _baseBuildSkillExecution = global.buildSkillExecution;
+function buildSkillExecution(player, setup) {
+  const exec = typeof _baseBuildSkillExecution === 'function' ? _baseBuildSkillExecution(player, setup) : {};
+  if (exec && exec.active) {
+    const maxProj = HEAVY_AOE_SKILLS.has(exec.active.id) ? 4 : 6;
+    exec.projCount = Math.min(maxProj, Math.max(1, exec.projCount || 1));
+  }
+  return exec;
+}
+
+function spawnProjectile(room, prj) {
+  if (room.projectiles.length >= 42) {
+    room.projectiles.shift();
+  }
+  room.projectiles.push(prj);
+}
+
 function triggerSkillSetup(room, player, exec) {
   const active = exec.active;
+  const maxProj = HEAVY_AOE_SKILLS.has(active.id) ? 4 : 6;
+  exec.projCount = Math.min(maxProj, Math.max(1, exec.projCount || 1));
   const isFiringLmb = !!(player.input && player.input.firing);
   // Auto-aim only acquires monsters within visible screen distance (330 units) so players never shoot off-screen into HUD corners!
   const nearest = findNearestEnemy(room, player.x, player.y, 330);
@@ -175,10 +198,10 @@ function triggerSkillSetup(room, player, exec) {
         damageEnemy(room, m, dmg, isCrit, player, exec.lifeOnHit, 'fire');
       }
     }
-    const lobCount = Math.max(4, exec.projCount);
+    const lobCount = Math.min(4, Math.max(2, exec.projCount));
     for (let k = 0; k < lobCount; k++) {
       const lAng = (Math.PI * 2 * k) / lobCount + 0.3;
-      room.projectiles.push({
+      spawnProjectile(room, {
         id: uid('prj'), ownerId: player.id, skillId: 'molten_strike', behavior: 'molten_lob',
         damageType: 'fire', x: geyser.x, y: geyser.y, vx: Math.cos(lAng) * 280, vy: Math.sin(lAng) * 280,
         speed: 280, radius: 11, aoeRadius: 56, chainsLeft: 0, pierceLeft: 0, duration: 0.42, maxDuration: 0.42, exec, hitIds: new Set()
@@ -261,26 +284,14 @@ function triggerSkillSetup(room, player, exec) {
     const speed = active.projSpeed || 520;
     const dur = exec.returnProj ? Math.max(1.1, active.duration || 0.85) : (active.duration || 0.85);
 
-    room.projectiles.push({
-      id: uid('prj'),
-      ownerId: player.id,
-      skillId: active.id,
-      behavior,
-      damageType: active.damageType,
-      x: player.x,
-      y: player.y,
-      vx: Math.cos(ang) * speed,
-      vy: Math.sin(ang) * speed,
-      speed,
+    spawnProjectile(room, {
+      id: uid('prj'), ownerId: player.id, skillId: active.id, behavior, damageType: active.damageType,
+      x: player.x, y: player.y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed, speed,
       radius: behavior === 'sunder_wave' ? exec.radius : (behavior === 'ball_lightning' || behavior === 'eye_of_winter' ? 16 : 11),
       aoeRadius: exec.radius,
       chainsLeft: behavior === 'lightning_arrow' ? Math.max(2, exec.chains) : exec.chains,
       pierceLeft: (behavior === 'ball_lightning' || behavior === 'eye_of_winter') ? 99 : (behavior === 'lightning_arrow' ? Math.max(2, exec.pierceCount || 0) : (exec.pierceCount || 0)),
-      duration: dur,
-      maxDuration: dur,
-      pulseCd: 0.12,
-      exec,
-      hitIds: new Set()
+      duration: dur, maxDuration: dur, pulseCd: 0.28, exec, hitIds: new Set()
     });
   }
 }
@@ -293,8 +304,7 @@ function triggerVaalSkill(room, player) {
   const cls = GameData.CLASSES[player.classId] || GameData.CLASSES.Marauder;
   const vaalId = cls.vaalSkill || 'vaal_cyclone';
   const vaalDef = (GameData.VAAL_SKILLS && GameData.VAAL_SKILLS[vaalId]) || {
-    id: vaalId,
-    name: `Vaal ${cls.name} Cataclysm`,
+    id: vaalId, name: `Vaal ${cls.name} Cataclysm`,
     damageType: player.classId === 'Witch' ? 'lightning' : player.classId === 'Templar' ? 'fire' : 'physical',
     color: cls.glow || cls.color || '#ff6b4a'
   };
@@ -305,11 +315,8 @@ function triggerVaalSkill(room, player) {
     : { active: { id: vaalId, damageType: vaalDef.damageType || 'physical' }, dmgMin: 35, dmgMax: 60, critChance: 20, critMulti: 1.75, lifeOnHit: 5, radius: 90 };
 
   const vaalExec = {
-    ...baseExec,
-    dmgMin: Math.round(baseExec.dmgMin * 2.4),
-    dmgMax: Math.round(baseExec.dmgMax * 2.4),
-    radius: 75,
-    isVaal: true
+    ...baseExec, dmgMin: Math.round(baseExec.dmgMin * 2.4), dmgMax: Math.round(baseExec.dmgMax * 2.4),
+    radius: 75, isVaal: true
   };
 
   const novaColor = vaalDef.color || cls.glow || '#ff6b4a';
@@ -342,31 +349,17 @@ function triggerVaalSkill(room, player) {
     }
   }
 
-  // Spawn 10 non-chaining Vaal projectiles (flagged isVaalProj so they cannot generate Vaal souls)
-  const ringCount = 10;
+  // Spawn 8 non-chaining Vaal projectiles (flagged isVaalProj so they cannot generate Vaal souls)
+  const ringCount = 8;
   for (let i = 0; i < ringCount; i++) {
     const ang = (Math.PI * 2 * i) / ringCount;
     const speed = 520;
-    room.projectiles.push({
-      id: uid('prj'),
-      ownerId: player.id,
-      skillId: baseExec.active ? baseExec.active.id : 'fireball',
-      behavior: 'standard',
-      isVaalProj: true,
-      damageType: vaalDef.damageType || 'fire',
-      x: player.x,
-      y: player.y,
-      vx: Math.cos(ang) * speed,
-      vy: Math.sin(ang) * speed,
-      speed,
-      radius: 13,
-      aoeRadius: 48,
-      chainsLeft: 0,
-      pierceLeft: 1,
-      duration: 0.78,
-      maxDuration: 0.78,
-      exec: vaalExec,
-      hitIds: new Set()
+    spawnProjectile(room, {
+      id: uid('prj'), ownerId: player.id, skillId: baseExec.active ? baseExec.active.id : 'fireball',
+      behavior: 'standard', isVaalProj: true, damageType: vaalDef.damageType || 'fire',
+      x: player.x, y: player.y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed, speed,
+      radius: 13, aoeRadius: 48, chainsLeft: 0, pierceLeft: 1, duration: 0.78, maxDuration: 0.78,
+      exec: vaalExec, hitIds: new Set()
     });
   }
 
@@ -375,6 +368,6 @@ function triggerVaalSkill(room, player) {
   return true;
 }
 
-const exportsObj = { triggerSkillSetup, triggerVaalSkill };
+const exportsObj = { buildSkillExecution, spawnProjectile, triggerSkillSetup, triggerVaalSkill };
 Object.assign(global, exportsObj);
 module.exports = exportsObj;

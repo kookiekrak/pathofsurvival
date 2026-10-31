@@ -4,6 +4,9 @@ const GameData = global.GameData || require('../../public/shared/gameData.js');
 function createRoom(code, roomName) {
   const room = {
     code, roomName: roomName || `${code} Instance`, state: 'HIDEOUT', selectedMapId: 'strand',
+    isPrivate: false,
+    craftedMap: { mapId: 'strand', rarity: 'normal', mods: [], scoured: false },
+    mapModStats: null,
     players: new Map(), enemies: new Map(), projectiles: [], groundDrops: [], hazards: [],
     interactables: [], upgradeChests: [], activeBreaches: [], fxEvents: [],
     chatLog: [{ sender: 'System', text: `Welcome to ${code}. Prepare your build and click READY to open Atlas Portals!`, color: '#f2c76e' }],
@@ -97,7 +100,7 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
     try {
       const parsedInv = JSON.parse(savedRow.inventory_json || '[]');
       if (Array.isArray(parsedInv)) {
-        inventory = parsedInv.slice(0, 32).map(it => {
+        inventory = parsedInv.slice(0, 50).map(it => {
           if (!it) return it;
           if (it.rarity === 'unique') it = normalizeUniqueItem(it);
           return normalizeItemAffixRanges(it);
@@ -160,6 +163,12 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
   currencies._league = league;
   currencies._deadHardcore = deadHardcore;
 
+  const accountStash = getAccountStash(cleanAccountId).map(it => {
+    if (!it) return it;
+    if (it.rarity === 'unique') it = normalizeUniqueItem(it);
+    return normalizeItemAffixRanges(it);
+  });
+
   const player = {
     id: uid('p'), characterId: resolvedCharId, accountId: cleanAccountId, ws, name: resolvedName,
     classId: lockedClassId, league, deadHardcore, bestTier, bossKills, slainInZone, ready: false,
@@ -168,7 +177,7 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
     equipment, gemLinks: starter.gemLinks, supportReserve: starter.supportReserve,
     skillRings: [], runUpgrades: {}, gold, runGold: 0, startingRunGold: 0, earnedRunGold: 0,
     draftRerolls: 0, currentMapId: 'strand', chestsOpened: 0, nextChestCost: 50, targetChestId: null,
-    pendingDrafts: [], inventory, buybackItems: [],
+    pendingDrafts: [], inventory, accountStash, buybackItems: [],
     vendorStock: Array.isArray(currencies._vendorStock) && currencies._vendorStock.length === 6 ? currencies._vendorStock : [],
     currencies, x: randInt(-90, 90), y: randInt(50, 150), vx: 0, vy: 0, aimX: 0, aimY: -1,
     input: { up: false, down: false, left: false, right: false, firing: false },
@@ -289,6 +298,7 @@ function sendPrivateProfile(player) {
     supportReserve: player.supportReserve,
     pendingDrafts: player.pendingDrafts,
     inventory: player.inventory,
+    accountStash: player.accountStash || [],
     buybackItems: player.buybackItems || [],
     currencies: player.currencies,
     flaskCharges: player.flaskCharges,

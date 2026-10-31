@@ -120,7 +120,10 @@
             <tbody id="roomBrowserBody"></tbody>
           </table>
         </div>
-        <div class="poe-section-title" style="margin-top:16px"><span>DIRECT INSTANCE GATEWAY</span></div>
+        <div class="poe-section-title" style="margin-top:14px">
+          <span>DIRECT INSTANCE GATEWAY</span>
+          <button id="roomPrivacyToggleBtn" class="poe-chisel-btn sm-btn" style="color:#69db7c;border-color:#2b8a3e" type="button" title="Toggle whether your Party Instance appears in the Public Party Browser">🌐 PUBLIC PARTY</button>
+        </div>
         <div class="login-row">
           <div class="input-group"><label for="roomCodeInput">INSTANCE CODE</label><input id="roomCodeInput" type="text" maxlength="8" placeholder="ORIATH" value="ORIATH" /></div>
           <div class="input-group"><label for="roomNameInput">PARTY DESCRIPTION</label><input id="roomNameInput" type="text" maxlength="22" placeholder="Oriath Docks" value="Oriath Docks" /></div>
@@ -209,18 +212,10 @@
           <div class="globe-specular"></div>
         </div>
         <svg class="globe-metal-svg" viewBox="0 0 200 200" aria-hidden="true">
-          <defs>
-            <linearGradient id="bronzeGradL" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#a88c5c"/><stop offset="45%" stop-color="#5c4728"/><stop offset="100%" stop-color="#21180c"/>
-            </linearGradient>
-          </defs>
-          <circle cx="100" cy="100" r="88" fill="none" stroke="#14100b" stroke-width="10"/>
-          <circle cx="100" cy="100" r="86" fill="none" stroke="url(#bronzeGradL)" stroke-width="5"/>
-          <circle cx="100" cy="100" r="81" fill="none" stroke="#080604" stroke-width="2"/>
-          <path d="M12,96 L4,82 L15,74 L10,58 L24,54 L26,38 L42,40 L52,22 L66,28" fill="none" stroke="url(#bronzeGradL)" stroke-width="3.5"/>
-          <path d="M100,10 L106,2 L112,11 M188,96 L196,84 L185,74" fill="none" stroke="url(#bronzeGradL)" stroke-width="3"/>
-          <circle cx="100" cy="14" r="3" fill="#c8b38a"/><circle cx="38" cy="38" r="3" fill="#c8b38a"/><circle cx="162" cy="38" r="3" fill="#c8b38a"/>
-          <circle cx="14" cy="100" r="3" fill="#c8b38a"/><circle cx="186" cy="100" r="3" fill="#c8b38a"/>
+          <defs><linearGradient id="bronzeGradL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a88c5c"/><stop offset="45%" stop-color="#5c4728"/><stop offset="100%" stop-color="#21180c"/></linearGradient></defs>
+          <circle cx="100" cy="100" r="88" fill="none" stroke="#14100b" stroke-width="10"/><circle cx="100" cy="100" r="86" fill="none" stroke="url(#bronzeGradL)" stroke-width="5"/><circle cx="100" cy="100" r="81" fill="none" stroke="#080604" stroke-width="2"/>
+          <path d="M12,96 L4,82 L15,74 L10,58 L24,54 L26,38 L42,40 L52,22 L66,28" fill="none" stroke="url(#bronzeGradL)" stroke-width="3.5"/><path d="M100,10 L106,2 L112,11 M188,96 L196,84 L185,74" fill="none" stroke="url(#bronzeGradL)" stroke-width="3"/>
+          <circle cx="100" cy="14" r="3" fill="#c8b38a"/><circle cx="38" cy="38" r="3" fill="#c8b38a"/><circle cx="162" cy="38" r="3" fill="#c8b38a"/><circle cx="14" cy="100" r="3" fill="#c8b38a"/><circle cx="186" cy="100" r="3" fill="#c8b38a"/>
         </svg>
       </div>
     </div>
@@ -240,11 +235,12 @@
           </button>
           <div class="tray-divider"></div>
           <div class="poe-micro-menu">
-            <button id="toggleInventoryBtn" class="poe-menu-btn" title="Inventory, Paper-Doll &amp; Currency Crafting (Key: I)"><span class="menu-key">I</span><span class="menu-lbl">INV</span></button>
+            <button id="toggleInventoryBtn" class="poe-menu-btn" title="Character Inventory, Paper-Doll &amp; Currency Crafting (Key: I)"><span class="menu-key">I</span><span class="menu-lbl">INV</span></button>
+            <button id="toggleStashBtn" class="poe-menu-btn" title="Persistent Account Stash — Shared Across All Characters (Key: B)"><span class="menu-key">B</span><span class="menu-lbl">STSH</span></button>
             <button id="toggleBlackMarketBtn" class="poe-menu-btn" title="Run Equipment Vendor &amp; Shard Salvage Bench (Key: V)"><span class="menu-key">V</span><span class="menu-lbl">VEND</span></button>
             <button id="toggleGemsBtn" class="poe-menu-btn" title="Character Sheet &amp; Skill Gem Links (Key: C or G)"><span class="menu-key">C</span><span class="menu-lbl">CHAR</span><span id="pendingDraftBadge" class="notify-pip hidden">!</span></button>
             <button id="toggleTreeBtn" class="poe-menu-btn" title="Passive Skill Tree (Key: P)"><span class="menu-key">P</span><span class="menu-lbl">TREE</span><span id="unspentPassiveBadge" class="notify-pip">2</span></button>
-            <button id="toggleMapDeviceBtn" class="poe-menu-btn map-menu-btn" title="Atlas Map Device &amp; Party Staging (Key: M)"><span class="menu-key">M</span><span class="menu-lbl">MAP</span></button>
+            <button id="toggleMapDeviceBtn" class="poe-menu-btn map-menu-btn" title="Atlas Map Device &amp; Map Crafting (Key: M)"><span class="menu-key">M</span><span class="menu-lbl">MAP</span></button>
           </div>
         </div>
       </div>
@@ -269,28 +265,33 @@
           <div class="globe-specular"></div>
         </div>
         <svg class="globe-metal-svg" viewBox="0 0 200 200" aria-hidden="true">
-          <circle cx="100" cy="100" r="88" fill="none" stroke="#14100b" stroke-width="10"/>
-          <circle cx="100" cy="100" r="86" fill="none" stroke="url(#bronzeGradL)" stroke-width="5"/>
-          <circle cx="100" cy="100" r="81" fill="none" stroke="#080604" stroke-width="2"/>
+          <circle cx="100" cy="100" r="88" fill="none" stroke="#14100b" stroke-width="10"/><circle cx="100" cy="100" r="86" fill="none" stroke="url(#bronzeGradL)" stroke-width="5"/><circle cx="100" cy="100" r="81" fill="none" stroke="#080604" stroke-width="2"/>
           <path d="M188,96 L196,82 L185,74 L190,58 L176,54 L174,38 L158,40 L148,22 L134,28" fill="none" stroke="url(#bronzeGradL)" stroke-width="3.5"/>
-          <circle cx="100" cy="14" r="3" fill="#c8b38a"/><circle cx="38" cy="38" r="3" fill="#c8b38a"/><circle cx="162" cy="38" r="3" fill="#c8b38a"/>
-          <circle cx="14" cy="100" r="3" fill="#c8b38a"/><circle cx="186" cy="100" r="3" fill="#c8b38a"/>
+          <circle cx="100" cy="14" r="3" fill="#c8b38a"/><circle cx="38" cy="38" r="3" fill="#c8b38a"/><circle cx="162" cy="38" r="3" fill="#c8b38a"/><circle cx="14" cy="100" r="3" fill="#c8b38a"/><circle cx="186" cy="100" r="3" fill="#c8b38a"/>
         </svg>
       </div>
     </div>
   </div>
 
-  <!-- POE 1 RIGHT-DOCKED INVENTORY & PAPER-DOLL PANEL (KEY: I) -->
+  <!-- POE 1 RIGHT-DOCKED CHARACTER INVENTORY & PAPER-DOLL PANEL (KEY: I) -->
   <div id="inventoryDrawer" class="poe-dock-panel right-dock-panel hidden">
-    <div class="poe-window-header"><span class="header-ornament">◆</span><h2>INVENTORY &amp; EQUIPMENT</h2><button class="window-close" data-close="inventoryDrawer">✕</button></div>
+    <div class="poe-window-header"><span class="header-ornament">◆</span><h2>CHARACTER INVENTORY &amp; EQUIPMENT</h2><button class="window-close" data-close="inventoryDrawer">✕</button></div>
     <div class="poe-inventory-body">
       <div class="poe-paperdoll-stage"><div id="equippedSlotsContainer" class="poe-paperdoll-canvas"></div></div>
       <div class="poe-sub-header"><span>5-SLOT AUTO-FLASK BELT [1–5]</span><span id="flaskBeltHint" class="craft-hint-inline">Auto-Drinks in Combat • Click 2 Slots to Swap</span></div>
       <div id="invFlaskBeltRow" class="inv-flask-belt-row"></div>
       <div class="poe-sub-header"><span>CURRENCY ORB BENCH</span><span id="craftStatusBanner" class="craft-hint-inline">Right-Click Orb, then Left-Click Gear</span></div>
       <div id="currencyBar" class="poe-currency-row"></div>
-      <div class="poe-sub-header"><span>STASH GRID <strong id="invCountLabel">(0/32)</strong></span><span id="invActionHint" class="craft-hint-inline">L-Click: Equip • R-Click: Drop on Ground</span></div>
+      <div class="poe-sub-header"><span>CHARACTER INVENTORY <strong id="invCountLabel">(0/50)</strong></span><span id="invActionHint" class="craft-hint-inline">L-Click: Equip • R-Click: Drop / Stash / Salvage</span></div>
       <div id="inventoryGrid" class="poe-bag-grid"></div>
+    </div>
+  </div>
+  <!-- POE 1 LEFT-DOCKED PERSISTENT ACCOUNT STASH PANEL (KEY: B) -->
+  <div id="stashDrawer" class="poe-dock-panel left-dock-panel hidden">
+    <div class="poe-window-header"><span class="header-ornament">◆</span><h2>ACCOUNT STASH (SHARED)</h2><button class="window-close" data-close="stashDrawer">✕</button></div>
+    <div class="poe-gems-body">
+      <div class="poe-sub-header"><span>PERSISTENT ACCOUNT STASH <strong id="stashCountLabel">(0/80)</strong></span><span class="craft-hint-inline">L-Click: Withdraw to Inv [I] • R-Click in Inv [I]: Deposit</span></div>
+      <div id="accountStashGrid" class="poe-stash-grid"></div>
     </div>
   </div>
 
@@ -353,10 +354,7 @@
   <!-- FULLSCREEN RADIAL PASSIVE SKILL TREE (KEY: P) -->
   <div id="passiveTreeModal" class="poe-window fullscreen-window hidden">
     <div class="poe-window-header">
-      <div>
-        <h2>ROGUE-LITE SKILL TREE</h2>
-        <span class="header-sub">Drag to Pan • Scroll to Zoom • Left-Click any node to Allocate Path • Right-Click to Refund (Free) • Points Persist Across Runs</span>
-      </div>
+      <div><h2>ROGUE-LITE SKILL TREE</h2><span class="header-sub">Drag to Pan • Scroll to Zoom • L-Click to Allocate • R-Click to Refund (Free) • Points Persist Across Runs</span></div>
       <div class="tree-header-controls">
         <div class="passive-points-pill">Unspent Points: <strong id="treePointsCount">2</strong></div>
         <div class="passive-points-pill regret-pill">Allocated: <strong id="treeAllocatedCount">0</strong> / 45</div>
@@ -367,11 +365,11 @@
     </div>
     <div class="tree-canvas-container"><canvas id="passiveTreeCanvas"></canvas><div id="passiveNodeTooltip" class="poe-tooltip hidden"></div></div>
   </div>
-
-  <!-- ATLAS MAP DEVICE & PARTY STAGING MODAL (KEY: M) -->
+  <!-- ATLAS MAP DEVICE & MAP CURRENCY CRAFTING MODAL (KEY: M) -->
   <div id="mapDeviceModal" class="poe-window map-window hidden">
-    <div class="poe-window-header"><span class="header-ornament">◆</span><h2>MAP DEVICE</h2><button class="window-close" data-close="mapDeviceModal">✕</button></div>
+    <div class="poe-window-header"><span class="header-ornament">◆</span><h2>ATLAS MAP DEVICE &amp; MAP CRAFTING</h2><button class="window-close" data-close="mapDeviceModal">✕</button></div>
     <div id="atlasMapGrid" class="atlas-map-grid"></div>
+    <div id="mapCraftingBar" class="map-crafting-bar"></div>
     <div class="map-device-actions">
       <button id="launchMapBtn" class="poe-gold-btn large-btn">ACTIVATE MAP DEVICE</button>
       <button id="extractHideoutBtn" class="poe-gold-btn danger-btn large-btn hidden">ABANDON RUN &amp; RETURN TO HIDEOUT</button>
