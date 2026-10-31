@@ -285,7 +285,11 @@ const httpServer = http.createServer((req, res) => {
       filePath = path.join(PUBLIC_DIR, 'index.html');
     }
     const ext = path.extname(filePath);
-    res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'text/plain' });
+    const isCodeAsset = ext === '.html' || ext === '.js' || ext === '.mjs' || ext === '.css';
+    res.writeHead(200, {
+      'Content-Type': MIME_TYPES[ext] || 'text/plain',
+      'Cache-Control': isCodeAsset ? 'no-cache, must-revalidate' : 'public, max-age=3600'
+    });
     fs.createReadStream(filePath).pipe(res);
   });
 });
