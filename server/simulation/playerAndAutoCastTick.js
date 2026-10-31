@@ -77,8 +77,8 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
       alivePlayers.push(p);
     }
 
-    // Regenerate Life (small passive regen), refill Life-on-Hit cap budget (max 24 HP/sec), & Energy Shield
-    p.lohBudget = Math.min(6, (p.lohBudget || 0) + 24 * dt);
+    // Regenerate Life (small passive regen), refill Life-on-Hit cap budget (scaled by level), & Energy Shield
+    p.lohBudget = Math.min(5, (p.lohBudget || 0) + (6 + (p.level || 1) * 0.45) * dt);
     const regenMult = (room.mapModStats && room.mapModStats.lessRegen)
       ? Math.max(0.1, 1 - room.mapModStats.lessRegen / 100)
       : 1;
@@ -92,7 +92,7 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
     }
 
     // Auto-Flask Triggering in Maps:
-    // - Life Flasks trigger at < 82% HP OR when charges reach FULL (and injured or enemies nearby)!
+    // - Life Flasks ONLY trigger when > 50% hurt (<= 50% Life) and have a 6.0s cooldown!
     // - Utility Flasks trigger when charges reach FULL (<= 65% timer left) OR when buff is inactive (and enemies nearby or Quicksilver)!
     if (room.state === 'RUN' && (room.runTimer || 0) >= 1.0 && Array.isArray(p.flaskBelt)) {
       if (!Array.isArray(p.flaskSlotCharges) || p.flaskSlotCharges.length < 5) p.flaskSlotCharges = [15, 0, 0, 0, 0];
@@ -114,11 +114,12 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
         const isFullCharges = curCharges >= maxCharges;
 
         if (fId === 'life') {
-          if ((p.hp < p.maxHp * 0.82 || (isFullCharges && (p.hp < p.maxHp * 0.98 || hasNearbyEnemy))) && (p.autoLifeFlaskCd || 0) <= 0) {
+          if (p.hp <= p.maxHp * 0.50 && (p.autoLifeFlaskCd || 0) <= 0 && (p.flaskSlotTimers[sIdx] || 0) <= 0) {
             p.flaskSlotCharges[sIdx] = Math.max(0, curCharges - useCost);
             p.flaskCharges[fId] = p.flaskSlotCharges[sIdx];
-            p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.45));
-            p.autoLifeFlaskCd = 2.0;
+            p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.38));
+            p.autoLifeFlaskCd = 6.0;
+            p.flaskSlotTimers[sIdx] = 6.0;
             usedAnyFlask = true;
           }
         } else if (!(p.stats && p.stats.mageblood > 0)) {

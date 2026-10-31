@@ -85,7 +85,7 @@ function onEnemyKilled(room, enemy, killer) {
         }
       }
 
-      const baseCharge = enemy.rarity === 'boss' ? 8 : enemy.rarity === 'rare' ? 3 : enemy.rarity === 'magic' ? 1 : (Math.random() < 0.35 ? 1 : 0);
+      const baseCharge = enemy.rarity === 'boss' ? 8 : enemy.rarity === 'rare' ? 3 : enemy.rarity === 'magic' ? 1 : (Math.random() < 0.24 ? 1 : 0);
       const chargeGain = Math.round(baseCharge * (1 + ((p.stats && p.stats.flaskChargeGainPct) || 0) / 100));
       if (chargeGain > 0) {
         if (Array.isArray(p.flaskBelt)) {

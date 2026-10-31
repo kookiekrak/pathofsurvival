@@ -16,7 +16,7 @@ function getPlayerRfRadius(player) {
 }
 
 function applyDamageToPlayer(room, player, rawDamage, dmgType, ignoreEvade = false) {
-  if (player.dashTimer > 0 || (player.graceTimer || 0) > 0 || (player.hitGraceTimer || 0) > 0) return;
+  if (player.dashTimer > 0 || (player.graceTimer || 0) > 0 || (player.hitGraceTimer || 0) > 0) return false;
   const s = player.stats;
 
   // Naked Vulnerability Penalty: Fighting with 0 equipped gear pieces increases incoming damage by 35% and disables evasion!
@@ -37,12 +37,12 @@ function applyDamageToPlayer(room, player, rawDamage, dmgType, ignoreEvade = fal
   if (!ignoreEvade && !isNaked) {
     const evadeChance = Math.min(60, (s.dodgeChance || 0) + Math.floor(s.evasion / (s.evasion + 240) * 48));
     if (Math.random() * 100 < evadeChance) {
-      return;
+      return true;
     }
   }
 
-  // Grant 0.22s anti-shotgun hit grace window so identical-tick overlaps don't instakill, while surrounds remain lethal!
-  player.hitGraceTimer = isNaked ? 0.14 : 0.22;
+  // Brief 0.06s same-tick deduplication so surrounding monsters don't eat each other's attacks!
+  player.hitGraceTimer = 0.06;
 
   // Reset PoE Energy Shield recharge delay whenever hit (unless Shavronne's Wrappings is equipped!)
   if (!s.shavronneWard) {
@@ -101,6 +101,7 @@ function applyDamageToPlayer(room, player, rawDamage, dmgType, ignoreEvade = fal
       });
     }
   }
+  return true;
 }
 
 const exportsObj = { getPlayerRfRadius, applyDamageToPlayer };

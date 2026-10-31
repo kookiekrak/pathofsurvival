@@ -4,7 +4,7 @@
   // 4. FLASKS, CURRENCIES, 8 GEAR SLOTS, STAT LABELS & AFFIXES
   // ============================================================================
   const FLASKS = [
-    { id: 'life', slot: 1, key: '1', name: 'Eternal Life Flask', color: '#c92a2a', maxCharges: 15, cost: 5, duration: 0, desc: 'Instantly recovers 45% of Maximum Life.' },
+    { id: 'life', slot: 1, key: '1', name: 'Eternal Life Flask', color: '#c92a2a', maxCharges: 15, cost: 7, duration: 6.0, desc: 'Instantly recovers 38% of Maximum Life (usable below 50% Life, 6s cooldown).' },
     { id: 'quicksilver', slot: 2, key: '2', name: 'Quicksilver Flask', color: '#2b8a3e', maxCharges: 20, cost: 10, duration: 4.5, desc: '+40% increased Movement Speed for 4.5 seconds.' },
     { id: 'granite', slot: 3, key: '3', name: 'Granite Flask', color: '#868e96', maxCharges: 20, cost: 10, duration: 5.0, desc: '+160 to Armour and 20% Physical Damage Reduction for 5 seconds.' },
     { id: 'diamond', slot: 4, key: '4', name: 'Diamond Flask', color: '#3bc9db', maxCharges: 20, cost: 10, duration: 4.5, desc: '+80% increased Critical Strike Chance & +40% Crit Multiplier for 4.5 seconds.' },

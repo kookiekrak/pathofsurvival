@@ -138,10 +138,12 @@ wss.on('connection', (ws) => {
       if (curCharges < useCost) return;
 
       if (flaskId === 'life') {
-        if (currentPlayer.hp >= currentPlayer.maxHp) return;
+        if (currentPlayer.hp > currentPlayer.maxHp * 0.50 || (currentPlayer.autoLifeFlaskCd || 0) > 0 || (currentPlayer.flaskSlotTimers[slotIdx] || 0) > 0) return;
         currentPlayer.flaskSlotCharges[slotIdx] = Math.max(0, curCharges - useCost);
         currentPlayer.flaskCharges.life = currentPlayer.flaskSlotCharges[slotIdx];
-        currentPlayer.hp = Math.min(currentPlayer.maxHp, currentPlayer.hp + Math.round(currentPlayer.maxHp * 0.45));
+        currentPlayer.hp = Math.min(currentPlayer.maxHp, currentPlayer.hp + Math.round(currentPlayer.maxHp * 0.38));
+        currentPlayer.autoLifeFlaskCd = 6.0;
+        currentPlayer.flaskSlotTimers[slotIdx] = 6.0;
       } else {
         currentPlayer.flaskSlotCharges[slotIdx] = Math.max(0, curCharges - useCost);
         currentPlayer.flaskCharges[flaskId] = currentPlayer.flaskSlotCharges[slotIdx];

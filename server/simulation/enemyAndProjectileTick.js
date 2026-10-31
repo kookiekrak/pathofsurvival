@@ -358,11 +358,12 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
       const contactDmg = m.buffTimer > 0 ? Math.round(m.damage * 1.2) : m.damage;
       for (const p of livingPlayers) {
         if (dist(m.x, m.y, p.x, p.y) <= m.radius + 17) {
-          m.hitTimer = 0.72;
-          if (Array.isArray(m.mods) && m.mods.includes('Vampiric')) {
-            m.hp = Math.min(m.maxHp, m.hp + Math.round(m.maxHp * 0.08));
+          if (applyDamageToPlayer(room, p, contactDmg, 'physical')) {
+            m.hitTimer = 0.72;
+            if (Array.isArray(m.mods) && m.mods.includes('Vampiric')) {
+              m.hp = Math.min(m.maxHp, m.hp + Math.round(m.maxHp * 0.08));
+            }
           }
-          applyDamageToPlayer(room, p, contactDmg, 'physical');
           break;
         }
       }
