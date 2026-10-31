@@ -4,7 +4,7 @@ const GameData = global.GameData || require('../../public/shared/gameData.js');
 // =========================================================================
 // COHESIVE PACK SPAWNING, MONSTER CREATION & ANTI-AFK HAZARDS
 // =========================================================================
-const MAX_ACTIVE_ENEMIES = 44;
+const MAX_ACTIVE_ENEMIES = 75;
 
 function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = null, forceBase = null, isBreachMob = false) {
   if (typeof overridePos === 'string' && typeof forceRarity === 'number' && typeof forceBase === 'number') {
@@ -42,7 +42,7 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
   } else {
     const anchor = pick(alivePlayers);
     const angle = Math.random() * Math.PI * 2;
-    const spawnDist = randInt(390, 520);
+    const spawnDist = randInt(245, 365);
     x = anchor.x + Math.cos(angle) * spawnDist;
     y = anchor.y + Math.sin(angle) * spawnDist;
   }
@@ -51,10 +51,10 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
   if (!overridePos || !overridePos.exact) {
     for (const pl of alivePlayers) {
       const d = dist(x, y, pl.x, pl.y);
-      if (d < 360) {
+      if (d < 210) {
         const pushAng = d > 1 ? Math.atan2(y - pl.y, x - pl.x) : Math.random() * Math.PI * 2;
-        x = Math.round(pl.x + Math.cos(pushAng) * 395);
-        y = Math.round(pl.y + Math.sin(pushAng) * 395);
+        x = Math.round(pl.x + Math.cos(pushAng) * 235);
+        y = Math.round(pl.y + Math.sin(pushAng) * 235);
       }
     }
   }
@@ -199,7 +199,7 @@ function spawnMapBoss(room) {
   });
 }
 
-// Spawn a cohesive 2-3 monster pack 390-520 units from a living player (68% projectile shooters, zero during boss fights)!
+// Spawn a cohesive 4-7 monster pack 245-365 units from a living player (68% projectile shooters, zero during boss fights)!
 function spawnMonsterPack(room, anchorX = null, anchorY = null) {
   if (room.isRaidEncounter || Array.from(room.enemies.values()).some(e => e.rarity === 'boss')) return 0;
   const alivePlayers = Array.from(room.players.values()).filter(p => !p.dead);
@@ -212,7 +212,7 @@ function spawnMonsterPack(room, anchorX = null, anchorY = null) {
 
   const anchor = (typeof anchorX === 'number' && typeof anchorY === 'number') ? { x: anchorX, y: anchorY } : pick(alivePlayers);
   const angle = Math.random() * Math.PI * 2;
-  const packDist = randInt(390, 520);
+  const packDist = randInt(245, 365);
   const packCenter = {
     x: Math.max(-ARENA_HALF + 90, Math.min(ARENA_HALF - 90, anchor.x + Math.cos(angle) * packDist)),
     y: Math.max(-ARENA_HALF + 90, Math.min(ARENA_HALF - 90, anchor.y + Math.sin(angle) * packDist))
@@ -223,38 +223,43 @@ function spawnMonsterPack(room, anchorX = null, anchorY = null) {
   const roll = Math.random();
 
   let packBase = null;
-  let packCount = 2;
+  let packCount = 4;
   if (roll < 0.40) {
     // ranged_barrage (40% weight)
     const rangedPool = activePool.filter(m => m.role === 'ranged' || m.behavior === 'ranged_kite' || m.behavior === 'toxic_mortar');
     packBase = rangedPool.length > 0 ? pick(rangedPool) : pick(activePool);
-    packCount = randInt(2, 3);
+    packCount = randInt(4, 6);
   } else if (roll < 0.68) {
     // caster_coven (28% weight -> 68% total projectile shooter packs!)
     const casterPool = activePool.filter(m => m.role === 'caster' || m.behavior === 'frost_caster' || m.behavior === 'flameblast_caster' || m.behavior === 'storm_caller' || m.behavior === 'mortar_leap');
     packBase = casterPool.length > 0 ? pick(casterPool) : pick(activePool);
-    packCount = 2;
+    packCount = randInt(3, 5);
   } else if (roll < 0.80) {
     // charger / kamikaze (12% weight)
     const chargerPool = activePool.filter(m => m.role === 'charger' || m.behavior === 'charge' || m.role === 'kamikaze');
     packBase = chargerPool.length > 0 ? pick(chargerPool) : pick(activePool);
-    packCount = 2;
+    packCount = randInt(3, 5);
   } else if (roll < 0.90) {
     // tank / assassin (10% weight)
     const heavyPool = activePool.filter(m => m.role === 'tank' || m.role === 'assassin' || m.behavior === 'phalanx_tank' || m.behavior === 'blink_ambush');
     packBase = heavyPool.length > 0 ? pick(heavyPool) : pick(activePool);
-    packCount = randInt(1, 2);
+    packCount = randInt(2, 4);
   } else {
     // swarmer melee (10% weight)
     const meleePool = activePool.filter(m => m.role === 'swarmer' || m.behavior === 'melee');
     packBase = meleePool.length > 0 ? pick(meleePool) : pick(activePool);
-    packCount = randInt(2, 3);
+    packCount = randInt(5, 7);
   }
 
   let spawned = 0;
-  const hasRareLeader = (w >= 2 || mapTier >= 2) && Math.random() < (0.14 + w * 0.012 + tierEliteBonus * 0.5);
+  const hasRareLeader = (w >= 2 || mapTier >= 2) && Math.random() < (0.12 + w * 0.01 + tierEliteBonus * 0.4);
+  const isMagicPack = !hasRareLeader && Math.random() < (0.28 + tierEliteBonus * 0.6);
   for (let i = 0; i < packCount; i++) {
-    const mRarity = (i === 0 && hasRareLeader) ? 'rare' : (i === 0 && Math.random() < 0.45 + tierEliteBonus) ? 'magic' : 'normal';
+    const mRarity = (i === 0 && hasRareLeader)
+      ? 'rare'
+      : (isMagicPack && i < 2)
+        ? 'magic'
+        : 'normal';
     if (spawnMonster(room, false, packCenter, mRarity, packBase)) spawned++;
   }
   return spawned;

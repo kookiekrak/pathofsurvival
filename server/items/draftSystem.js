@@ -78,8 +78,8 @@ function getNextChestCost(player, room = null) {
   const mapId = (room && room.selectedMapId) || (player && player.currentMapId) || 'strand';
   const mapDef = GameData.ATLAS_MAPS.find(m => m.id === mapId) || GameData.ATLAS_MAPS[0];
   const tierMult = mapDef ? Math.pow(mapDef.goldMult || 1, 0.5) : 1;
-  const base = 30 * Math.pow(1.45, (player && player.chestsOpened) || 0);
-  return Math.max(30, Math.round((base * tierMult) / 5) * 5);
+  const base = 25 * Math.pow(1.24, (player && player.chestsOpened) || 0);
+  return Math.max(25, Math.round((base * tierMult) / 5) * 5);
 }
 
 function getDraftRerollCost(player) {

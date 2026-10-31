@@ -53,51 +53,66 @@ function populateMapInteractables(room) {
     { sub: 'diviner', label: "Diviner's Strongbox (High-Tier Loot & Elites)", color: '#38d9a9' }
   ];
 
-  // 1) Spawn EITHER 1 Shrine OR 1 Strongbox (at most 2 interactables total per map)
-  if (Math.random() < 0.5) {
-    const pos = randArenaPos(340, 980, room.interactables);
-    const st = pick(shrineTypes);
+  // 1) Spawn 2 Shrines & 2 Strongboxes well-spaced across the arena so exploration feels rewarding
+  for (let i = 0; i < 2; i++) {
+    const pos = randArenaPos(260 + i * 240, 520 + i * 360, room.interactables);
+    const st = shrineTypes[(i + randInt(0, shrineTypes.length - 1)) % shrineTypes.length];
     room.interactables.push({
       id: uid('shr'), kind: 'shrine', sub: st.sub, label: st.label, color: st.color,
       x: pos.x, y: pos.y, used: false
     });
-  } else {
-    const pos = randArenaPos(380, 980, room.interactables);
-    const bt = pick(boxTypes);
+  }
+  for (let i = 0; i < 2; i++) {
+    const pos = randArenaPos(300 + i * 260, 580 + i * 380, room.interactables);
+    const bt = boxTypes[(i + randInt(0, boxTypes.length - 1)) % boxTypes.length];
     room.interactables.push({
       id: uid('box'), kind: 'strongbox', sub: bt.sub, label: bt.label, color: bt.color,
       x: pos.x, y: pos.y, used: false
     });
   }
 
-  // 2) 50% chance to spawn 1 League Encounter (randomly pick ONE from breach, essence, ritual, or delirium)
-  if (Math.random() < 0.5) {
-    const leaguePool = [
-      { idPrefix: 'brc', kind: 'breach', sub: 'chayula', label: 'Breach Hand — Click or [E] to Rip Open Breach', color: '#cc5de8' },
-      { idPrefix: 'ess', kind: 'essence', sub: 'screaming', label: 'Essence Monolith — Release Crystal Rare & Orbs [E]', color: '#3bc9db' },
-      { idPrefix: 'rit', kind: 'ritual', sub: 'tribute', label: 'Ritual Altar — Tribute Wave & Free Party Upgrade [E]', color: '#ff4d6d' },
-      { idPrefix: 'del', kind: 'delirium', sub: 'mirror', label: 'Mirror of Delirium — 24s Fog Surge & Bonus Loot [E]', color: '#ced4da' }
-    ];
-    const enc = pick(leaguePool);
-    const pos = randArenaPos(420, 960, room.interactables);
+  // 2) Spawn 2 Distinct League Encounters per map (Breach, Essence, Ritual, or Delirium)
+  const leaguePool = [
+    { idPrefix: 'brc', kind: 'breach', sub: 'chayula', label: 'Breach Hand — Click or [E] to Rip Open Breach', color: '#cc5de8' },
+    { idPrefix: 'ess', kind: 'essence', sub: 'screaming', label: 'Essence Monolith — Release Crystal Rare & Gear [E]', color: '#3bc9db' },
+    { idPrefix: 'rit', kind: 'ritual', sub: 'tribute', label: 'Ritual Altar — 3-Wave Blood Tribute & Party Boon [E]', color: '#ff4d6d' },
+    { idPrefix: 'del', kind: 'delirium', sub: 'mirror', label: 'Mirror of Delirium — 42s Fog Surge & Bonus Rarity [E]', color: '#ced4da' }
+  ];
+  const firstIdx = randInt(0, leaguePool.length - 1);
+  const chosenEncs = [leaguePool[firstIdx], leaguePool[(firstIdx + randInt(1, leaguePool.length - 1)) % leaguePool.length]];
+  for (let i = 0; i < chosenEncs.length; i++) {
+    const enc = chosenEncs[i];
+    const pos = randArenaPos(340 + i * 260, 620 + i * 360, room.interactables);
     room.interactables.push({
       id: uid(enc.idPrefix), kind: enc.kind, sub: enc.sub, label: enc.label, color: enc.color,
       x: pos.x, y: pos.y, used: false
     });
   }
 
-  // Spawn ONLY 1 Golden Upgrade Chest initially (capped at 1 unopened chest on the map)
-  const pos = randArenaPos(280, 680, room.interactables);
-  room.upgradeChests.push({ id: `uchest_${uid('uc')}`, x: pos.x, y: pos.y, opened: false });
+  // 3) Spawn 8 Golden Upgrade Chests across inner, mid, and outer rings so players always have Golden Boxes to spend Run Gold on!
+  const chestRings = [
+    [175, 320], [210, 360], [260, 420],
+    [380, 620], [440, 720], [520, 840],
+    [720, 1080], [820, 1220]
+  ];
+  for (const [minR, maxR] of chestRings) {
+    const pos = randArenaPos(minR, maxR, [...room.interactables, ...room.upgradeChests]);
+    room.upgradeChests.push({ id: `uchest_${uid('uc')}`, x: pos.x, y: pos.y, opened: false });
+  }
 }
 
 function spawnAdditionalUpgradeChest(room) {
   if (!room || room.isRaidEncounter) return;
   if (!Array.isArray(room.upgradeChests)) room.upgradeChests = [];
-  const unopened = room.upgradeChests.filter(c => !c.opened).length;
-  if (unopened < 1) {
-    const pos = randArenaPos(520, 1180, [...(room.interactables || []), ...room.upgradeChests]);
-    room.upgradeChests.push({ id: `uchest_${uid('uc')}`, x: pos.x, y: pos.y, opened: false });
+  const alivePlayers = Array.from((room.players || new Map()).values()).filter(p => !p.dead);
+  const anchor = alivePlayers.length > 0 ? pick(alivePlayers) : { x: 0, y: 0 };
+  while (room.upgradeChests.filter(c => !c.opened).length < 6) {
+    const ang = Math.random() * Math.PI * 2;
+    const d = randInt(240, 660);
+    const lim = (typeof ARENA_HALF === 'number' ? ARENA_HALF : 2850) - 90;
+    const x = Math.max(-lim, Math.min(lim, Math.round(anchor.x + Math.cos(ang) * d)));
+    const y = Math.max(-lim, Math.min(lim, Math.round(anchor.y + Math.sin(ang) * d)));
+    room.upgradeChests.push({ id: `uchest_${uid('uc')}`, x, y, opened: false });
   }
 }
 
@@ -231,9 +246,11 @@ function activateInteractable(room, player, it) {
       const ang = Math.PI * k;
       spawnMonster(room, false, { x: it.x + Math.cos(ang) * 110, y: it.y + Math.sin(ang) * 110, exact: true }, 'magic');
     }
-    spawnGroundDrop(room, it.x - 16, it.y, 'currency', null, 1, mapIIR + 180);
+    if (Math.random() < 0.35) {
+      spawnGroundDrop(room, it.x - 16, it.y, 'currency', null, 1, mapIIR + 180);
+    }
     spawnGroundDrop(room, it.x, it.y + 18, 'gear', 'rare', dropIlvl, mapIIR + 180);
-    addRoomChat(room, 'Essence', `${player.name} shattered an Essence Monolith — Twin Crystal Rares & Crafting Orb released!`, '#3bc9db');
+    addRoomChat(room, 'Essence', `${player.name} shattered an Essence Monolith — Twin Crystal Rares & Rare Gear released!`, '#3bc9db');
   } else if (it.kind === 'ritual') {
     // 3-Wave Blood Ritual Encounter: loot & tribute boon draft drop only after clearing all 3 waves!
     room.activeRitual = { id: it.id, x: it.x, y: it.y, r: 320, wave: 1, maxWaves: 3 };
@@ -271,8 +288,10 @@ function activateInteractable(room, player, it) {
       spawnMonster(room, false, { x: gx, y: gy, exact: true }, k === 0 ? 'rare' : k === 1 ? 'magic' : 'normal');
     }
     const dropIlvl = (mapDef.tier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 1;
-    const boxRarity = Math.random() < 0.005 ? 'unique' : (Math.random() < 0.50 ? 'rare' : 'magic');
-    spawnGroundDrop(room, it.x - 14, it.y, 'currency', null, 1, mapIIR + 140);
+    const boxRarity = Math.random() < 0.005 ? 'unique' : (Math.random() < 0.55 ? 'rare' : 'magic');
+    if (it.sub === 'arcanist' || Math.random() < 0.25) {
+      spawnGroundDrop(room, it.x - 14, it.y, 'currency', null, 1, mapIIR + 140);
+    }
     spawnGroundDrop(room, it.x + 14, it.y, 'gear', boxRarity, dropIlvl, mapIIR + 140);
   } else if (it.kind === 'breach') {
     room.fxEvents.push({ kind: 'nova', x: it.x, y: it.y, r: 140, color: '#cc5de8' });

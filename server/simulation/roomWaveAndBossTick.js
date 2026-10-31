@@ -151,7 +151,7 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
         room.deliriumTimer = 0;
         room.deliriumTier = 0;
         const anchor = pick(aliveList) || { x: 0, y: 0 };
-        const rewardOrbs = Math.min(4, Math.ceil(dTier / 2));
+        const rewardOrbs = dTier >= 5 ? 2 : 1;
         for (let k = 0; k < rewardOrbs; k++) {
           spawnCurrencyDrop(room, anchor.x + randInt(-28, 28), anchor.y + randInt(-28, 28), null, dTier * 140);
         }
@@ -196,10 +196,9 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
             }
           }
           const dropIlvl = (mapTier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
-          spawnCurrencyDrop(room, rit.x - 18, rit.y, null, 320 + mapTier * 25);
-          spawnCurrencyDrop(room, rit.x + 18, rit.y, null, 320 + mapTier * 25);
+          spawnCurrencyDrop(room, rit.x - 16, rit.y, null, 340 + mapTier * 25);
           const ritRarity = Math.random() < 0.04 ? 'unique' : 'rare';
-          spawnGroundDrop(room, rit.x, rit.y + 18, 'gear', ritRarity, dropIlvl, 350 + mapTier * 30);
+          spawnGroundDrop(room, rit.x + 16, rit.y + 12, 'gear', ritRarity, dropIlvl, 350 + mapTier * 30);
           addRoomChat(room, 'Ritual', 'Blood Ritual Complete! All 3 waves vanquished — Tribute Loot & Boon Draft unleashed!', '#ff4d6d');
           broadcastRoomEvent(room, {
             type: 'announcement',
@@ -220,7 +219,7 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
       bossAlive = true;
     }
 
-    // Recycle straggler non-boss monsters that wandered > 720 units from all living players
+    // Recycle straggler non-boss monsters that wandered > 560 units from all living players
     if (aliveList.length > 0 && !room.isRaidEncounter) {
       for (const m of room.enemies.values()) {
         if (m.rarity === 'boss' || m.isRitualMob) continue;
@@ -229,10 +228,10 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
           const d = dist(m.x, m.y, pl.x, pl.y);
           if (d < minPlayerDist) minPlayerDist = d;
         }
-        if (minPlayerDist > 720) {
+        if (minPlayerDist > 560) {
           const anchor = pick(aliveList);
           const ang = Math.random() * Math.PI * 2;
-          const rDist = randInt(395, 505);
+          const rDist = randInt(255, 360);
           m.x = Math.max(-ARENA_HALF + 70, Math.min(ARENA_HALF - 70, Math.round(anchor.x + Math.cos(ang) * rDist)));
           m.y = Math.max(-ARENA_HALF + 70, Math.min(ARENA_HALF - 70, Math.round(anchor.y + Math.sin(ang) * rDist)));
         }
@@ -273,7 +272,9 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
             r: Math.round(b.radius * 0.65), color: '#cc5de8'
           });
           const dropIlvl = (mapTier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
-          spawnCurrencyDrop(room, b.x - 14, b.y, null, 220 + mapTier * 20);
+          if (Math.random() < 0.45) {
+            spawnCurrencyDrop(room, b.x - 14, b.y, null, 220 + mapTier * 20);
+          }
           spawnGroundDrop(room, b.x + 14, b.y, 'gear', Math.random() < 0.01 ? 'unique' : 'rare', dropIlvl, 240 + mapTier * 20);
           addRoomChat(room, 'Breach', `The Breach collapsed back into the Void (${b.kills || 0} Breach monsters slain)!`, '#cc5de8');
           room.activeBreaches.splice(bi, 1);
@@ -281,11 +282,13 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
       }
     }
 
-    // Controlled monster pack spawning (zero normal packs during Raid or Map Boss fights!)
+    // Continuous monster pack spawning with Low-Population Refill Boost (zero normal packs during Raid or Map Boss fights!)
     if (!room.isRaidEncounter && !bossAlive) {
-      const deliriumBoost = (room.deliriumTimer || 0) > 0 ? 1.25 : 1.0;
-      const baseSpawnRate = (0.28 + room.wave * 0.05 + (room.players.size - 1) * 0.14) * Math.sqrt(tierDensity) * modPackMult;
-      room.spawnAccumulator += dt * baseSpawnRate * deliriumBoost;
+      const deliriumBoost = (room.deliriumTimer || 0) > 0 ? 1.35 : 1.0;
+      const minTargetPop = Math.min(44, 24 + room.wave * 2);
+      const lowPopBoost = room.enemies.size < minTargetPop ? 2.4 : 1.0;
+      const baseSpawnRate = (0.85 + room.wave * 0.10 + (room.players.size - 1) * 0.30) * Math.sqrt(tierDensity) * modPackMult;
+      room.spawnAccumulator += dt * baseSpawnRate * deliriumBoost * lowPopBoost;
 
       while (room.spawnAccumulator >= 1) {
         room.spawnAccumulator -= 1;

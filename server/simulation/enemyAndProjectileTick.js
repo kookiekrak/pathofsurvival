@@ -228,21 +228,21 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
       }
     }
 
-    // Anti-Straggler Teleport: reposition monsters that fall > 820 units behind the party,
-    // placing them 410-520 units ahead (just outside camera view)!
-    if (bestD > 820 && m.rarity !== 'boss' && m.rarity !== 'unique') {
+    // Anti-Straggler Teleport: reposition monsters that fall > 560 units behind the party,
+    // placing them 255-360 units ahead (just outside camera view)!
+    if (bestD > 560 && m.rarity !== 'boss' && m.rarity !== 'unique') {
       const moveHeading = Math.hypot(target.vx || 0, target.vy || 0) > 20
         ? Math.atan2(target.vy, target.vx) + (Math.random() - 0.5) * 1.1
         : Math.random() * Math.PI * 2;
-      const teleDist = randInt(410, 520);
+      const teleDist = randInt(255, 360);
       let tx = Math.max(-ARENA_HALF + 70, Math.min(ARENA_HALF - 70, Math.round(target.x + Math.cos(moveHeading) * teleDist)));
       let ty = Math.max(-ARENA_HALF + 70, Math.min(ARENA_HALF - 70, Math.round(target.y + Math.sin(moveHeading) * teleDist)));
       for (const pl of livingPlayers) {
         const dPl = dist(tx, ty, pl.x, pl.y);
-        if (dPl < 370) {
+        if (dPl < 215) {
           const pAng = dPl > 1 ? Math.atan2(ty - pl.y, tx - pl.x) : Math.random() * Math.PI * 2;
-          tx = Math.round(pl.x + Math.cos(pAng) * 410);
-          ty = Math.round(pl.y + Math.sin(pAng) * 410);
+          tx = Math.round(pl.x + Math.cos(pAng) * 240);
+          ty = Math.round(pl.y + Math.sin(pAng) * 240);
         }
       }
       m.x = tx;
@@ -330,7 +330,7 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
         }
         room.fxEvents.push({ kind: 'nova', x: Math.round(m.x), y: Math.round(m.y), r: 72, color: '#be4bdb' });
         pushEnemyBolt(room, m.x, m.y, ang, 210, 9, Math.round(m.damage * 0.85), 'cold', 2.5);
-        if (healed === 0 && room.enemies.size < 44) {
+        if (healed === 0 && room.enemies.size < 75) {
           spawnMonster(room, false, { x: m.x + Math.cos(ang) * 45, y: m.y + Math.sin(ang) * 45, exact: true }, 'normal', 'skeleton');
         }
       } else if (m.behavior === 'toxic_mortar' && bestD < 470) {

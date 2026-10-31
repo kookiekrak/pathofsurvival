@@ -201,7 +201,7 @@ function startAtlasRun(room, mapId) {
 
   // Spawn initial monster packs around the perimeter (scales with Map Tier & Map Pack Size modifier!)
   const packMult = 1 + ((room.mapModStats && room.mapModStats.packSize) || 0) / 100;
-  const initialPacks = Math.max(1, Math.round((1 + Math.floor(((mapDef.tier || 1) - 1) * 0.5)) * packMult));
+  const initialPacks = Math.max(6, Math.round((6 + Math.floor(((mapDef.tier || 1) - 1) * 0.35)) * packMult));
   for (let i = 0; i < initialPacks; i++) {
     spawnMonsterPack(room);
   }

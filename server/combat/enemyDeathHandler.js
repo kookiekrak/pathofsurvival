@@ -35,9 +35,9 @@ function onEnemyKilled(room, enemy, killer) {
     }
   }
 
-  // Advance Kill-Driven Wave Progress (Paced ~45-60s per wave)
+  // Advance Kill-Driven Wave Progress (Paced ~60-75s per wave alongside high pack density)
   if (room.state === 'RUN' && !room.isRaidEncounter && !enemy.isRaidPylon) {
-    const waveGain = enemy.rarity === 'boss' ? 35 : enemy.rarity === 'rare' ? 3.2 : enemy.rarity === 'magic' ? 1.15 : 0.42;
+    const waveGain = enemy.rarity === 'boss' ? 35 : enemy.rarity === 'rare' ? 2.4 : enemy.rarity === 'magic' ? 0.75 : 0.24;
     room.waveProgress = Math.min(100, (room.waveProgress || 0) + waveGain);
   }
 
@@ -222,16 +222,16 @@ function onEnemyKilled(room, enemy, killer) {
   // Fixed low drop frequencies (do NOT scale with lootQuantity — only item/currency tier scales with totalRarityBonus!)
   const modCount = Array.isArray(enemy.mods) ? enemy.mods.length : 0;
   const gearChance = (enemy.rarity === 'rare'
-    ? Math.min(0.45, 0.12 + modCount * 0.05)
+    ? Math.min(0.22, 0.05 + modCount * 0.022)
     : enemy.rarity === 'magic'
-      ? 0.022
-      : 0.0035) * breachMult;
+      ? 0.008
+      : 0.0018) * breachMult;
 
   const currencyChance = (enemy.rarity === 'rare'
-    ? (0.18 + modCount * 0.05)
+    ? (0.022 + modCount * 0.006)
     : enemy.rarity === 'magic'
-      ? 0.035
-      : 0.008) * breachMult;
+      ? 0.0045
+      : 0.0012) * breachMult;
 
   if (Math.random() < gearChance) {
     const dropIlvl = baseIlvl + (enemy.rarity === 'rare' ? 1 : 0);
