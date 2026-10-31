@@ -29,9 +29,10 @@
 /* ========================================================================= */
 .poe-dock-panel {
   position: fixed;
-  top: 28px;
-  bottom: 68px;
-  width: min(426px, 47vw);
+  top: 30px;
+  bottom: auto;
+  max-height: calc(100vh - 102px);
+  width: min(436px, 47vw);
   background-color: #080705;
   background-image:
     linear-gradient(180deg, rgba(16, 13, 9, 0.96) 0%, rgba(6, 5, 4, 0.98) 100%),
@@ -146,13 +147,13 @@
 }
 
 .poe-inventory-body, .poe-gems-body {
-  padding: 4px 8px;
+  padding: 6px 10px 8px;
   overflow: hidden;
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 3px;
+  justify-content: flex-start;
+  gap: 5px;
 }
 
 .poe-sub-header {
@@ -165,8 +166,8 @@
   color: var(--poe-gold-muted);
   letter-spacing: 0.6px;
   border-bottom: 1px solid #292016;
-  padding-bottom: 1px;
-  line-height: 1.1;
+  padding-bottom: 2px;
+  line-height: 1.15;
   flex-shrink: 0;
 }
 
@@ -179,21 +180,21 @@
 }
 
 /* ========================================================================= */
-/* AUTHENTIC POE 1 SPATIAL PAPER-DOLL LAYOUT (ULTRA-COMPACT 128PX STAGE)     */
+/* AUTHENTIC POE 1 SPATIAL PAPER-DOLL LAYOUT (RESPONSIVE PERCENTAGE STAGE)   */
 /* ========================================================================= */
 .poe-paperdoll-stage {
   background:
     radial-gradient(circle at 50% 50%, rgba(36, 27, 17, 0.38) 0%, rgba(5, 4, 3, 0.95) 85%);
   border: 1px solid #2e2418;
   box-shadow: inset 0 0 24px #000;
-  padding: 2px;
+  padding: 3px;
   flex-shrink: 0;
 }
 
 .poe-paperdoll-canvas {
   position: relative;
   width: 100%;
-  height: 128px;
+  height: clamp(144px, 20.5vh, 174px);
 }
 
 .pd-slot {
@@ -213,15 +214,15 @@
   border-color: var(--poe-gold);
 }
 
-/* Exact PoE 1 Spatial Coordinates for the 8 Equipment Slots (128px Stage) */
-.pd-slot-weapon { left: 10px;  top: 4px;   width: 82px; height: 82px; }
-.pd-slot-helm   { left: 146px; top: 2px;   width: 78px; height: 38px; }
-.pd-slot-amulet { left: 236px; top: 4px;   width: 58px; height: 34px; }
-.pd-slot-body   { left: 144px; top: 42px;  width: 82px; height: 56px; }
-.pd-slot-gloves { left: 50px;  top: 88px;  width: 74px; height: 38px; }
-.pd-slot-belt   { left: 144px; top: 100px; width: 82px; height: 26px; }
-.pd-slot-ring   { left: 236px; top: 56px;  width: 58px; height: 34px; }
-.pd-slot-boots  { left: 302px; top: 88px;  width: 74px; height: 38px; }
+/* Balanced PoE 1 Spatial Coordinates for the 8 Equipment Slots */
+.pd-slot-weapon { left: 3%;  top: 5%;  width: 21%; height: 57%; }
+.pd-slot-gloves { left: 10%; top: 65%; width: 20%; height: 31%; }
+.pd-slot-helm   { left: 39%; top: 3%;  width: 22%; height: 27%; }
+.pd-slot-body   { left: 38%; top: 33%; width: 24%; height: 42%; }
+.pd-slot-belt   { left: 38%; top: 78%; width: 24%; height: 19%; }
+.pd-slot-amulet { left: 66%; top: 8%;  width: 15%; height: 25%; }
+.pd-slot-ring   { left: 66%; top: 37%; width: 15%; height: 25%; }
+.pd-slot-boots  { left: 70%; top: 65%; width: 20%; height: 31%; }
 
 /* PoE Rarity Slot Backdrop Tints */
 .pd-slot.rarity-normal {

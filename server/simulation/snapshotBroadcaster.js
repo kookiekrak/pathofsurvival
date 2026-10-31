@@ -51,8 +51,22 @@ function broadcastRoomSnapshot(room) {
     mapModStats: room.mapModStats || null,
     mapSeed: room.mapSeed || 1,
     isRaid: !!room.isRaidEncounter,
+    raidId: room.raidId || null,
     deliriumRem: +(room.deliriumTimer || 0).toFixed(1),
     deliriumKills: room.deliriumKills || 0,
+    deliriumTier: room.deliriumTier || 0,
+    activeRitual: room.activeRitual ? {
+      x: room.activeRitual.x, y: room.activeRitual.y, r: room.activeRitual.r,
+      wave: room.activeRitual.wave, maxWaves: room.activeRitual.maxWaves
+    } : null,
+    mavenMemory: room.mavenMemory ? {
+      step: room.mavenMemory.flashedIdx,
+      phase: room.mavenMemory.timer < 3.2 ? 'preview' : 'solve',
+      flashIdx: room.mavenMemory.timer < 3.2 ? room.mavenMemory.flashedIdx : -1,
+      flashLabel: (room.mavenMemory.timer < 3.2 && room.mavenMemory.seq[room.mavenMemory.flashedIdx])
+        ? room.mavenMemory.seq[room.mavenMemory.flashedIdx].label : null,
+      seqLen: room.mavenMemory.seq.length
+    } : null,
     raidBeams: room.raidBeams || [],
     raidSanctuary: room.raidSanctuary ? {
       x: room.raidSanctuary.x,
@@ -104,7 +118,9 @@ function broadcastRoomSnapshot(room) {
       kills: p.kills,
       dead: p.dead,
       reviveProgress: +p.reviveProgress.toFixed(2),
-      rfRadius: getPlayerRfRadius(p)
+      rfRadius: getPlayerRfRadius(p),
+      fc: p.flaskSlotCharges || [15, 0, 0, 0, 0],
+      ft: (p.flaskSlotTimers || [0, 0, 0, 0, 0]).map(t => +t.toFixed(1))
     })),
     enemies: Array.from(room.enemies.values()).map(m => ({
       id: m.id,

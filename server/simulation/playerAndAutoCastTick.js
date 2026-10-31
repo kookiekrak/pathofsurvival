@@ -52,7 +52,10 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
         statBuffExpired = true;
       }
     }
-    if (statBuffExpired) recalcPlayer(p, false);
+    if (statBuffExpired) {
+      recalcPlayer(p, false);
+      sendPrivateProfile(p);
+    }
 
     if (p.dead) {
       for (const ally of room.players.values()) {
@@ -89,10 +92,12 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
     }
 
     // Auto-Flask Triggering in Maps:
-    // - Life Flasks trigger at < 72% HP OR when charges reach FULL (curCharges >= maxCharges)!
-    // - Utility Flasks trigger when charges reach FULL OR when enemies are nearby and buff isn't active!
-    if (room.state === 'RUN' && Array.isArray(p.flaskBelt)) {
-      const hasNearbyEnemy = findNearestEnemy(room, p.x, p.y, 380) !== null;
+    // - Life Flasks trigger at < 82% HP OR when charges reach FULL (and injured or enemies nearby)!
+    // - Utility Flasks trigger when charges reach FULL (<= 65% timer left) OR when buff is inactive (and enemies nearby or Quicksilver)!
+    if (room.state === 'RUN' && (room.runTimer || 0) >= 1.0 && Array.isArray(p.flaskBelt)) {
+      if (!Array.isArray(p.flaskSlotCharges) || p.flaskSlotCharges.length < 5) p.flaskSlotCharges = [15, 0, 0, 0, 0];
+      if (!Array.isArray(p.flaskSlotTimers) || p.flaskSlotTimers.length < 5) p.flaskSlotTimers = [0, 0, 0, 0, 0];
+      const hasNearbyEnemy = findNearestEnemy(room, p.x, p.y, 620) !== null || !!room.isRaidEncounter;
       let usedAnyFlask = false;
       let usedUtilityFlask = false;
       for (let sIdx = 0; sIdx < 5; sIdx++) {
@@ -109,16 +114,16 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
         const isFullCharges = curCharges >= maxCharges;
 
         if (fId === 'life') {
-          if ((p.hp < p.maxHp * 0.72 || isFullCharges) && (p.autoLifeFlaskCd || 0) <= 0) {
+          if ((p.hp < p.maxHp * 0.82 || (isFullCharges && (p.hp < p.maxHp * 0.98 || hasNearbyEnemy))) && (p.autoLifeFlaskCd || 0) <= 0) {
             p.flaskSlotCharges[sIdx] = Math.max(0, curCharges - useCost);
             p.flaskCharges[fId] = p.flaskSlotCharges[sIdx];
             p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.45));
-            p.autoLifeFlaskCd = 1.25;
+            p.autoLifeFlaskCd = 2.0;
             usedAnyFlask = true;
           }
         } else if (!(p.stats && p.stats.mageblood > 0)) {
           const buffInactive = (p.flaskSlotTimers[sIdx] || 0) <= 0 && (p.activeFlasks[fId] || 0) <= 0;
-          if (isFullCharges || (hasNearbyEnemy && buffInactive)) {
+          if ((isFullCharges && (p.flaskSlotTimers[sIdx] || 0) <= dur * 0.65) || (buffInactive && (hasNearbyEnemy || fId === 'quicksilver'))) {
             p.flaskSlotCharges[sIdx] = Math.max(0, curCharges - useCost);
             p.flaskCharges[fId] = p.flaskSlotCharges[sIdx];
             p.flaskSlotTimers[sIdx] = dur;
@@ -232,7 +237,8 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
       p.y += p.vy * dt;
     }
 
-    const bound = room.state === 'HIDEOUT' ? HIDEOUT_HALF - 24 : ARENA_HALF - 32;
+    const raidBound = (typeof RAID_ARENA_HALF === 'number' ? RAID_ARENA_HALF : 560) - 30;
+    const bound = room.state === 'HIDEOUT' ? HIDEOUT_HALF - 24 : room.isRaidEncounter ? raidBound : ARENA_HALF - 32;
     p.x = Math.max(-bound, Math.min(bound, p.x));
     p.y = Math.max(-bound, Math.min(bound, p.y));
 
@@ -264,10 +270,7 @@ function updateRoomPlayers(room, dt, allPlayers, alivePlayers) {
         sendPrivateProfile(p);
       } else if (drop.dropType === 'flask' && p.targetDropId === drop.id && d <= 125) {
         p.targetDropId = null;
-        if ((p.inventory || []).length < 50) {
-          room.groundDrops.splice(i, 1);
-          pickupGroundFlask(room, p, drop);
-        }
+        if (pickupGroundFlask(room, p, drop)) room.groundDrops.splice(i, 1);
       } else if (drop.dropType === 'gear' && p.targetDropId === drop.id && d <= 125) {
         p.targetDropId = null;
         if (p.inventory.length < 50) {

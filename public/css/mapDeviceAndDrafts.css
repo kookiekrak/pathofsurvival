@@ -275,11 +275,11 @@
 
 .poe-micro-menu {
   display: flex;
-  gap: 4px;
+  gap: 3px;
 }
 
 .poe-menu-btn {
-  width: 44px;
+  width: 39px;
   height: 54px;
   background: linear-gradient(180deg, #1b150e 0%, #0b0906 100%);
   border: 1px solid var(--poe-brass-dark);

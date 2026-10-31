@@ -16,6 +16,8 @@ function canRemovePassiveNode(passives, nodeToRemove, startNode) {
 // =========================================================================
 // MAP RUN INITIALIZATION, SHRINES, STRONGBOXES, BREACHES, ESSENCES & RITUALS
 // =========================================================================
+const RAID_ARENA_HALF = 560;
+
 function randArenaPos(minD, maxD, existingList) {
   for (let attempt = 0; attempt < 24; attempt++) {
     const ang = Math.random() * Math.PI * 2;
@@ -34,6 +36,9 @@ function randArenaPos(minD, maxD, existingList) {
 function populateMapInteractables(room) {
   room.mapSeed = randInt(1000, 999999);
   room.interactables = [];
+  room.upgradeChests = [];
+  if (room.isRaidEncounter) return;
+
   const shrineTypes = [
     { kind: 'shrine', sub: 'echoing', label: 'Echoing Shrine (Skills Repeat + 35% CDR)', color: '#da77f2' },
     { kind: 'shrine', sub: 'thunderstorm', label: 'Thunderstorm Shrine (Auto-Lightning Bolts)', color: '#74c0fc' },
@@ -42,27 +47,22 @@ function populateMapInteractables(room) {
     { kind: 'shrine', sub: 'acceleration', label: 'Acceleration Shrine (+42% Speed & +32% CDR)', color: '#69db7c' },
     { kind: 'shrine', sub: 'brutal', label: 'Brutal Shrine (+45% More Damage & +35% AoE)', color: '#ff6b6b' }
   ];
-
-  // Spawn 1 Active PoE Shrine on the map
-  const shrineCount = 1;
-  for (let i = 0; i < shrineCount; i++) {
-    const pos = randArenaPos(320, 1100, room.interactables);
-    const st = pick(shrineTypes);
-    room.interactables.push({
-      id: uid('shr'), kind: 'shrine', sub: st.sub, label: st.label, color: st.color,
-      x: pos.x, y: pos.y, used: false
-    });
-  }
-
-  // Spawn 1 PoE Strongbox (Arcanist, Armourer, Diviner)
   const boxTypes = [
     { sub: 'arcanist', label: "Arcanist's Strongbox (Currency & Ambush)", color: '#ffd43b' },
     { sub: 'armourer', label: "Armourer's Strongbox (Rare Gear & Ambush)", color: '#ff922b' },
     { sub: 'diviner', label: "Diviner's Strongbox (High-Tier Loot & Elites)", color: '#38d9a9' }
   ];
-  const boxCount = 1;
-  for (let i = 0; i < boxCount; i++) {
-    const pos = randArenaPos(420, 1080, room.interactables);
+
+  // 1) Spawn EITHER 1 Shrine OR 1 Strongbox (at most 2 interactables total per map)
+  if (Math.random() < 0.5) {
+    const pos = randArenaPos(340, 980, room.interactables);
+    const st = pick(shrineTypes);
+    room.interactables.push({
+      id: uid('shr'), kind: 'shrine', sub: st.sub, label: st.label, color: st.color,
+      x: pos.x, y: pos.y, used: false
+    });
+  } else {
+    const pos = randArenaPos(380, 980, room.interactables);
     const bt = pick(boxTypes);
     room.interactables.push({
       id: uid('box'), kind: 'strongbox', sub: bt.sub, label: bt.label, color: bt.color,
@@ -70,48 +70,34 @@ function populateMapInteractables(room) {
     });
   }
 
-  // Spawn 0 or 1 Breach Hand across the map
-  const breachCount = Math.random() < 0.65 ? 1 : 0;
-  for (let i = 0; i < breachCount; i++) {
-    const pos = randArenaPos(400, 920, room.interactables);
+  // 2) 50% chance to spawn 1 League Encounter (randomly pick ONE from breach, essence, ritual, or delirium)
+  if (Math.random() < 0.5) {
+    const leaguePool = [
+      { idPrefix: 'brc', kind: 'breach', sub: 'chayula', label: 'Breach Hand — Click or [E] to Rip Open Breach', color: '#cc5de8' },
+      { idPrefix: 'ess', kind: 'essence', sub: 'screaming', label: 'Essence Monolith — Release Crystal Rare & Orbs [E]', color: '#3bc9db' },
+      { idPrefix: 'rit', kind: 'ritual', sub: 'tribute', label: 'Ritual Altar — Tribute Wave & Free Party Upgrade [E]', color: '#ff4d6d' },
+      { idPrefix: 'del', kind: 'delirium', sub: 'mirror', label: 'Mirror of Delirium — 24s Fog Surge & Bonus Loot [E]', color: '#ced4da' }
+    ];
+    const enc = pick(leaguePool);
+    const pos = randArenaPos(420, 960, room.interactables);
     room.interactables.push({
-      id: uid('brc'), kind: 'breach', sub: 'chayula',
-      label: 'Breach Hand — Click or [E] to Rip Open Breach', color: '#cc5de8',
+      id: uid(enc.idPrefix), kind: enc.kind, sub: enc.sub, label: enc.label, color: enc.color,
       x: pos.x, y: pos.y, used: false
     });
   }
 
-  // Spawn 1 Essence Monolith
-  const posEss = randArenaPos(380, 900, room.interactables);
-  room.interactables.push({
-    id: uid('ess'), kind: 'essence', sub: 'screaming',
-    label: 'Essence Monolith — Release Crystal Rare & Orbs [E]', color: '#3bc9db',
-    x: posEss.x, y: posEss.y, used: false
-  });
+  // Spawn ONLY 1 Golden Upgrade Chest initially (capped at 1 unopened chest on the map)
+  const pos = randArenaPos(280, 680, room.interactables);
+  room.upgradeChests.push({ id: `uchest_${uid('uc')}`, x: pos.x, y: pos.y, opened: false });
+}
 
-  // Spawn 1 Blood Ritual Altar
-  const posRit = randArenaPos(420, 940, room.interactables);
-  room.interactables.push({
-    id: uid('rit'), kind: 'ritual', sub: 'tribute',
-    label: 'Ritual Altar — Tribute Wave & Free Party Upgrade [E]', color: '#ff4d6d',
-    x: posRit.x, y: posRit.y, used: false
-  });
-
-  // Spawn 1 Delirium Mirror (Triggers 24s of Delirium Fog with Bonus Rewards on Expiry)
-  const delPos = randArenaPos(320, 720, room.interactables);
-  room.interactables.push({
-    id: uid('del'), kind: 'delirium', sub: 'mirror',
-    label: 'Mirror of Delirium — 24s Fog Surge & Bonus Loot [E]', color: '#ced4da',
-    x: delPos.x, y: delPos.y, used: false
-  });
-
-  // Spawn 2 Golden Upgrade Chests across the map (ONLY in room.upgradeChests — never duplicated in room.interactables!)
-  const chestCount = 2;
-  room.upgradeChests = [];
-  for (let i = 0; i < chestCount; i++) {
-    const pos = randArenaPos(260, 740, [...room.interactables, ...room.upgradeChests]);
-    const chestId = `uchest_${uid('uc')}`;
-    room.upgradeChests.push({ id: chestId, x: pos.x, y: pos.y, opened: false });
+function spawnAdditionalUpgradeChest(room) {
+  if (!room || room.isRaidEncounter) return;
+  if (!Array.isArray(room.upgradeChests)) room.upgradeChests = [];
+  const unopened = room.upgradeChests.filter(c => !c.opened).length;
+  if (unopened < 1) {
+    const pos = randArenaPos(520, 1180, [...(room.interactables || []), ...room.upgradeChests]);
+    room.upgradeChests.push({ id: `uchest_${uid('uc')}`, x: pos.x, y: pos.y, opened: false });
   }
 }
 
@@ -159,19 +145,24 @@ function tryBuyUpgradeChest(room, player, specificChestId = null) {
   if (player.maxEs > 0) {
     player.es = Math.min(player.maxEs, player.es + Math.round(player.maxEs * 0.25));
   }
+  if (Array.isArray(player.flaskBelt) && Array.isArray(player.flaskSlotCharges)) {
+    for (let sIdx = 0; sIdx < 5; sIdx++) {
+      const fId = player.flaskBelt[sIdx];
+      if (!fId) continue;
+      const fDef = GameData.FLASKS.find(fl => fl.id === fId);
+      const slotMeta = (Array.isArray(player.flaskBeltItems) && player.flaskBeltItems[sIdx]) || null;
+      const maxChg = (slotMeta && slotMeta.maxCharges) || (fDef ? fDef.maxCharges : 30);
+      player.flaskSlotCharges[sIdx] = Math.min(maxChg, (player.flaskSlotCharges[sIdx] || 0) + 8);
+    }
+  }
   for (const f of GameData.FLASKS) {
     if ((player.unlockedFlasks || ['life']).includes(f.id)) {
       player.flaskCharges[f.id] = Math.min(f.maxCharges, (player.flaskCharges[f.id] || 0) + 8);
     }
   }
 
-  // Respawn 1 new Golden Upgrade Chest far out if fewer than 3 unopened remain
-  const unopened = room.upgradeChests.filter(c => !c.opened).length;
-  if (unopened < 3) {
-    const pos = randArenaPos(550, 1250, [...room.interactables, ...room.upgradeChests]);
-    const chestId = `uchest_${uid('uc')}`;
-    room.upgradeChests.push({ id: chestId, x: pos.x, y: pos.y, opened: false });
-  }
+  // Respawn 1 new Golden Upgrade Chest far out if fewer than 1 unopened remain
+  spawnAdditionalUpgradeChest(room);
 
   room.fxEvents.push({
     kind: 'nova',
@@ -186,6 +177,24 @@ function tryBuyUpgradeChest(room, player, specificChestId = null) {
   return true;
 }
 
+function spawnRitualWave(room) {
+  if (!room || !room.activeRitual) return;
+  const rit = room.activeRitual;
+  const totalCount = 3 + (rit.wave || 1);
+  const rareCount = rit.wave >= 3 ? 2 : 1;
+  room.fxEvents.push({ kind: 'nova', x: Math.round(rit.x), y: Math.round(rit.y), r: 165, color: '#ff4d6d' });
+
+  for (let k = 0; k < totalCount; k++) {
+    const ang = (Math.PI * 2 * k) / totalCount + (Math.random() - 0.5) * 0.25;
+    const d = randInt(125, 220);
+    const mx = Math.max(-ARENA_HALF + 70, Math.min(ARENA_HALF - 70, Math.round(rit.x + Math.cos(ang) * d)));
+    const my = Math.max(-ARENA_HALF + 70, Math.min(ARENA_HALF - 70, Math.round(rit.y + Math.sin(ang) * d)));
+    const rarity = k < rareCount ? 'rare' : (k < rareCount + 2 ? 'magic' : 'normal');
+    const m = spawnMonster(room, false, { x: mx, y: my, exact: true, forceBuyIn: true }, rarity);
+    if (m) m.isRitualMob = true;
+  }
+}
+
 function activateInteractable(room, player, it) {
   if (!it || it.used) return;
   if (it.kind === 'upgrade_chest') {
@@ -194,6 +203,7 @@ function activateInteractable(room, player, it) {
   }
   it.used = true;
   const mapDef = GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId) || GameData.ATLAS_MAPS[0];
+  const mapIIR = ((mapDef && mapDef.lootRarityBonus) || 0) + ((room.mapModStats && room.mapModStats.rarity) || 0) + ((room.deliriumTier || 0) * 60);
 
   if (it.kind === 'shrine') {
     for (const p of room.players.values()) {
@@ -204,7 +214,6 @@ function activateInteractable(room, player, it) {
       recalcPlayer(p, false);
       sendPrivateProfile(p);
     }
-    // Immediate Shrine Shockwave damages surrounding monsters
     for (const m of Array.from(room.enemies.values())) {
       if (dist(it.x, it.y, m.x, m.y) <= 185 + m.radius) {
         damageEnemy(room, m, 35 + (player.level || 1) * 8, true, player, 0, 'lightning');
@@ -216,60 +225,55 @@ function activateInteractable(room, player, it) {
   } else if (it.kind === 'essence') {
     const dropIlvl = (mapDef.tier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
     room.fxEvents.push({ kind: 'nova', x: it.x, y: it.y, r: 120, color: '#3bc9db' });
-    spawnMonster(room, false, { x: it.x + 45, y: it.y, exact: true }, 'rare');
-    spawnMonster(room, false, { x: it.x - 45, y: it.y, exact: true }, 'rare');
-    for (let k = 0; k < 4; k++) {
-      const ang = (Math.PI * 2 * k) / 4;
+    spawnMonster(room, false, { x: it.x + 55, y: it.y, exact: true }, 'rare');
+    spawnMonster(room, false, { x: it.x - 55, y: it.y, exact: true }, 'rare');
+    for (let k = 0; k < 2; k++) {
+      const ang = Math.PI * k;
       spawnMonster(room, false, { x: it.x + Math.cos(ang) * 110, y: it.y + Math.sin(ang) * 110, exact: true }, 'magic');
     }
-    spawnGroundDrop(room, it.x - 16, it.y, 'currency');
-    spawnGroundDrop(room, it.x + 16, it.y, 'currency');
-    spawnGroundDrop(room, it.x, it.y + 18, 'gear', 'rare', dropIlvl);
-    addRoomChat(room, 'Essence', `${player.name} shattered an Essence Monolith — Twin Crystal Rares & Crafting Orbs released!`, '#3bc9db');
+    spawnGroundDrop(room, it.x - 16, it.y, 'currency', null, 1, mapIIR + 180);
+    spawnGroundDrop(room, it.x, it.y + 18, 'gear', 'rare', dropIlvl, mapIIR + 180);
+    addRoomChat(room, 'Essence', `${player.name} shattered an Essence Monolith — Twin Crystal Rares & Crafting Orb released!`, '#3bc9db');
   } else if (it.kind === 'ritual') {
-    room.fxEvents.push({ kind: 'nova', x: it.x, y: it.y, r: 155, color: '#ff4d6d' });
-    for (let k = 0; k < 8; k++) {
-      const ang = (Math.PI * 2 * k) / 8;
-      spawnMonster(room, false, { x: it.x + Math.cos(ang) * 160, y: it.y + Math.sin(ang) * 160, exact: true }, k < 2 ? 'rare' : 'magic');
-    }
-    for (const p of room.players.values()) {
-      if (!p.dead) {
-        p.runGold = (p.runGold || 0) + 55;
-        p.earnedRunGold = (p.earnedRunGold || 0) + 55;
-        p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.45));
-        queueGemDraft(p, 'Ritual Tribute Altar — Choose 1 Free Blood Tribute Upgrade');
-        sendPrivateProfile(p);
-      }
-    }
-    addRoomChat(room, 'Ritual', `${player.name} consecrated a Blood Ritual Altar (+55 Run Gold & Free Tribute Upgrade Draft)!`, '#ff4d6d');
-    broadcastRoomEvent(room, { type: 'announcement', title: 'Blood Ritual Consecrated!', subtitle: '+55 Run Gold & Free Tribute Upgrade Draft Granted!', color: '#ff4d6d' });
+    // 3-Wave Blood Ritual Encounter: loot & tribute boon draft drop only after clearing all 3 waves!
+    room.activeRitual = { id: it.id, x: it.x, y: it.y, r: 320, wave: 1, maxWaves: 3 };
+    spawnRitualWave(room);
+    addRoomChat(room, 'Ritual', `${player.name} consecrated a Blood Ritual Altar — Wave 1 of 3 begun! Slay all Ritual Offerings!`, '#ff4d6d');
+    broadcastRoomEvent(room, {
+      type: 'announcement',
+      title: 'BLOOD RITUAL — WAVE 1 OF 3!',
+      subtitle: 'Slay all 3 Waves of Blood Offerings inside the Ritual Ring to claim Tribute Loot & Boon!',
+      color: '#ff4d6d'
+    });
   } else if (it.kind === 'delirium') {
-    room.deliriumTimer = 24.0;
+    room.deliriumTimer = 42.0;
     room.deliriumKills = 0;
-    room.fxEvents.push({ kind: 'nova', x: it.x, y: it.y, r: 170, color: '#ced4da' });
-    spawnMonster(room, false, { x: it.x + 80, y: it.y, exact: true }, 'rare');
-    for (let k = 0; k < 5; k++) {
-      const ang = (Math.PI * 2 * k) / 5;
-      spawnMonster(room, false, { x: it.x + Math.cos(ang) * 135, y: it.y + Math.sin(ang) * 135, exact: true }, 'magic');
-    }
-    addRoomChat(room, 'Delirium', `${player.name} shattered a Mirror of Delirium! Slay monsters for 24s to earn a Delirium Loot Shower!`, '#dee2e6');
-    broadcastRoomEvent(room, { type: 'announcement', title: 'Mirror of Delirium Shattered!', subtitle: '24s Delirium Fog Active — Slay hordes to stack Delirium Rewards!', color: '#dee2e6' });
+    room.deliriumTier = 1;
+    room.deliriumWaveCd = 4.0;
+    room.fxEvents.push({ kind: 'nova', x: it.x, y: it.y, r: 180, color: '#ced4da' });
+    spawnMonsterPack(room, player.x, player.y);
+    spawnMonster(room, false, { x: it.x + 85, y: it.y, exact: true, forceModCount: 4 }, 'rare');
+    addRoomChat(room, 'Delirium', `${player.name} shattered a Mirror of Delirium! (42s Simulacrum Fog — Tier 1: +60% Item & Currency Rarity)`, '#dee2e6');
+    broadcastRoomEvent(room, {
+      type: 'announcement',
+      title: 'MIRROR OF DELIRIUM SHATTERED! (TIER 1)',
+      subtitle: '42s Delirium Fog Active — Slay hordes to climb Reward Tiers for +60% Rarity per Tier!',
+      color: '#dee2e6'
+    });
   } else if (it.kind === 'strongbox') {
     addRoomChat(room, 'Ambush', `${player.name} opened ${it.label} — Ambush Guard Pack approaching from afar!`, '#ffd43b');
-    // Spawn ambush guards MUCH farther out (340 to 560 units away in a perimeter ring)
-    const guardCount = 7;
+    const guardCount = 4;
     for (let k = 0; k < guardCount; k++) {
       const ang = (Math.PI * 2 * k) / guardCount + (Math.random() - 0.5) * 0.3;
-      const ambushDist = 340 + Math.random() * 220;
+      const ambushDist = 340 + Math.random() * 180;
       const gx = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(it.x + Math.cos(ang) * ambushDist)));
       const gy = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(it.y + Math.sin(ang) * ambushDist)));
-      spawnMonster(room, false, { x: gx, y: gy, exact: true }, k === 0 ? 'rare' : k <= 2 ? 'magic' : 'normal');
+      spawnMonster(room, false, { x: gx, y: gy, exact: true }, k === 0 ? 'rare' : k === 1 ? 'magic' : 'normal');
     }
-    // Strongbox drops 1 Currency Orb and 1 Magic/Rare gear item (0.3% Unique chance)
     const dropIlvl = (mapDef.tier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 1;
-    const boxRarity = Math.random() < 0.003 ? 'unique' : (Math.random() < 0.45 ? 'rare' : 'magic');
-    spawnGroundDrop(room, it.x - 14, it.y, 'currency');
-    spawnGroundDrop(room, it.x + 14, it.y, 'gear', boxRarity, dropIlvl);
+    const boxRarity = Math.random() < 0.005 ? 'unique' : (Math.random() < 0.50 ? 'rare' : 'magic');
+    spawnGroundDrop(room, it.x - 14, it.y, 'currency', null, 1, mapIIR + 140);
+    spawnGroundDrop(room, it.x + 14, it.y, 'gear', boxRarity, dropIlvl, mapIIR + 140);
   } else if (it.kind === 'breach') {
     room.fxEvents.push({ kind: 'nova', x: it.x, y: it.y, r: 140, color: '#cc5de8' });
     if (!Array.isArray(room.activeBreaches)) room.activeBreaches = [];
@@ -288,15 +292,10 @@ function activateInteractable(room, player, it) {
     };
     room.activeBreaches.push(breachObj);
 
-    // Initial Breach ring burst: 8 Breach Swarmers + 2 Magic + 1 Rare along the opening ring edge
-    for (let k = 0; k < 8; k++) {
-      const ang = (Math.PI * 2 * k) / 8 + (Math.random() - 0.5) * 0.25;
+    for (let k = 0; k < 4; k++) {
+      const ang = (Math.PI * 2 * k) / 4 + (Math.random() - 0.5) * 0.25;
       const bDist = randInt(95, 165);
       spawnMonster(room, false, { x: it.x + Math.cos(ang) * bDist, y: it.y + Math.sin(ang) * bDist, exact: true }, 'normal', null, true);
-    }
-    for (let k = 0; k < 2; k++) {
-      const ang = Math.PI * k + 0.6;
-      spawnMonster(room, false, { x: it.x + Math.cos(ang) * 145, y: it.y + Math.sin(ang) * 145, exact: true }, 'magic', null, true);
     }
     spawnMonster(room, false, { x: it.x, y: it.y - 155, exact: true }, 'rare', null, true);
 
@@ -310,47 +309,19 @@ function activateInteractable(room, player, it) {
   }
 }
 
-function spawnWaveLeagueEncounter(room) {
-  // Spawn 1 extra encounter every 4 waves so the arena never gets cluttered with boxes!
-  if (room.wave % 4 !== 0) return;
-  const alivePlayers = Array.from(room.players.values()).filter(p => !p.dead);
-  if (alivePlayers.length === 0) return;
-  const anchor = pick(alivePlayers);
-  const ang = Math.random() * Math.PI * 2;
-  const d = randInt(450, 680);
-  const x = Math.max(-ARENA_HALF + 80, Math.min(ARENA_HALF - 80, Math.round(anchor.x + Math.cos(ang) * d)));
-  const y = Math.max(-ARENA_HALF + 80, Math.min(ARENA_HALF - 80, Math.round(anchor.y + Math.sin(ang) * d)));
-
-  if (room.wave % 8 === 4) {
-    room.interactables.push({
-      id: uid('brc'),
-      kind: 'breach',
-      sub: 'chayula',
-      label: 'Breach Hand — Click or [E] to Rip Open Breach',
-      color: '#cc5de8',
-      x,
-      y,
-      used: false
-    });
-  } else {
-    room.interactables.push({
-      id: uid('box'),
-      kind: 'strongbox',
-      sub: 'arcanist',
-      label: 'Abyssal Trove (Elite Pack)',
-      color: '#53f574',
-      x,
-      y,
-      used: false
-    });
-  }
+function spawnWaveLeagueEncounter() {
+  // Disabled so waves never spam extra boxes/breaches across the map!
+  return;
 }
 
 const exportsObj = {
+  RAID_ARENA_HALF,
   findShortestPassivePathToNode,
   canRemovePassiveNode,
   populateMapInteractables,
+  spawnAdditionalUpgradeChest,
   tryBuyUpgradeChest,
+  spawnRitualWave,
   activateInteractable,
   spawnWaveLeagueEncounter
 };

@@ -31,7 +31,7 @@
           Difficulty: ${hpMult}x HP • ${dmgMult}x Dmg${armorVal > 0 ? ` • ${armorVal} Ward` : ''}
         </div>
         <div class="map-stat-line" style="margin:0;color:#69db7c;font-size:0.8rem">
-          Drops: ilvl ${baseIlvl}+ • ${dropBonus > 0 ? `+${dropBonus}% Qty` : '1.0x Qty'}${rarityBonus > 0 ? ` • +${rarityBonus}% Rarity` : ''} • ${(m.goldMult || 1)}x Gold
+          Drops: ilvl ${baseIlvl}+ • +${rarityBonus}% Item Rarity • ${(m.goldMult || 1)}x Gold
         </div>
       `;
       card.addEventListener('click', () => {
@@ -63,7 +63,7 @@
           ${r.mechanicsDesc || 'Multi-Phase Pinnacle Raid Mechanics'}
         </div>
         <div class="map-stat-line" style="margin:0;color:#69db7c;font-size:0.78rem">
-          Drops: +${dropBonus}% Qty • +${rarityBonus}% Rarity • Guaranteed Unique/Orbs
+          Drops: +${rarityBonus}% Item Rarity • Guaranteed Unique/Orbs
         </div>
       `;
       card.addEventListener('click', () => {
@@ -104,9 +104,9 @@
         const cur = (myProfile && myProfile.currencies) || {};
         const modText = mods.length > 0
           ? mods.map(md => `<span style="color:#74c0fc">${md.name}</span>`).join(' • ')
-          : `<span style="color:#9e8d73">Uncrafted Normal Map (Rolls 1–2 random mods on launch, or craft with Orbs for higher Quantity!)</span>`;
+          : `<span style="color:#9e8d73">Uncrafted Normal Map (Rolls 1–2 random mods on launch, or craft with Orbs for higher Item Rarity!)</span>`;
         const bonusTag = mods.length > 0
-          ? `<span style="color:#69db7c;font-weight:700;margin-left:6px">[+${bQuant}% Qty • +${bRar}% Rarity • +${bPack}% Pack Size]</span>`
+          ? `<span style="color:#69db7c;font-weight:700;margin-left:6px">[+${bRar}% Item Rarity • +${bPack}% Pack Size]</span>`
           : '';
         const orbBtns = [
           ['transmute', 'TRN', 'Normal → Magic (1-2 Mods)'],

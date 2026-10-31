@@ -138,6 +138,43 @@ function buildFlaskItem(flaskId, existingId = null, customStats = null) {
 
   const displayName = (customStats && customStats.name) ? customStats.name : `${prefix}${fDef.name}`.trim();
   const durText = fDef.id !== 'life' ? ` • Lasts ${duration}s` : '';
+  const modLines = [];
+  if (maxCharges > fDef.maxCharges) {
+    modLines.push(`+${Math.round((maxCharges / fDef.maxCharges - 1) * 100)}% Increased Maximum Charges (Ample)`);
+  } else if (maxCharges < fDef.maxCharges) {
+    modLines.push(`-${Math.round((1 - maxCharges / fDef.maxCharges) * 100)}% Maximum Charges`);
+  }
+  if (cost < fDef.cost) {
+    modLines.push(`-${Math.round((1 - cost / fDef.cost) * 100)}% Reduced Charges Used (Chemist's)`);
+  } else if (cost > fDef.cost) {
+    modLines.push(`+${Math.round((cost / fDef.cost - 1) * 100)}% Charges Used`);
+  }
+  if (fDef.id !== 'life' && duration > fDef.duration) {
+    modLines.push(`+${Math.round((duration / fDef.duration - 1) * 100)}% Increased Flask Effect Duration (Experimenter's)`);
+  }
+  if (modLines.length === 0 && customStats && Array.isArray(customStats.mods)) {
+    modLines.push(...customStats.mods);
+  }
+
+  const affixes = [
+    {
+      id: `flask_${fDef.id}`,
+      stat: 'flask',
+      val: 1,
+      value: 1,
+      tierName: `${cost}/${maxCharges} Charges${durText}`,
+      text: `${fDef.desc} (Auto-Triggers in Combat & on Full Charges)`
+    },
+    ...modLines.map((line, idx) => ({
+      id: `flask_mod_${idx}`,
+      stat: 'flaskMod',
+      val: 1,
+      value: 1,
+      tierName: 'Flask Mod',
+      text: line
+    }))
+  ];
+
   return {
     id: existingId || uid('flask'),
     flaskId: fDef.id,
@@ -152,17 +189,8 @@ function buildFlaskItem(flaskId, existingId = null, customStats = null) {
     duration,
     maxTierForIlvl: 'Flask',
     implicits: {},
-    affixes: [
-      {
-        id: `flask_${fDef.id}`,
-        stat: 'flask',
-        val: 1,
-        value: 1,
-        tierName: `${cost}/${maxCharges} Charges${durText}`,
-        text: `${fDef.desc} (Auto-Triggers in Combat & on Full Charges)`
-      }
-    ],
-    mods: [],
+    affixes,
+    mods: modLines,
     flavor: 'Left-Click in Inventory (or hover & press Keys 1–5) to equip into any Belt Slot [1–5].'
   };
 }

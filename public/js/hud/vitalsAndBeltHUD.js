@@ -31,12 +31,14 @@
       const secs = String(rem % 60).padStart(2, '0');
       modeBadge.textContent = `Monster Level ${67 + mapDef.tier}`;
       waveTitle.textContent = `${mapDef.name} — Wave ${worldState.wave}`;
-      const delSub = worldState.deliriumRem > 0 ? ` • DELIRIUM FOG (${worldState.deliriumRem}s • ${worldState.deliriumKills || 0} Slain)` : '';
-      const modQuant = (worldState.mapModStats && worldState.mapModStats.quant) || 0;
-      const totalQuant = Math.max(0, (mapDef.lootQuantity || 100) - 100 + modQuant);
+      const delTier = worldState.deliriumTier || 1;
+      const delSub = worldState.deliriumRem > 0 ? ` • DELIRIUM TIER ${delTier} (${worldState.deliriumRem}s • +${delTier * 60}% Rarity)` : '';
+      const ritSub = worldState.activeRitual ? ` • BLOOD RITUAL WAVE ${worldState.activeRitual.wave}/${worldState.activeRitual.maxWaves}` : '';
+      const modRarity = (worldState.mapModStats && worldState.mapModStats.rarity) || 0;
+      const totalRarity = (mapDef.lootRarityBonus || 0) + modRarity + (worldState.deliriumTier || 0) * 60;
       waveSub.textContent = (worldState.portalsOpen
         ? `Boss Slain • Extraction Portal Open at (0,0) • Endless Waves Active`
-        : `${mapDef.bossName} • ${mins}:${secs} • +${totalQuant}% Item Quantity`) + delSub;
+        : `${mapDef.bossName} • ${mins}:${secs} • +${totalRarity}% Item Rarity`) + delSub + ritSub;
 
       if (waveProgWrap) {
         waveProgWrap.classList.remove('hidden');
@@ -287,33 +289,21 @@
     el.addEventListener('dragstart', (ev) => {
       ev.dataTransfer.setData('text/plain', JSON.stringify({ kind: 'belt_slot', slotIndex: slotIdx }));
     });
-    el.addEventListener('dragover', (ev) => {
-      ev.preventDefault();
-    });
+    el.addEventListener('dragover', (ev) => ev.preventDefault());
     el.addEventListener('drop', (ev) => {
       ev.preventDefault();
       if (!ws) return;
       try {
         const payload = JSON.parse(ev.dataTransfer.getData('text/plain') || '{}');
         if (payload.kind === 'belt_slot' && typeof payload.slotIndex === 'number' && payload.slotIndex !== slotIdx) {
-          ws.send(JSON.stringify({
-            type: 'swap_flask_slots',
-            fromSlot: payload.slotIndex,
-            toSlot: slotIdx
-          }));
+          ws.send(JSON.stringify({ type: 'swap_flask_slots', fromSlot: payload.slotIndex, toSlot: slotIdx }));
           selectedBeltSlotIdx = null;
         } else if (payload.kind === 'inv_flask' && typeof payload.invIdx === 'number') {
-          ws.send(JSON.stringify({
-            type: 'equip_flask_slot',
-            invIdx: payload.invIdx,
-            slotIndex: slotIdx
-          }));
+          ws.send(JSON.stringify({ type: 'equip_flask_slot', invIdx: payload.invIdx, slotIndex: slotIdx }));
           selectedInvFlaskIdx = null;
           selectedBeltSlotIdx = null;
         }
-      } catch {
-        // Ignore malformed drag payload
-      }
+      } catch {}
     });
   }
 
@@ -338,13 +328,7 @@
 
       if (!f) {
         slot.className = `flask-slot flask-locked ${isSelected ? 'selected-belt-slot' : ''}`;
-        slot.innerHTML = `
-          <span class="flask-key-num">${keyNum}</span>
-          <div class="flask-svg-wrap flask-locked-wrap">
-            <span class="flask-lock-glyph">EMPTY</span>
-          </div>
-          <span class="flask-charges-num">SLOT ${keyNum}</span>
-        `;
+        slot.innerHTML = `<span class="flask-key-num">${keyNum}</span><div class="flask-svg-wrap flask-locked-wrap"><span class="flask-lock-glyph">EMPTY</span></div><span class="flask-charges-num">SLOT ${keyNum}</span>`;
         slot.title = `Empty Belt Slot [${keyNum}] — Drag/Click any Flask from Inventory [I] or Swap Belt Slots!`;
         slot.addEventListener('click', () => handleBeltSlotClick(i, false));
         wireBeltSlotDragAndDrop(slot, i);
@@ -362,6 +346,12 @@
       const cur = isMagebloodActive ? maxChg : rawChg;
       const pct = isMagebloodActive ? 100 : Math.min(100, Math.round((cur / maxChg) * 100));
       const isBuffActive = isMagebloodActive || (slotTimers[i] || 0) > 0 || (activeById[f.id] || 0) > 0;
+      const ttFlaskItem = {
+        id: `belt_flask_${i}`, flaskId: f.id, name: fName, baseName: f.name,
+        slot: 'flask', rarity: 'flask', maxCharges: maxChg, cost: useCost,
+        duration: (slotMeta && slotMeta.duration) || f.duration,
+        mods: (slotMeta && slotMeta.mods) || [], affixes: [{ text: f.desc }]
+      };
 
       slot.className = `flask-slot ${isBuffActive ? 'buff-active' : ''} ${isSelected ? 'selected-belt-slot' : ''}`;
       slot.innerHTML = `
@@ -370,9 +360,8 @@
         <span class="flask-charges-num">${isMagebloodActive ? 'PERM' : `${cur}/${maxChg}`}</span>
         ${isBuffActive ? '<div class="flask-buff-bar"></div>' : ''}
       `;
-      slot.title = isMagebloodActive
-        ? `Slot [${keyNum}] ${fName} (MAGEBLOOD — Permanently Active at 125% Effect!): ${f.desc}`
-        : `Slot [${keyNum}] ${fName} (${useCost}/${maxChg} Chg, Auto-Uses on Full Charges): ${f.desc}`;
+      slot.addEventListener('mouseenter', (ev) => showItemTooltip(ev, ttFlaskItem, false));
+      slot.addEventListener('mouseleave', hideTooltip);
       slot.addEventListener('click', () => handleBeltSlotClick(i, false));
       slot.addEventListener('contextmenu', (ev) => {
         const invOpen = !document.getElementById('inventoryDrawer').classList.contains('hidden');

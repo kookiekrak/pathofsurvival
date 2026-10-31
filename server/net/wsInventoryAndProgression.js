@@ -2,9 +2,9 @@
 const GameData = global.GameData || require('../../public/shared/gameData.js');
 
 function ensureFlaskBeltArrays(player) {
-  if (!Array.isArray(player.flaskBelt) || player.flaskBelt.length !== 5) player.flaskBelt = ['life', null, null, null, null];
+  if (!Array.isArray(player.flaskBelt) || player.flaskBelt.length !== 5) player.flaskBelt = ['life', 'quicksilver', null, null, null];
   if (!Array.isArray(player.flaskBeltItems) || player.flaskBeltItems.length !== 5) player.flaskBeltItems = [null, null, null, null, null];
-  if (!Array.isArray(player.flaskSlotCharges) || player.flaskSlotCharges.length !== 5) player.flaskSlotCharges = [15, 0, 0, 0, 0];
+  if (!Array.isArray(player.flaskSlotCharges) || player.flaskSlotCharges.length !== 5) player.flaskSlotCharges = [15, 20, 0, 0, 0];
   if (!Array.isArray(player.flaskSlotTimers) || player.flaskSlotTimers.length !== 5) player.flaskSlotTimers = [0, 0, 0, 0, 0];
 }
 
@@ -31,7 +31,11 @@ function equipFlaskFromInventorySlot(player, invIdx, slotIdx) {
   const fDef = GameData.FLASKS.find(f => f.id === fId) || GameData.FLASKS[0];
   const prevFlaskId = player.flaskBelt[slotIdx];
   const prevMeta = player.flaskBeltItems[slotIdx] || null;
-  const newMeta = { name: item.name || fDef.name, maxCharges: item.maxCharges || fDef.maxCharges, cost: item.cost || fDef.cost, duration: item.duration || fDef.duration };
+  const newMeta = {
+    name: item.name || fDef.name, maxCharges: item.maxCharges || fDef.maxCharges,
+    cost: item.cost || fDef.cost, duration: item.duration || fDef.duration,
+    mods: Array.isArray(item.mods) ? item.mods : []
+  };
   player.flaskBelt[slotIdx] = fDef.id;
   player.flaskBeltItems[slotIdx] = newMeta;
   player.flaskSlotCharges[slotIdx] = newMeta.maxCharges;
@@ -81,42 +85,68 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
     return true;
   }
   if (msg.type === 'move_support_gem' || msg.type === 'equip_support_gem') {
-    // Move a support gem between Active Skill Slots or Support Reserve in the Gem Links Panel
-    const { fromType, fromSlot, fromIdx, toSlot } = msg;
+    const { fromType, fromSlot, fromIdx, toSlot, toSupIdx } = msg;
     const targetSlot = currentPlayer.gemLinks[toSlot];
-    if (!targetSlot || !targetSlot.activeGem || targetSlot.supports.length >= targetSlot.maxSupports) return true;
+    if (!targetSlot || !targetSlot.activeGem) return true;
+    const targetActDef = GameData.SKILL_GEMS[targetSlot.activeGem.id];
+    const hasSwapTarget = typeof toSupIdx === 'number' && toSupIdx >= 0 && targetSlot.supports[toSupIdx];
 
-    let supObj = null;
-    if (fromType === 'reserve') {
-      const rEntry = currentPlayer.supportReserve[fromIdx];
-      if (!rEntry || targetSlot.supports.some(s => s.id === rEntry.gemId)) return true;
-      currentPlayer.supportReserve.splice(fromIdx, 1);
-      supObj = { id: rEntry.gemId, level: rEntry.level || 1 };
-    } else if (fromType === 'slot') {
+    if (fromType === 'slot') {
       const srcSlot = currentPlayer.gemLinks[fromSlot];
       if (!srcSlot || !srcSlot.supports[fromIdx]) return true;
-      const candidate = srcSlot.supports[fromIdx];
-      if (targetSlot.supports.some(s => s.id === candidate.id)) return true;
-      srcSlot.supports.splice(fromIdx, 1);
-      supObj = candidate;
-    }
-    if (supObj) {
-      const actDef = GameData.SKILL_GEMS[targetSlot.activeGem.id];
-      const supDef = GameData.SKILL_GEMS[supObj.id];
-      if (!canSupportLinkToActive(actDef, supDef)) {
-        // Put back if incompatible with target active skill
-        if (fromType === 'reserve') {
-          currentPlayer.supportReserve.splice(fromIdx, 0, { id: uid('sup'), gemId: supObj.id, level: supObj.level || 1 });
-        } else if (fromType === 'slot' && currentPlayer.gemLinks[fromSlot]) {
-          currentPlayer.gemLinks[fromSlot].supports.splice(fromIdx, 0, supObj);
+      if (fromSlot === toSlot) {
+        if (hasSwapTarget && fromIdx !== toSupIdx) {
+          [srcSlot.supports[fromIdx], srcSlot.supports[toSupIdx]] = [srcSlot.supports[toSupIdx], srcSlot.supports[fromIdx]];
+          syncSkillRingsFromGemLinks(currentPlayer); recalcPlayer(currentPlayer, false); sendPrivateProfile(currentPlayer);
         }
         return true;
       }
-      targetSlot.supports.push(supObj);
-      syncSkillRingsFromGemLinks(currentPlayer);
-      recalcPlayer(currentPlayer, false);
-      sendPrivateProfile(currentPlayer);
+      const candidate = srcSlot.supports[fromIdx];
+      if (!canSupportLinkToActive(targetActDef, GameData.SKILL_GEMS[candidate.id])) return true;
+      if (hasSwapTarget) {
+        const displaced = targetSlot.supports[toSupIdx];
+        const srcActDef = srcSlot.activeGem ? GameData.SKILL_GEMS[srcSlot.activeGem.id] : null;
+        if (!canSupportLinkToActive(srcActDef, GameData.SKILL_GEMS[displaced.id])) return true;
+        if (targetSlot.supports.some((s, i) => i !== toSupIdx && s.id === candidate.id)) return true;
+        if (srcSlot.supports.some((s, i) => i !== fromIdx && s.id === displaced.id)) return true;
+        srcSlot.supports[fromIdx] = displaced;
+        targetSlot.supports[toSupIdx] = candidate;
+      } else {
+        if (targetSlot.supports.length >= targetSlot.maxSupports || targetSlot.supports.some(s => s.id === candidate.id)) return true;
+        srcSlot.supports.splice(fromIdx, 1);
+        targetSlot.supports.push(candidate);
+      }
+      syncSkillRingsFromGemLinks(currentPlayer); recalcPlayer(currentPlayer, false); sendPrivateProfile(currentPlayer);
+    } else if (fromType === 'reserve') {
+      const rEntry = currentPlayer.supportReserve[fromIdx];
+      if (!rEntry) return true;
+      const supObj = { id: rEntry.gemId, level: rEntry.level || 1 };
+      if (!canSupportLinkToActive(targetActDef, GameData.SKILL_GEMS[supObj.id])) return true;
+      if (hasSwapTarget) {
+        if (targetSlot.supports.some((s, i) => i !== toSupIdx && s.id === supObj.id)) return true;
+        const displaced = targetSlot.supports[toSupIdx];
+        targetSlot.supports[toSupIdx] = supObj;
+        currentPlayer.supportReserve[fromIdx] = { id: uid('sup'), gemId: displaced.id, level: displaced.level || 1 };
+      } else {
+        if (targetSlot.supports.length >= targetSlot.maxSupports || targetSlot.supports.some(s => s.id === supObj.id)) return true;
+        currentPlayer.supportReserve.splice(fromIdx, 1);
+        targetSlot.supports.push(supObj);
+      }
+      syncSkillRingsFromGemLinks(currentPlayer); recalcPlayer(currentPlayer, false); sendPrivateProfile(currentPlayer);
     }
+    return true;
+  }
+  if (msg.type === 'toss_support_gem' || msg.type === 'drop_support_gem') {
+    if (msg.fromType === 'slot') {
+      const slot = currentPlayer.gemLinks[msg.slotIndex ?? msg.fromSlot];
+      const idx = msg.supIdx ?? msg.fromIdx;
+      if (slot && Array.isArray(slot.supports) && slot.supports[idx]) slot.supports.splice(idx, 1);
+    } else if (msg.fromType === 'reserve') {
+      const idx = msg.fromIdx ?? msg.supIdx;
+      if (Array.isArray(currentPlayer.supportReserve) && currentPlayer.supportReserve[idx]) currentPlayer.supportReserve.splice(idx, 1);
+    }
+    syncSkillRingsFromGemLinks(currentPlayer); recalcPlayer(currentPlayer, false); sendPrivateProfile(currentPlayer);
+    pushPlayerFloatingText(currentRoom, currentPlayer, 'TOSSED SUPPORT GEM', 'TOSSED SUPPORT GEM', '#ff8787', 15);
     return true;
   }
   if (msg.type === 'unslot_support_gem' || msg.type === 'unequip_support_gem') {
@@ -125,52 +155,40 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
     if (!slot || !slot.supports[supIdx]) return true;
     const removed = slot.supports.splice(supIdx, 1)[0];
     currentPlayer.supportReserve.push({ id: uid('sup'), gemId: removed.id, level: removed.level || 1 });
-    syncSkillRingsFromGemLinks(currentPlayer);
-    recalcPlayer(currentPlayer, false);
-    sendPrivateProfile(currentPlayer);
+    syncSkillRingsFromGemLinks(currentPlayer); recalcPlayer(currentPlayer, false); sendPrivateProfile(currentPlayer);
     return true;
   }
   if (msg.type === 'allocate_passive' || msg.type === 'allocate_passive_path') {
     const targetId = msg.targetNodeId || msg.nodeId;
-    if (!targetId || !GameData.PASSIVE_NODES[targetId] || currentPlayer.passives.includes(targetId)) return true;
-    if ((currentPlayer.passivePoints || 0) <= 0) return true;
+    if (!targetId || !GameData.PASSIVE_NODES[targetId] || currentPlayer.passives.includes(targetId) || (currentPlayer.passivePoints || 0) <= 0) return true;
     const path = findShortestPassivePathToNode(currentPlayer.passives, targetId);
     if (!path || path.length === 0) return true;
-
-    const stepsToAlloc = path.slice(0, currentPlayer.passivePoints);
-    for (const stepId of stepsToAlloc) {
+    for (const stepId of path.slice(0, currentPlayer.passivePoints)) {
       if (!currentPlayer.passives.includes(stepId) && currentPlayer.passivePoints > 0) {
         currentPlayer.passives.push(stepId);
         currentPlayer.passivePoints--;
       }
     }
-    recalcPlayer(currentPlayer, false);
-    sendPrivateProfile(currentPlayer);
+    recalcPlayer(currentPlayer, false); sendPrivateProfile(currentPlayer);
     return true;
   }
   if (msg.type === 'refund_passive') {
-    // Rogue-lite Free Skill Tree Refund: Right-clicking any removable node refunds it for FREE!
     const nodeId = msg.nodeId;
     const cls = GameData.CLASSES[currentPlayer.classId] || GameData.CLASSES.Marauder;
-    if (!currentPlayer.passives.includes(nodeId)) return true;
-    if (!canRemovePassiveNode(currentPlayer.passives, nodeId, cls.startNode)) return true;
-
+    if (!currentPlayer.passives.includes(nodeId) || !canRemovePassiveNode(currentPlayer.passives, nodeId, cls.startNode)) return true;
     currentPlayer.passives = currentPlayer.passives.filter(n => n !== nodeId);
     currentPlayer.passivePoints++;
-    recalcPlayer(currentPlayer, false);
-    sendPrivateProfile(currentPlayer);
+    recalcPlayer(currentPlayer, false); sendPrivateProfile(currentPlayer);
     return true;
   }
   if (msg.type === 'reset_passive_tree') {
-    // Rogue-lite 1-Click Free Reset of entire Skill Tree!
     const cls = GameData.CLASSES[currentPlayer.classId] || GameData.CLASSES.Marauder;
     const startNode = cls.startNode;
     const refundedCount = Math.max(0, (currentPlayer.passives || []).filter(n => n !== startNode).length);
     if (refundedCount > 0) {
       currentPlayer.passives = [startNode];
       currentPlayer.passivePoints = (currentPlayer.passivePoints || 0) + refundedCount;
-      recalcPlayer(currentPlayer, false);
-      sendPrivateProfile(currentPlayer);
+      recalcPlayer(currentPlayer, false); sendPrivateProfile(currentPlayer);
     }
     return true;
   }
@@ -243,12 +261,10 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
     if (!item || currentPlayer.inventory.length >= 50) return true;
     currentPlayer.equipment[slot] = null;
     currentPlayer.inventory.push(item);
-    recalcPlayer(currentPlayer, false);
-    sendPrivateProfile(currentPlayer);
+    recalcPlayer(currentPlayer, false); sendPrivateProfile(currentPlayer);
     return true;
   }
   if (msg.type === 'drop_item' || msg.type === 'drop_inventory_item' || msg.type === 'delete_item') {
-    // Drop Gear or Flask onto Ground so Other Players Can Inspect & Pick It Up to Trade!
     let item = null;
     const invIdx = resolveInventoryIndex(currentPlayer, msg);
     if (invIdx >= 0 && currentPlayer.inventory[invIdx]) {
@@ -256,35 +272,26 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
     } else if (msg.itemId) {
       for (const s of GameData.GEAR_SLOTS) {
         if (currentPlayer.equipment[s] && currentPlayer.equipment[s].id === msg.itemId) {
-          item = currentPlayer.equipment[s];
-          currentPlayer.equipment[s] = null;
-          recalcPlayer(currentPlayer, false);
-          break;
+          item = currentPlayer.equipment[s]; currentPlayer.equipment[s] = null;
+          recalcPlayer(currentPlayer, false); break;
         }
       }
     } else if (msg.slot && currentPlayer.equipment[msg.slot]) {
-      item = currentPlayer.equipment[msg.slot];
-      currentPlayer.equipment[msg.slot] = null;
+      item = currentPlayer.equipment[msg.slot]; currentPlayer.equipment[msg.slot] = null;
       recalcPlayer(currentPlayer, false);
     }
     if (!item) return true;
     if (msg.type === 'delete_item') {
-      sendPrivateProfile(currentPlayer);
-      return true;
+      sendPrivateProfile(currentPlayer); return true;
     }
 
     const dx = Math.round(currentPlayer.x + (Math.random() - 0.5) * 45);
     const dy = Math.round(currentPlayer.y + (Math.random() - 0.5) * 45);
     const isFlask = item.slot === 'flask' || Boolean(item.flaskId);
     currentRoom.groundDrops.push({
-      id: uid('drop'), x: dx, y: dy,
-      dropType: isFlask ? 'flask' : 'gear',
-      kind: isFlask ? 'flask' : 'item',
-      flaskId: isFlask ? (item.flaskId || 'life') : undefined,
-      item,
-      label: item.name,
-      rarity: isFlask ? 'flask' : item.rarity,
-      droppedByPlayer: true, ttl: 180
+      id: uid('drop'), x: dx, y: dy, dropType: isFlask ? 'flask' : 'gear', kind: isFlask ? 'flask' : 'item',
+      flaskId: isFlask ? (item.flaskId || 'life') : undefined, item, label: item.name,
+      rarity: isFlask ? 'flask' : item.rarity, droppedByPlayer: true, ttl: 180
     });
     pushPlayerFloatingText(currentRoom, currentPlayer, `DROPPED: ${item.name}`, `DROPPED: ${item.name}`, '#e2e8f0', 15);
     sendPrivateProfile(currentPlayer);
@@ -297,14 +304,11 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
     if (!targetLocation && msg.itemId) {
       const invIdx = resolveInventoryIndex(currentPlayer, msg);
       if (invIdx >= 0) {
-        targetLocation = 'inventory';
-        slotOrIdx = invIdx;
+        targetLocation = 'inventory'; slotOrIdx = invIdx;
       } else {
         for (const s of GameData.GEAR_SLOTS) {
           if (currentPlayer.equipment[s] && currentPlayer.equipment[s].id === msg.itemId) {
-            targetLocation = 'equipment';
-            slotOrIdx = s;
-            break;
+            targetLocation = 'equipment'; slotOrIdx = s; break;
           }
         }
       }

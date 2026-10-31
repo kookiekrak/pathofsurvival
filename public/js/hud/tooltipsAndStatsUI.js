@@ -59,17 +59,30 @@
       const maxChg = item.maxCharges || fDef.maxCharges || 30;
       const costChg = item.cost || fDef.cost || 10;
       const durSec = item.duration || fDef.duration || 0;
+      const modLines = Array.isArray(item.mods) ? [...item.mods] : [];
+      if (modLines.length === 0) {
+        if (fDef.maxCharges && maxChg > fDef.maxCharges) modLines.push(`+${maxChg - fDef.maxCharges} to Maximum Charges (Ample)`);
+        if (fDef.cost && costChg < fDef.cost) modLines.push(`${Math.round((1 - costChg / fDef.cost) * 100)}% Reduced Charges Used (Chemist's)`);
+        if (fDef.duration && durSec > fDef.duration) modLines.push(`+${+(durSec - fDef.duration).toFixed(1)}s Increased Flask Duration (Experimenter's)`);
+        if (modLines.length === 0 && item.name && fDef.name && item.name !== fDef.name) modLines.push(`Rolled Prefix: ${item.name}`);
+      }
+      const modsHtml = modLines.length > 0
+        ? modLines.map(m => `<div class="tt-affix" style="color:#8888ff">${m}</div>`).join('')
+        : `<div class="tt-affix" style="color:#8888ff">Standard Flask Capacity & Charge Efficiency</div>`;
       return `
         <div class="tt-header tt-header-gem">
-          <div class="tt-title-main">${item.name.toUpperCase()}</div>
-          <div class="tt-title-base">CUSTOMIZABLE BELT FLASK (AUTO-TRIGGERS ON FULL CHARGES)</div>
+          <div class="tt-title-main">${(item.name || fDef.name || 'FLASK').toUpperCase()}</div>
+          <div class="tt-title-base">CUSTOMIZABLE BELT FLASK (AUTO-TRIGGERS ON FULL CHARGES & IN COMBAT)</div>
         </div>
         <div class="tt-body">
-          <div class="tt-prop-line">Max Charges: <strong>${maxChg}</strong> • Uses <strong>${costChg}</strong> Charges${durSec ? ` • Lasts <strong>${durSec}s</strong>` : ''}</div>
+          <div class="tt-prop-line">Max Charges: <strong>${maxChg}</strong> • Uses <strong>${costChg}</strong> Charges per Drink${durSec ? ` • Lasts <strong>${durSec}s</strong>` : ''}</div>
+          <div class="tt-separator"></div>
+          ${modsHtml}
           <div class="tt-separator"></div>
           <div class="tt-affix" style="color:#63e6be">${desc}</div>
+          <div class="tt-prop-line" style="color:#ffd43b;font-size:0.78rem;margin-top:4px">⚡ Auto-Triggers on Full Charges & in Combat</div>
           <div class="tt-separator"></div>
-          <div class="tt-hint">${actionHint || 'Hover & Press [1–5] or Click/Drag into Belt Slot [1–5] to Equip • R-Click: Drop/Salvage'}</div>
+          <div class="tt-hint">${actionHint || 'Hover & Press [1–5] or Click/Drag into Belt Slot [1–5] to Equip • R-Click: Unequip/Drop'}</div>
         </div>
       `;
     }
@@ -181,6 +194,26 @@
     positionTooltip(ev.clientX, ev.clientY);
   }
 
+  function showSupportGemTooltip(ev, supDef, level = 1) {
+    if (!supDef) return;
+    tooltipEl.className = 'poe-tooltip tt-border-gem';
+    tooltipEl.innerHTML = `
+      <div class="tt-header tt-header-gem">
+        <div class="tt-title-main">${supDef.name.toUpperCase()}</div>
+        <div class="tt-title-base">LEVEL ${level} SUPPORT GEM (${(supDef.color || 'blue').toUpperCase()})</div>
+      </div>
+      <div class="tt-body">
+        <div class="tt-prop-line">Support Tag: <strong>${(supDef.tags || ['Support']).join(', ')}</strong></div>
+        <div class="tt-separator"></div>
+        <div class="tt-affix" style="color:#63e6be">${supDef.description || supDef.desc || 'Enhances linked Active Skills.'}</div>
+        <div class="tt-separator"></div>
+        <div class="tt-hint">L-Click: Pick Up / Move to Another Skill • R-Click: Toss Gem</div>
+      </div>
+    `;
+    tooltipEl.classList.remove('hidden');
+    positionTooltip(ev.clientX, ev.clientY);
+  }
+
   function hideTooltip() {
     tooltipEl.classList.add('hidden');
   }
@@ -188,7 +221,7 @@
   Object.assign(window.__POS_CTX__, {
     renderCharStatsSummary, tooltipEl, positionTooltip,
     computeVendorGoldPreview, renderItemTooltipHTML,
-    showItemTooltip, showGemSetupTooltip, hideTooltip
+    showItemTooltip, showGemSetupTooltip, showSupportGemTooltip, hideTooltip
   });
   }
 })();

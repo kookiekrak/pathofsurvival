@@ -1,6 +1,8 @@
 // Client Module: Inventory Flask Rack, Bottom Skill Links Bar, Divine Gem Draft & Gem Links Window
 (function () {
   with (window.__POS_CTX__) {
+  window.__POS_CTX__.selectedSupportGem = null;
+
   function renderInventoryFlaskBeltRack(belt, slotCharges, chargesById, hasMageblood) {
     const rack = document.getElementById('invFlaskBeltRow');
     if (!rack) return;
@@ -45,13 +47,20 @@
         const cur = isMagebloodActive ? maxChg : rawChg;
         const pct = isMagebloodActive ? 100 : Math.min(100, Math.round((cur / maxChg) * 100));
         const shortLabel = f.name.replace(' Flask', '').toUpperCase();
+        const ttFlaskItem = {
+          id: `belt_flask_${i}`, flaskId: f.id, name: fName, baseName: f.name,
+          slot: 'flask', rarity: 'flask', maxCharges: maxChg, cost: useCost,
+          duration: (slotMeta && slotMeta.duration) || f.duration,
+          mods: (slotMeta && slotMeta.mods) || [], affixes: [{ text: f.desc }]
+        };
 
         cell.innerHTML = `
           <span class="inv-flask-slot-key">[${keyNum}]</span>
           <div style="transform:scale(0.68);margin-top:-3px">${getFlaskSvg(f.id, pct, f.color)}</div>
           <span class="inv-flask-slot-name">${shortLabel}</span>
         `;
-        cell.title = `Slot [${keyNum}] ${fName} (${useCost}/${maxChg} Chg): ${f.desc}\n• Left-Click or Drag another Slot [1–5] to Swap\n• Right-Click to Unequip into Stash Grid`;
+        cell.addEventListener('mouseenter', (ev) => showItemTooltip(ev, ttFlaskItem, false));
+        cell.addEventListener('mouseleave', hideTooltip);
       }
 
       cell.addEventListener('click', () => handleBeltSlotClick(i, true));
@@ -74,7 +83,6 @@
     const setupBySlot = new Map(setups.map(s => [s.slotIndex, s]));
     const bonusGemLv = (myProfile.stats && myProfile.stats.allGemLevels) || 0;
 
-    // Render all 4 PoE Skill Socket Squares
     for (let slotIdx = 0; slotIdx < 4; slotIdx++) {
       const setup = setupBySlot.get(slotIdx);
       const cell = document.createElement('div');
@@ -103,7 +111,7 @@
     }
   }
 
-  // Divine Gem Font Altar — Wave / Level-Up / Upgrade Chest Draft Banner (Supports Gems & Rogue-lite Run Boons!)
+  // Divine Gem Font Altar — Wave / Level-Up / Upgrade Chest Draft Banner
   function renderWaveGemDraftBanner() {
     const banner = document.getElementById('gemDraftBanner');
     const drafts = myProfile.pendingDrafts || [];
@@ -140,15 +148,10 @@
       card.className = `draft-card ${isBoon ? 'draft-boon' : ''}`;
 
       let iconHtml;
-      if (isBoon) {
-        iconHtml = getBoonSvg(ch.color || '#f5d37a');
-      } else if (kind === 'link_expand') {
-        iconHtml = getCurrencySvg('alchemy');
-      } else if (kind === 'active_gem' && ch.gemId) {
-        iconHtml = getSkillSvg(ch.gemId);
-      } else {
-        iconHtml = getGemSvg(ch.color, isSup);
-      }
+      if (isBoon) iconHtml = getBoonSvg(ch.color || '#f5d37a');
+      else if (kind === 'link_expand') iconHtml = getCurrencySvg('alchemy');
+      else if (kind === 'active_gem' && ch.gemId) iconHtml = getSkillSvg(ch.gemId);
+      else iconHtml = getGemSvg(ch.color, isSup);
 
       card.innerHTML = `
         <div>
@@ -172,10 +175,12 @@
   function renderGemLinksWindow() {
     const board = document.getElementById('gemLinksBoard');
     board.innerHTML = '';
+    const selSup = window.__POS_CTX__.selectedSupportGem;
 
     (myProfile.gemLinks || []).forEach((slotObj, sIdx) => {
       const row = document.createElement('div');
       row.className = 'gem-slot-row';
+      if (selSup) row.style.cursor = 'pointer';
 
       const actGem = slotObj.activeGem ? GameData.SKILL_GEMS[slotObj.activeGem.id] : null;
       const maxSups = slotObj.maxSupports || 2;
@@ -194,9 +199,12 @@
           const supDef = supEntry ? GameData.SKILL_GEMS[supEntry.id] : null;
           chainHtml += `<div class="gem-link-bridge"></div>`;
           if (supDef) {
-            chainHtml += `<div class="gem-socket-orb orb-${supDef.color}" data-unslot="${i}" title="${supDef.name} (Lv.${supEntry.level}) — Click to unslot to Reserve">${supDef.short}</div>`;
+            const isPicked = selSup && selSup.fromType === 'slot' && selSup.fromSlot === sIdx && selSup.fromIdx === i;
+            const pickStyle = isPicked ? 'box-shadow:0 0 10px #ffd43b;border:2px solid #ffd43b;' : '';
+            chainHtml += `<div class="gem-socket-orb orb-${supDef.color}" data-unslot="${i}" style="${pickStyle}">${supDef.short}</div>`;
           } else {
-            chainHtml += `<div class="gem-socket-orb orb-empty" title="Empty Linked Support Socket"></div>`;
+            const emptyStyle = selSup ? 'border-color:#ffd43b;box-shadow:0 0 6px rgba(255,212,59,0.5);' : '';
+            chainHtml += `<div class="gem-socket-orb orb-empty" style="${emptyStyle}" title="Click to Socket Selected Support Gem"></div>`;
           }
         }
 
@@ -211,25 +219,61 @@
         `;
 
         row.querySelectorAll('[data-unslot]').forEach(orb => {
+          const supIdx = Number(orb.dataset.unslot);
+          const supEntry = curSups[supIdx];
+          const supDef = supEntry ? GameData.SKILL_GEMS[supEntry.id] : null;
+          if (supDef && typeof showSupportGemTooltip === 'function') {
+            orb.addEventListener('mouseenter', (ev) => showSupportGemTooltip(ev, supDef, supEntry.level || 1));
+            orb.addEventListener('mouseleave', hideTooltip);
+          }
           orb.addEventListener('click', (ev) => {
             ev.stopPropagation();
-            const supIdx = Number(orb.dataset.unslot);
-            ws.send(JSON.stringify({
-              type: 'unslot_support_gem',
-              slotIndex: sIdx,
-              supIdx
-            }));
+            const curSel = window.__POS_CTX__.selectedSupportGem;
+            if (!curSel) {
+              window.__POS_CTX__.selectedSupportGem = {
+                fromType: 'slot', fromSlot: sIdx, fromIdx: supIdx,
+                gemId: supEntry.id, level: supEntry.level || 1
+              };
+              selectedReserveSupIdx = null;
+              renderGemLinksWindow();
+            } else if (curSel.fromType === 'slot' && curSel.fromSlot === sIdx && curSel.fromIdx === supIdx) {
+              window.__POS_CTX__.selectedSupportGem = null;
+              selectedReserveSupIdx = null;
+              ws.send(JSON.stringify({ type: 'unslot_support_gem', slotIndex: sIdx, supIdx }));
+            } else {
+              ws.send(JSON.stringify({
+                type: 'move_support_gem',
+                fromType: curSel.fromType,
+                fromSlot: curSel.fromSlot,
+                fromIdx: curSel.fromIdx,
+                toSlot: sIdx,
+                toSupIdx: supIdx
+              }));
+              window.__POS_CTX__.selectedSupportGem = null;
+              selectedReserveSupIdx = null;
+            }
+          });
+          orb.addEventListener('contextmenu', (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            window.__POS_CTX__.selectedSupportGem = null;
+            selectedReserveSupIdx = null;
+            hideTooltip();
+            ws.send(JSON.stringify({ type: 'toss_support_gem', fromType: 'slot', slotIndex: sIdx, supIdx }));
           });
         });
 
         row.addEventListener('click', () => {
-          if (selectedReserveSupIdx !== null) {
+          const curSel = window.__POS_CTX__.selectedSupportGem;
+          if (curSel) {
             ws.send(JSON.stringify({
               type: 'move_support_gem',
-              fromType: 'reserve',
-              fromIdx: selectedReserveSupIdx,
+              fromType: curSel.fromType,
+              fromSlot: curSel.fromSlot,
+              fromIdx: curSel.fromIdx,
               toSlot: sIdx
             }));
+            window.__POS_CTX__.selectedSupportGem = null;
             selectedReserveSupIdx = null;
           }
         });
@@ -240,25 +284,71 @@
 
     const reserveGrid = document.getElementById('supportReserveGrid');
     reserveGrid.innerHTML = '';
+    reserveGrid.onclick = (ev) => {
+      const curSel = window.__POS_CTX__.selectedSupportGem;
+      if (curSel && curSel.fromType === 'slot' && ev.target === reserveGrid) {
+        ws.send(JSON.stringify({ type: 'unslot_support_gem', slotIndex: curSel.fromSlot, supIdx: curSel.fromIdx }));
+        window.__POS_CTX__.selectedSupportGem = null;
+        selectedReserveSupIdx = null;
+      }
+    };
     const reserve = myProfile.supportReserve || [];
     if (reserve.length === 0) {
-      reserveGrid.innerHTML = `<div style="grid-column:1/-1;color:#827563;font-size:0.86rem">No unlinked Support Gems in reserve.</div>`;
+      const msg = selSup && selSup.fromType === 'slot'
+        ? 'Click here to Unslot Picked Support Gem into Reserve!'
+        : 'No unlinked Support Gems in reserve.';
+      reserveGrid.innerHTML = `<div style="grid-column:1/-1;color:#827563;font-size:0.86rem;cursor:pointer">${msg}</div>`;
+      if (selSup && selSup.fromType === 'slot') {
+        reserveGrid.firstElementChild.addEventListener('click', () => {
+          ws.send(JSON.stringify({ type: 'unslot_support_gem', slotIndex: selSup.fromSlot, supIdx: selSup.fromIdx }));
+          window.__POS_CTX__.selectedSupportGem = null;
+          selectedReserveSupIdx = null;
+        });
+      }
     } else {
       reserve.forEach((rEntry, rIdx) => {
         const supDef = GameData.SKILL_GEMS[rEntry.gemId];
         if (!supDef) return;
+        const isSel = selSup && selSup.fromType === 'reserve' && selSup.fromIdx === rIdx;
         const card = document.createElement('div');
-        card.className = `reserve-gem-card ${selectedReserveSupIdx === rIdx ? 'selected' : ''}`;
+        card.className = `reserve-gem-card ${isSel ? 'selected' : ''}`;
         card.innerHTML = `
           ${getGemSvg(supDef.color, true)}
-          <div>
+          <div style="flex:1">
             <div class="text-gem" style="font-family:var(--font-serif);font-size:0.84rem;font-weight:700">${supDef.name} (Lv.${rEntry.level || 1})</div>
-            <div style="font-size:0.76rem;color:#9e8d73">Click to Link</div>
+            <div style="font-size:0.74rem;color:#9e8d73">${isSel ? 'Selected — Click Skill Row to Link' : 'L-Click: Pick Up • R-Click: Toss'}</div>
           </div>
+          <button class="poe-chisel-btn sm-btn toss-sup-btn" type="button" style="padding:2px 6px;font-size:0.66rem;color:#ff8787;border-color:#7a2e2e" title="Toss / Discard Support Gem">✕ TOSS</button>
         `;
+        if (typeof showSupportGemTooltip === 'function') {
+          card.addEventListener('mouseenter', (ev) => showSupportGemTooltip(ev, supDef, rEntry.level || 1));
+          card.addEventListener('mouseleave', hideTooltip);
+        }
+        card.querySelector('.toss-sup-btn')?.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          window.__POS_CTX__.selectedSupportGem = null;
+          selectedReserveSupIdx = null;
+          hideTooltip();
+          ws.send(JSON.stringify({ type: 'toss_support_gem', fromType: 'reserve', fromIdx: rIdx }));
+        });
         card.addEventListener('click', () => {
-          selectedReserveSupIdx = selectedReserveSupIdx === rIdx ? null : rIdx;
+          if (isSel) {
+            window.__POS_CTX__.selectedSupportGem = null;
+            selectedReserveSupIdx = null;
+          } else {
+            window.__POS_CTX__.selectedSupportGem = {
+              fromType: 'reserve', fromIdx: rIdx, gemId: rEntry.gemId, level: rEntry.level || 1
+            };
+            selectedReserveSupIdx = rIdx;
+          }
           renderGemLinksWindow();
+        });
+        card.addEventListener('contextmenu', (ev) => {
+          ev.preventDefault();
+          window.__POS_CTX__.selectedSupportGem = null;
+          selectedReserveSupIdx = null;
+          hideTooltip();
+          ws.send(JSON.stringify({ type: 'toss_support_gem', fromType: 'reserve', fromIdx: rIdx }));
         });
         reserveGrid.appendChild(card);
       });
@@ -281,7 +371,6 @@
           if (stacks > 0) entries.push({ id, stacks });
         }
       }
-
       if (entries.length === 0) {
         boonsList.innerHTML = `<div style="color:#827563;font-size:0.84rem">No Run Boons active yet. Open Golden Upgrade Chests [E] or Level Up!</div>`;
       } else {
@@ -289,10 +378,7 @@
           const bDef = (GameData.RUN_UPGRADES && GameData.RUN_UPGRADES[e.id]) || { name: e.id, desc: '' };
           const pill = document.createElement('div');
           pill.className = 'run-boon-pill';
-          pill.innerHTML = `
-            <span><strong>${bDef.name}</strong> ${e.stacks > 1 ? `(x${e.stacks})` : ''}</span>
-            <span style="color:#9ec5ff;font-size:0.8rem">${bDef.desc}</span>
-          `;
+          pill.innerHTML = `<span><strong>${bDef.name}</strong> ${e.stacks > 1 ? `(x${e.stacks})` : ''}</span><span style="color:#9ec5ff;font-size:0.8rem">${bDef.desc}</span>`;
           boonsList.appendChild(pill);
         }
       }

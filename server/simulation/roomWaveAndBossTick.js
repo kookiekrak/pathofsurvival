@@ -102,47 +102,113 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
     }
 
     const activeMapDef = GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId) || GameData.ATLAS_MAPS[0];
-    const packDensityMult = activeMapDef ? (activeMapDef.packDensity || 1.0) : 1.0;
+    const mapTier = activeMapDef ? (activeMapDef.tier || 1) : 1;
+    const tierDensity = activeMapDef ? (activeMapDef.packDensity || 1.0) : 1.0;
+    const modPackMult = 1 + ((room.mapModStats && room.mapModStats.packSize) || 0) / 100;
+    const aliveList = Array.isArray(alivePlayers) && alivePlayers.length > 0
+      ? alivePlayers
+      : Array.from(room.players.values()).filter(p => !p.dead);
+    let bossAlive = Array.from(room.enemies.values()).some(e => e.rarity === 'boss');
 
     room.runTimer += dt;
-    room.waveProgress = Math.min(100, (room.waveProgress || 0) + 2.2 * dt);
+    if (!room.isRaidEncounter && !bossAlive) {
+      room.waveProgress = Math.min(100, (room.waveProgress || 0) + 2.2 * dt);
+    }
 
-    if (room.waveProgress >= 100 && !room.isRaidEncounter) {
+    if (room.waveProgress >= 100 && !room.isRaidEncounter && !bossAlive) {
       room.wave++;
       room.waveProgress = 0;
-      // Spawn an immediate elite pack and a League Encounter on wave transition
       spawnMonsterPack(room);
       spawnMonster(room, false, null, 'rare');
       if (room.wave % 3 === 0) {
         spawnMonster(room, false, null, 'rare', 'gilded_goblin');
         addRoomChat(room, 'Perandus', '🪙 A Perandus Treasure Hoarder has appeared! Slay it before it escapes for a loot jackpot!', '#fcc419');
       }
-      spawnWaveLeagueEncounter(room);
 
       broadcastRoomEvent(room, {
         type: 'announcement',
         title: `Wave ${room.wave} Unleashed!`,
-        subtitle: 'Endless horde density and pack strength have increased!',
+        subtitle: 'Monster life, damage, and projectile volley intensity have scaled up!',
         color: '#ffa94d'
       });
     }
 
-    // Active Delirium Mirror Fog Countdown & Reward Shower
+    // Active Delirium Mirror Fog Countdown, Fractured Ambush Waves & Simulacrum Reward Burst
     if ((room.deliriumTimer || 0) > 0) {
       room.deliriumTimer -= dt;
+      room.deliriumWaveCd = (room.deliriumWaveCd || 5) - dt;
+      if (room.deliriumWaveCd <= 0 && room.deliriumTimer > 1.5 && !room.isRaidEncounter && !bossAlive && aliveList.length > 0) {
+        room.deliriumWaveCd = 5.5;
+        const anchor = pick(aliveList);
+        const ang = Math.random() * Math.PI * 2;
+        const ax = Math.max(-ARENA_HALF + 80, Math.min(ARENA_HALF - 80, Math.round(anchor.x + Math.cos(ang) * 420)));
+        const ay = Math.max(-ARENA_HALF + 80, Math.min(ARENA_HALF - 80, Math.round(anchor.y + Math.sin(ang) * 420)));
+        spawnMonster(room, null, 'rare', ax, ay);
+        spawnMonster(room, false, { x: ax + 35, y: ay - 25 }, 'magic');
+      }
       if (room.deliriumTimer <= 0) {
+        const dTier = Math.max(1, room.deliriumTier || 1);
         room.deliriumTimer = 0;
-        const dKills = room.deliriumKills || 0;
-        const anchor = pick(alivePlayers) || { x: 0, y: 0 };
-        const rewardOrbs = Math.min(4, 1 + Math.floor(dKills / 12));
+        room.deliriumTier = 0;
+        const anchor = pick(aliveList) || { x: 0, y: 0 };
+        const rewardOrbs = Math.min(4, Math.ceil(dTier / 2));
         for (let k = 0; k < rewardOrbs; k++) {
-          spawnGroundDrop(room, anchor.x + randInt(-28, 28), anchor.y + randInt(-28, 28), 'currency');
+          spawnCurrencyDrop(room, anchor.x + randInt(-28, 28), anchor.y + randInt(-28, 28), null, dTier * 140);
         }
-        if (dKills >= 15) {
-          const dropIlvl = ((activeMapDef.tier || 1) - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
-          spawnGroundDrop(room, anchor.x, anchor.y, 'gear', 'rare', dropIlvl);
+        const dropIlvl = (mapTier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
+        spawnGroundDrop(room, anchor.x, anchor.y, 'gear', null, dropIlvl, dTier * 150);
+        addRoomChat(room, 'Delirium', `The Delirium Fog dissipated — Tier ${dTier} Rewards dropped (${rewardOrbs} Orbs & High-Rarity Gear)!`, '#dee2e6');
+        broadcastRoomEvent(room, {
+          type: 'announcement',
+          title: `DELIRIUM FOG DISSIPATED — TIER ${dTier} REWARDS DROPPED!`,
+          subtitle: `Simulacrum Reward Burst unleashed at your location!`,
+          color: '#dee2e6'
+        });
+      }
+    }
+
+    // Active 3-Wave Blood Ritual Encounter Progression
+    if (room.activeRitual) {
+      const rit = room.activeRitual;
+      const anyRitualMobAlive = Array.from(room.enemies.values()).some(m => m && m.isRitualMob === true && m.hp > 0);
+      if (!anyRitualMobAlive) {
+        if (rit.wave < rit.maxWaves) {
+          rit.wave++;
+          spawnRitualWave(room);
+          room.fxEvents.push({ kind: 'nova', x: Math.round(rit.x), y: Math.round(rit.y), r: 185, color: '#ff4d6d' });
+          broadcastRoomEvent(room, {
+            type: 'announcement',
+            title: `BLOOD RITUAL — WAVE ${rit.wave} OF ${rit.maxWaves}!`,
+            subtitle: 'More Blood Offerings have manifested inside the Ritual Circle!',
+            color: '#ff4d6d'
+          });
+        } else {
+          // Wave 3 Cleared — Complete Ritual!
+          room.fxEvents.push({ kind: 'nova', x: Math.round(rit.x), y: Math.round(rit.y), r: 240, color: '#ff4d6d' });
+          for (const p of room.players.values()) {
+            if (!p.dead) {
+              p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.35));
+              p.es = p.maxEs;
+              p.runGold = (p.runGold || 0) + 60;
+              p.earnedRunGold = (p.earnedRunGold || 0) + 60;
+              queueGemDraft(p, 'BLOOD RITUAL TRIBUTE — PICK 1 BOON');
+              sendPrivateProfile(p);
+            }
+          }
+          const dropIlvl = (mapTier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
+          spawnCurrencyDrop(room, rit.x - 18, rit.y, null, 320 + mapTier * 25);
+          spawnCurrencyDrop(room, rit.x + 18, rit.y, null, 320 + mapTier * 25);
+          const ritRarity = Math.random() < 0.04 ? 'unique' : 'rare';
+          spawnGroundDrop(room, rit.x, rit.y + 18, 'gear', ritRarity, dropIlvl, 350 + mapTier * 30);
+          addRoomChat(room, 'Ritual', 'Blood Ritual Complete! All 3 waves vanquished — Tribute Loot & Boon Draft unleashed!', '#ff4d6d');
+          broadcastRoomEvent(room, {
+            type: 'announcement',
+            title: 'BLOOD RITUAL COMPLETE — TRIBUTE UNLEASHED!',
+            subtitle: '+35% Life, Full ES, Tribute Boon Draft & High-Rarity Orbs/Gear Dropped!',
+            color: '#ff4d6d'
+          });
+          room.activeRitual = null;
         }
-        addRoomChat(room, 'Delirium', `The Delirium Fog dissipated (${dKills} Delirious monsters slain — ${rewardOrbs} Orbs dropped)!`, '#adb5bd');
       }
     }
 
@@ -150,36 +216,20 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
     const shouldSpawnWaveBoss = (!room.isRaidEncounter && room.wave % 5 === 0 && room.waveProgress >= 40 && room.lastBossWave !== room.wave);
     const shouldSpawnTimerBoss = (!room.isRaidEncounter && room.runTimer >= room.runDuration && !room.bossSpawned);
     if (shouldSpawnWaveBoss || shouldSpawnTimerBoss) {
-      room.bossSpawned = true;
-      room.lastBossWave = room.wave;
-      spawnMonster(room, true);
-      if (room.mapModStats && room.mapModStats.twinned) {
-        spawnMonster(room, true);
-      }
-      const mapDef = GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId) || GameData.ATLAS_MAPS[0];
-      broadcastRoomEvent(room, {
-        type: 'announcement',
-        title: `Map Boss: ${mapDef.bossName} (Wave ${room.wave})`,
-        subtitle: 'Slay the Map Boss to open the Extraction Portal at (0, 0)!',
-        color: '#ff4d4d'
-      });
+      spawnMapBoss(room);
+      bossAlive = true;
     }
 
-    // Recycle straggler non-boss monsters that wandered > 720 units from all living players so packs never stall off-screen!
-    const aliveList = Array.isArray(alivePlayers) && alivePlayers.length > 0
-      ? alivePlayers
-      : Array.from(room.players.values()).filter(p => !p.dead);
-    let nearbyMonsters = 0;
-    if (aliveList.length > 0) {
+    // Recycle straggler non-boss monsters that wandered > 720 units from all living players
+    if (aliveList.length > 0 && !room.isRaidEncounter) {
       for (const m of room.enemies.values()) {
+        if (m.rarity === 'boss' || m.isRitualMob) continue;
         let minPlayerDist = Infinity;
         for (const pl of aliveList) {
           const d = dist(m.x, m.y, pl.x, pl.y);
           if (d < minPlayerDist) minPlayerDist = d;
         }
-        if (minPlayerDist <= 480) {
-          nearbyMonsters++;
-        } else if (m.rarity !== 'boss' && minPlayerDist > 720) {
+        if (minPlayerDist > 720) {
           const anchor = pick(aliveList);
           const ang = Math.random() * Math.PI * 2;
           const rDist = randInt(395, 505);
@@ -189,7 +239,7 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
       }
     }
 
-    // Update Active Expanding Breach Rings (fast expansion to 240 maxRadius + monster surge along ring edge!)
+    // Update Active Expanding Breach Rings
     if (Array.isArray(room.activeBreaches) && room.activeBreaches.length > 0) {
       for (let bi = room.activeBreaches.length - 1; bi >= 0; bi--) {
         const b = room.activeBreaches[bi];
@@ -198,12 +248,10 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
         b.radius = Math.min(b.maxRadius || 240, b.radius + 95 * dt);
         b.spawnTimer = (b.spawnTimer || 0) - dt;
 
-        if (b.spawnTimer <= 0 && b.duration > 0) {
-          b.spawnTimer = 1.2;
+        if (b.spawnTimer <= 0 && b.duration > 0 && !bossAlive && !room.isRaidEncounter) {
+          b.spawnTimer = 1.6;
           b.wavesSpawned = (b.wavesSpawned || 0) + 1;
-
-          // Spawn 5 to 7 Breach monsters along the Breach Ring perimeter!
-          const swarmerCount = randInt(5, 7);
+          const swarmerCount = randInt(2, 3);
           for (let k = 0; k < swarmerCount; k++) {
             const ang = (Math.PI * 2 * k) / swarmerCount + (Math.random() - 0.5) * 0.45 + b.wavesSpawned * 0.37;
             const ringDist = Math.round(b.radius * (0.86 + Math.random() * 0.14));
@@ -211,15 +259,6 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
             const by = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(b.y + Math.sin(ang) * ringDist)));
             spawnMonster(room, false, { x: bx, y: by, exact: true }, 'normal', null, true);
           }
-
-          // 1 Magic Breach Elite on every ring pulse
-          const mAng = Math.random() * Math.PI * 2;
-          const mDist = Math.round(b.radius * 0.94);
-          const mx = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(b.x + Math.cos(mAng) * mDist)));
-          const my = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(b.y + Math.sin(mAng) * mDist)));
-          spawnMonster(room, false, { x: mx, y: my, exact: true }, 'magic', null, true);
-
-          // Spawn a Rare Breach Lord every 3rd pulse along the ring edge
           if (b.wavesSpawned % 3 === 0) {
             const rAng = Math.random() * Math.PI * 2;
             const rx = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(b.x + Math.cos(rAng) * b.radius)));
@@ -230,32 +269,29 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
 
         if (b.duration <= 0) {
           room.fxEvents.push({
-            kind: 'nova',
-            x: Math.round(b.x),
-            y: Math.round(b.y),
-            r: Math.round(b.radius * 0.65),
-            color: '#cc5de8'
+            kind: 'nova', x: Math.round(b.x), y: Math.round(b.y),
+            r: Math.round(b.radius * 0.65), color: '#cc5de8'
           });
-          const dropIlvl = ((activeMapDef.tier || 1) - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
-          spawnGroundDrop(room, b.x - 14, b.y, 'currency');
-          spawnGroundDrop(room, b.x + 14, b.y, 'gear', Math.random() < 0.008 ? 'unique' : 'rare', dropIlvl);
+          const dropIlvl = (mapTier - 1) * 3 + Math.ceil((room.wave || 1) / 2) + 2;
+          spawnCurrencyDrop(room, b.x - 14, b.y, null, 220 + mapTier * 20);
+          spawnGroundDrop(room, b.x + 14, b.y, 'gear', Math.random() < 0.01 ? 'unique' : 'rare', dropIlvl, 240 + mapTier * 20);
           addRoomChat(room, 'Breach', `The Breach collapsed back into the Void (${b.kills || 0} Breach monsters slain)!`, '#cc5de8');
           room.activeBreaches.splice(bi, 1);
         }
       }
     }
 
-    // Endless monster spawning scaled by Map Tier packDensity (supports up to 90 active enemies on screen)!
-    const deliriumBoost = (room.deliriumTimer || 0) > 0 ? 1.35 : 1.0;
-    const raidRate = room.isRaidEncounter ? 0.35 : 1.0;
-    const maxCap = room.isRaidEncounter ? 18 : MAX_ACTIVE_ENEMIES;
-    const lowDensityBoost = (!room.isRaidEncounter && nearbyMonsters < 8) ? 0.95 : 0;
-    room.spawnAccumulator += dt * (0.55 + room.wave * 0.085 + (room.players.size - 1) * 0.16 + lowDensityBoost) * packDensityMult * deliriumBoost * raidRate;
+    // Controlled monster pack spawning (zero normal packs during Raid or Map Boss fights!)
+    if (!room.isRaidEncounter && !bossAlive) {
+      const deliriumBoost = (room.deliriumTimer || 0) > 0 ? 1.25 : 1.0;
+      const baseSpawnRate = (0.28 + room.wave * 0.05 + (room.players.size - 1) * 0.14) * Math.sqrt(tierDensity) * modPackMult;
+      room.spawnAccumulator += dt * baseSpawnRate * deliriumBoost;
 
-    while (room.spawnAccumulator >= 1) {
-      room.spawnAccumulator -= 1;
-      if (room.enemies.size < maxCap) {
-        spawnMonsterPack(room);
+      while (room.spawnAccumulator >= 1) {
+        room.spawnAccumulator -= 1;
+        if (room.enemies.size < MAX_ACTIVE_ENEMIES) {
+          spawnMonsterPack(room);
+        }
       }
     }
   }

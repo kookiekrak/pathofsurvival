@@ -1,14 +1,10 @@
-// Client Module: 3D Biome Environment Builder (Hideout & Massive 6000x6000 Wraeclast Maps)
+// Client Module: 3D Biome Environment Builder (Hideout, Pinnacle Boss Crucible Arenas & 6000x6000 Wraeclast Maps)
 (function () {
   with (window.__POS_CTX__) {
-  // =========================================================================
-  // 3D ENVIRONMENT BUILDER (HIDEOUT & MASSIVE 6000x6000 WRAECLAST MAPS)
-  // =========================================================================
   currentEnvKey = '';
   mapDevicePortalGroup = null;
   extractionPortalMesh = null;
 
-  // Place a static 3D prop normalized to an exact target height in world units!
   function placePropByHeight(modelKey, x, z, targetHeight, rotY = 0, yOffset = 0) {
     const gltf = ASSETS.models[modelKey];
     if (!gltf) return null;
@@ -32,18 +28,159 @@
     };
   }
 
+  // Bespoke 3D Pinnacle Boss Crucible Arena Builder (Searing Exarch, Eater of Worlds, The Maven, Sirus)
+  function buildPinnacleRaidCrucible(raidId) {
+    const RAID_R = 560;
+    const raidThemes = {
+      raid_searing_exarch: {
+        bg: 0x160503, hemi: 0xff922b, ground: 0x2b0a05, dir: 0xffb86c,
+        outerCol: 0xc92a2a, outerEm: 0xff4d29, outerTex: 'lava_diff',
+        floorCol: 0x181010, floorTex: 'brick_diff', rimCol: 0xff6b2b, rimEm: 0xd9480f
+      },
+      raid_eater_of_worlds: {
+        bg: 0x041118, hemi: 0x66d9e8, ground: 0x061a24, dir: 0x99e9f2,
+        outerCol: 0x061a24, outerEm: 0x0b4f6c, outerTex: 'strand_diff',
+        floorCol: 0x0b1d26, floorTex: 'marble_diff', rimCol: 0x22b8cf, rimEm: 0x0c8599
+      },
+      raid_maven_crucible: {
+        bg: 0x0b071a, hemi: 0xd0bfff, ground: 0x140d2b, dir: 0xf3d9fa,
+        outerCol: 0x0b071a, outerEm: 0x1f1147, outerTex: 'marble_diff',
+        floorCol: 0x141024, floorTex: 'marble_diff', rimCol: 0xe599f7, rimEm: 0x9c36b5
+      },
+      raid_sirus_awakener: {
+        bg: 0x1a0508, hemi: 0xff8787, ground: 0x29090e, dir: 0xffa8a8,
+        outerCol: 0x1a0508, outerEm: 0x4a0810, outerTex: 'lava_diff',
+        floorCol: 0x170d10, floorTex: 'brick_diff', rimCol: 0xe03131, rimEm: 0x8a1111
+      }
+    };
+    const rt = raidThemes[raidId] || raidThemes.raid_sirus_awakener;
+    scene.background = new THREE.Color(rt.bg);
+    scene.fog = new THREE.FogExp2(rt.bg, 0.00045);
+    hemiLight.color.setHex(rt.hemi);
+    hemiLight.groundColor.setHex(rt.ground);
+    dirLight.color.setHex(rt.dir);
+    dirLight.intensity = 1.85;
+
+    // 1. Outer Void / Lava / Abyssal Backdrop Plane (8000x8000 at y = -6)
+    const outTex = ASSETS.textures[rt.outerTex] || null;
+    if (outTex) outTex.repeat.set(70, 70);
+    const outerBackdrop = new THREE.Mesh(
+      new THREE.PlaneGeometry(8000, 8000, 16, 16),
+      new THREE.MeshStandardMaterial({ map: outTex, color: rt.outerCol, emissive: rt.outerEm, emissiveIntensity: 0.55, roughness: 0.8 })
+    );
+    outerBackdrop.rotation.x = -Math.PI / 2;
+    outerBackdrop.position.y = -6;
+    envGroup.add(outerBackdrop);
+
+    // 2. Inner Circular Crucible Platform (CylinderGeometry at y = -4)
+    const flTex = ASSETS.textures[rt.floorTex] || ASSETS.textures.brick_diff;
+    const flBump = ASSETS.textures.brick_bump;
+    if (flTex) flTex.repeat.set(16, 16);
+    if (flBump) flBump.repeat.set(16, 16);
+    const cruciblePlatform = new THREE.Mesh(
+      new THREE.CylinderGeometry(RAID_R, RAID_R + 28, 8, 48),
+      new THREE.MeshStandardMaterial({ map: flTex || null, bumpMap: flBump || null, bumpScale: 2.0, color: rt.floorCol, roughness: 0.56, metalness: 0.34 })
+    );
+    cruciblePlatform.position.y = -4;
+    cruciblePlatform.receiveShadow = true;
+    envGroup.add(cruciblePlatform);
+
+    // 3. Ornate Boundary Rim Torus (rotated flat at y = 3)
+    const rimTorus = new THREE.Mesh(
+      new THREE.TorusGeometry(RAID_R, 10, 12, 64),
+      new THREE.MeshStandardMaterial({ color: rt.rimCol, emissive: rt.rimEm, emissiveIntensity: 0.75, metalness: 0.82, roughness: 0.25 })
+    );
+    rimTorus.rotation.x = Math.PI / 2;
+    rimTorus.position.y = 3;
+    envGroup.add(rimTorus);
+
+    // 4. Boss-Specific Crucible Architecture, Runes & Perimeter Monuments
+    if (raidId === 'raid_searing_exarch') {
+      for (const r of [160, 320, 480]) {
+        const ring = new THREE.Mesh(new THREE.RingGeometry(r - 5, r + 5, 48), new THREE.MeshBasicMaterial({ color: 0xff6b2b, side: THREE.DoubleSide, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
+        ring.rotation.x = -Math.PI / 2; ring.position.y = 0.8; envGroup.add(ring);
+      }
+      const orbGeo = new THREE.SphereGeometry(12, 16, 16);
+      const orbMat = new THREE.MeshStandardMaterial({ color: 0xff922b, emissive: 0xff4d29, emissiveIntensity: 1.6 });
+      for (let i = 0; i < 12; i++) {
+        const ang = (Math.PI * 2 * i) / 12, px = Math.cos(ang) * 545, pz = Math.sin(ang) * 545;
+        placePropByHeight('pillar', px, pz, 110, -ang);
+        const orb = new THREE.Mesh(orbGeo, orbMat); orb.position.set(px, 116, pz); envGroup.add(orb);
+      }
+    } else if (raidId === 'raid_eater_of_worlds') {
+      for (const r of [150, 310, 470]) {
+        const ring = new THREE.Mesh(new THREE.RingGeometry(r - 4, r + 4, 48), new THREE.MeshBasicMaterial({ color: 0x3bc9db, side: THREE.DoubleSide, transparent: true, opacity: 0.58, blending: THREE.AdditiveBlending, depthWrite: false }));
+        ring.rotation.x = -Math.PI / 2; ring.position.y = 0.8; envGroup.add(ring);
+      }
+      const spireGeo = new THREE.ConeGeometry(14, 115, 6);
+      const spireMat = new THREE.MeshStandardMaterial({ color: 0x1098ad, emissive: 0x0c8599, emissiveIntensity: 1.1, metalness: 0.7, roughness: 0.25 });
+      for (let i = 0; i < 12; i++) {
+        const ang = (Math.PI * 2 * i) / 12, px = Math.cos(ang) * 545, pz = Math.sin(ang) * 545;
+        placePropByHeight('column', px, pz, 88, -ang);
+        const spire = new THREE.Mesh(spireGeo, spireMat);
+        spire.position.set(px * 0.98, 56, pz * 0.98); spire.lookAt(0, 130, 0); envGroup.add(spire);
+      }
+    } else if (raidId === 'raid_maven_crucible') {
+      const starGeo = new THREE.OctahedronGeometry(11, 0);
+      const starMat = new THREE.MeshStandardMaterial({ color: 0xf3d9fa, emissive: 0xda77f2, emissiveIntensity: 1.4 });
+      for (let i = 0; i < 8; i++) {
+        const ang = (Math.PI * 2 * i) / 8 + Math.PI / 8, px = Math.cos(ang) * 545, pz = Math.sin(ang) * 545;
+        placePropByHeight('arch_gate', px, pz, 106, -ang + Math.PI / 2, 8);
+        const star = new THREE.Mesh(starGeo, starMat); star.position.set(px, 118, pz); envGroup.add(star);
+      }
+      // 4 Permanent Color-Coded Memory Quadrant Pads etched into the floor
+      const pads = [
+        { x: 0, z: -220, col: 0x74c0fc }, // NORTH (Cyan/Ice)
+        { x: 220, z: 0, col: 0xffd43b },  // EAST  (Gold/Solar)
+        { x: 0, z: 220, col: 0x69db7c },  // SOUTH (Emerald/Life)
+        { x: -220, z: 0, col: 0xda77f2 }  // WEST  (Violet/Void)
+      ];
+      const padDiscGeo = new THREE.CircleGeometry(125, 36);
+      const padRingGeo = new THREE.RingGeometry(118, 126, 36);
+      for (const p of pads) {
+        const disc = new THREE.Mesh(padDiscGeo, new THREE.MeshBasicMaterial({ color: p.col, side: THREE.DoubleSide, transparent: true, opacity: 0.24, depthWrite: false }));
+        disc.rotation.x = -Math.PI / 2; disc.position.set(p.x, 0.9, p.z);
+        const ring = new THREE.Mesh(padRingGeo, new THREE.MeshBasicMaterial({ color: p.col, side: THREE.DoubleSide, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending, depthWrite: false }));
+        ring.rotation.x = -Math.PI / 2; ring.position.set(p.x, 1.2, p.z);
+        envGroup.add(disc, ring);
+      }
+    } else {
+      const barGeo = new THREE.PlaneGeometry(880, 18);
+      const barMat = new THREE.MeshBasicMaterial({ color: 0xe03131, side: THREE.DoubleSide, transparent: true, opacity: 0.48, blending: THREE.AdditiveBlending, depthWrite: false });
+      for (let i = 0; i < 4; i++) {
+        const bar = new THREE.Mesh(barGeo, barMat);
+        bar.rotation.x = -Math.PI / 2; bar.rotation.z = (Math.PI * i) / 4; bar.position.y = 0.8; envGroup.add(bar);
+      }
+      const centerCrossRing = new THREE.Mesh(new THREE.RingGeometry(115, 130, 40), new THREE.MeshBasicMaterial({ color: 0xffb833, side: THREE.DoubleSide, transparent: true, opacity: 0.65 }));
+      centerCrossRing.rotation.x = -Math.PI / 2; centerCrossRing.position.y = 1.0; envGroup.add(centerCrossRing);
+
+      const stormGeo = new THREE.SphereGeometry(18, 16, 16);
+      const stormMat = new THREE.MeshBasicMaterial({ color: 0xe03131, transparent: true, opacity: 0.78, blending: THREE.AdditiveBlending, depthWrite: false });
+      for (let i = 0; i < 10; i++) {
+        const ang = (Math.PI * 2 * i) / 10, px = Math.cos(ang) * 545, pz = Math.sin(ang) * 545;
+        placePropByHeight('wall_arched', px, pz, 98, -ang + Math.PI / 2);
+        const orb = new THREE.Mesh(stormGeo, stormMat); orb.position.set(px * 0.93, 82, pz * 0.93); envGroup.add(orb);
+      }
+    }
+  }
+
   function rebuildBiomeEnvironment(mode, mapId, mapSeed = 1) {
     if (!ASSETS.ready) return;
     const isOriathTown = mode === 'HIDEOUT' && worldState && worldState.roomCode === 'ORIATH';
-    const envKey = mode === 'HIDEOUT' ? (isOriathTown ? 'HIDEOUT_TOWN' : 'HIDEOUT') : `${mode}_${mapId}_${mapSeed}`;
+    const isRaid = !!(worldState && worldState.isRaid);
+    const raidId = (worldState && worldState.raidId) || '';
+    const envKey = mode === 'HIDEOUT' ? (isOriathTown ? 'HIDEOUT_TOWN' : 'HIDEOUT') : `${mode}_${mapId}_${mapSeed}_${isRaid}:${raidId}`;
     if (envKey === currentEnvKey) return;
     currentEnvKey = envKey;
 
-    while (envGroup.children.length > 0) {
-      envGroup.remove(envGroup.children[0]);
-    }
+    while (envGroup.children.length > 0) envGroup.remove(envGroup.children[0]);
     mapDevicePortalGroup = null;
     extractionPortalMesh = null;
+
+    if (mode === 'RUN' && isRaid) {
+      buildPinnacleRaidCrucible(raidId);
+      return;
+    }
 
     if (mode === 'HIDEOUT') {
       scene.background = new THREE.Color(isOriathTown ? 0x0c111a : 0x09080c);
@@ -54,159 +191,83 @@
       dirLight.intensity = 1.6;
 
       const bound = 550;
-      const floorGeo = new THREE.PlaneGeometry(bound * 2, bound * 2, 32, 32);
       const diffTex = isOriathTown ? (ASSETS.textures.marble_diff || ASSETS.textures.brick_diff) : ASSETS.textures.brick_diff;
-      const bumpTex = ASSETS.textures.brick_bump;
-      const roughTex = ASSETS.textures.brick_rough;
+      const bumpTex = ASSETS.textures.brick_bump, roughTex = ASSETS.textures.brick_rough;
       if (diffTex) diffTex.repeat.set(18, 18);
       if (bumpTex) bumpTex.repeat.set(18, 18);
       if (roughTex) roughTex.repeat.set(18, 18);
 
-      const floorMat = new THREE.MeshStandardMaterial({
-        map: diffTex || null,
-        bumpMap: bumpTex || null,
-        bumpScale: 2.5,
-        roughnessMap: roughTex || null,
-        color: isOriathTown ? 0x6e685f : 0x5a5046,
-        roughness: 0.72,
-        metalness: 0.1
-      });
-      const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-      floorMesh.rotation.x = -Math.PI / 2;
-      floorMesh.receiveShadow = true;
-      envGroup.add(floorMesh);
+      const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(bound * 2, bound * 2, 32, 32), new THREE.MeshStandardMaterial({
+        map: diffTex || null, bumpMap: bumpTex || null, bumpScale: 2.5, roughnessMap: roughTex || null,
+        color: isOriathTown ? 0x6e685f : 0x5a5046, roughness: 0.72, metalness: 0.1
+      }));
+      floorMesh.rotation.x = -Math.PI / 2; floorMesh.receiveShadow = true; envGroup.add(floorMesh);
 
-      // Central 3D Architectural Dais at (0, 0, 0)
-      const daisPlinth = new THREE.Mesh(
-        new THREE.CylinderGeometry(58, 66, 6, 8),
-        new THREE.MeshStandardMaterial({
-          map: diffTex || null,
-          bumpMap: bumpTex || null,
-          bumpScale: 1.8,
-          color: 0x2b241d,
-          metalness: 0.35,
-          roughness: 0.65
-        })
-      );
-      daisPlinth.position.set(0, 3, 0);
-      daisPlinth.receiveShadow = true;
-      daisPlinth.castShadow = true;
-      envGroup.add(daisPlinth);
+      const daisPlinth = new THREE.Mesh(new THREE.CylinderGeometry(58, 66, 6, 8), new THREE.MeshStandardMaterial({
+        map: diffTex || null, bumpMap: bumpTex || null, bumpScale: 1.8, color: 0x2b241d, metalness: 0.35, roughness: 0.65
+      }));
+      daisPlinth.position.set(0, 3, 0); daisPlinth.receiveShadow = true; daisPlinth.castShadow = true; envGroup.add(daisPlinth);
 
-      const brassTrim = new THREE.Mesh(
-        new THREE.CylinderGeometry(60, 62, 2, 8),
-        new THREE.MeshStandardMaterial({
-          color: isOriathTown ? 0x74c0fc : 0xb89448,
-          metalness: 0.85,
-          roughness: 0.28
-        })
-      );
-      brassTrim.position.set(0, 5.2, 0);
-      envGroup.add(brassTrim);
+      const brassTrim = new THREE.Mesh(new THREE.CylinderGeometry(60, 62, 2, 8), new THREE.MeshStandardMaterial({
+        color: isOriathTown ? 0x74c0fc : 0xb89448, metalness: 0.85, roughness: 0.28
+      }));
+      brassTrim.position.set(0, 5.2, 0); envGroup.add(brassTrim);
 
       placePropByHeight('floor_grate', 0, 0, 14, 0, 4);
       placePropByHeight('shrine', 0, 0, 28, 0, 5);
 
-      const runeVortexMat = new THREE.MeshBasicMaterial({
-        map: ASSETS.textures.disc || ASSETS.textures.spark || null,
-        color: isOriathTown ? 0x4dabf7 : 0xffb833,
-        transparent: true,
-        opacity: 0.68,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide
-      });
-      const runeVortex = new THREE.Mesh(new THREE.CircleGeometry(42, 32), runeVortexMat);
-      runeVortex.rotation.x = -Math.PI / 2;
-      runeVortex.position.set(0, 6.3, 0);
-      envGroup.add(runeVortex);
+      const runeVortex = new THREE.Mesh(new THREE.CircleGeometry(42, 32), new THREE.MeshBasicMaterial({
+        map: ASSETS.textures.disc || ASSETS.textures.spark || null, color: isOriathTown ? 0x4dabf7 : 0xffb833,
+        transparent: true, opacity: 0.68, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+      }));
+      runeVortex.rotation.x = -Math.PI / 2; runeVortex.position.set(0, 6.3, 0); envGroup.add(runeVortex);
 
-      // 6 Perimeter Stone Monoliths (& Swirling Atlas Portals in Personal/Party Hideout; Town Columns in Oriath Town)
       mapDevicePortalGroup = new THREE.Group();
       envGroup.add(mapDevicePortalGroup);
 
       const portalFrameGeo = new THREE.TorusGeometry(15, 1.4, 12, 32);
-      const portalFrameMat = new THREE.MeshStandardMaterial({
-        color: 0xc8a458,
-        emissive: 0x6e4711,
-        emissiveIntensity: 0.55,
-        metalness: 0.88,
-        roughness: 0.22
-      });
+      const portalFrameMat = new THREE.MeshStandardMaterial({ color: 0xc8a458, emissive: 0x6e4711, emissiveIntensity: 0.55, metalness: 0.88, roughness: 0.22 });
       const portalCoreGeo = new THREE.CircleGeometry(14, 28);
       const portalCoreMat = new THREE.MeshBasicMaterial({
-        map: ASSETS.textures.disc || null,
-        color: 0x3bc9db,
-        transparent: true,
-        opacity: 0.78,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide
+        map: ASSETS.textures.disc || null, color: 0x3bc9db, transparent: true, opacity: 0.78,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
       });
 
       for (let i = 0; i < 6; i++) {
-        const ang = (Math.PI * 2 * i) / 6;
-        const px = Math.cos(ang) * 82;
-        const pz = Math.sin(ang) * 82;
-
+        const ang = (Math.PI * 2 * i) / 6, px = Math.cos(ang) * 82, pz = Math.sin(ang) * 82;
         placePropByHeight('pillar', px * 1.07, pz * 1.07, 56, -ang + Math.PI / 2, 0);
-        if (isOriathTown) {
-          placePropByHeight('banner', px * 1.12, pz * 1.12, 48, -ang + Math.PI / 2, 8);
-          continue;
-        }
-
+        if (isOriathTown) { placePropByHeight('banner', px * 1.12, pz * 1.12, 48, -ang + Math.PI / 2, 8); continue; }
         const pHolder = new THREE.Group();
-        pHolder.position.set(px, 23, pz);
-        pHolder.lookAt(0, 23, 0);
-
-        const arch = new THREE.Mesh(portalFrameGeo, portalFrameMat);
-        arch.scale.set(0.72, 1.38, 1);
-        const core = new THREE.Mesh(portalCoreGeo, portalCoreMat);
-        core.scale.set(0.72, 1.38, 1);
+        pHolder.position.set(px, 23, pz); pHolder.lookAt(0, 23, 0);
+        const arch = new THREE.Mesh(portalFrameGeo, portalFrameMat); arch.scale.set(0.72, 1.38, 1);
+        const core = new THREE.Mesh(portalCoreGeo, portalCoreMat); core.scale.set(0.72, 1.38, 1);
         pHolder.add(arch, core);
-
         if (ASSETS.textures.spark) {
-          const spMat = new THREE.SpriteMaterial({
-            map: ASSETS.textures.spark,
-            color: 0xffd43b,
-            transparent: true,
-            opacity: 0.85,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false
-          });
-          const sp = new THREE.Sprite(spMat);
-          sp.scale.set(28, 38, 1);
-          pHolder.add(sp);
+          const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: ASSETS.textures.spark, color: 0xffd43b, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false
+          }));
+          sp.scale.set(28, 38, 1); pHolder.add(sp);
         }
-
         mapDevicePortalGroup.add(pHolder);
       }
 
       const mapDeviceLight = new THREE.PointLight(0xffb833, 2.6, 260);
-      mapDeviceLight.position.set(0, 44, 0);
-      envGroup.add(mapDeviceLight);
+      mapDeviceLight.position.set(0, 44, 0); envGroup.add(mapDeviceLight);
 
-      // 8 Gothic Pillars, Torches & Warm Sanctuary Point Lights
       for (let i = 0; i < 8; i++) {
-        const ang = (Math.PI * 2 * i) / 8 + Math.PI / 8;
-        const px = Math.cos(ang) * 340;
-        const pz = Math.sin(ang) * 340;
+        const ang = (Math.PI * 2 * i) / 8 + Math.PI / 8, px = Math.cos(ang) * 340, pz = Math.sin(ang) * 340;
         placePropByHeight('pillar', px, pz, 88, -ang);
         placePropByHeight('torch', px * 0.92, pz * 0.92, 22, -ang, 32);
         if (i % 2 === 0) {
           const tLight = new THREE.PointLight(0xff8833, 1.4, 240);
-          tLight.position.set(px * 0.88, 46, pz * 0.88);
-          envGroup.add(tLight);
+          tLight.position.set(px * 0.88, 46, pz * 0.88); envGroup.add(tLight);
         }
       }
 
-      // Stash Chests, Shrines, Barrels & Banners
       placePropByHeight('chest_gold', -140, -90, 24, 0.5);
       placePropByHeight('shrine', -180, -110, 42, 0.4);
       placePropByHeight('chest_gold', 140, -90, 24, -0.5);
       placePropByHeight('barrel', 180, -110, 34, -0.3);
-
-      // Northern Sanctum behind Target Dummy (0, -250)
       placePropByHeight('floor_grate', 0, -250, 10, 0, -3);
       placePropByHeight('wall_arched', -95, -410, 92, 0);
       placePropByHeight('wall_arched', 0, -410, 92, 0);
@@ -216,13 +277,8 @@
       return;
     }
 
-    // =========================================================================
     // MASSIVE 6000x6000 WRAECLAST RUN ARENA (ARENA_HALF = 3000)
-    // =========================================================================
     const bound = 3000;
-    const floorGeo = new THREE.PlaneGeometry(bound * 2, bound * 2, 48, 48);
-    let floorMat;
-
     const biomeThemes = {
       strand:            { bg: 0x0a131c, hemi: 0xa5d8ff, ground: 0x1b2631, dir: 0xd0ebff, floor: 0x6c7a89, tex: 'strand_diff', ringColor: 0x3bc9db },
       submerged_cavern:  { bg: 0x071422, hemi: 0x74c0fc, ground: 0x102233, dir: 0xa5d8ff, floor: 0x4b657d, tex: 'strand_diff', ringColor: 0x4dabf7 },
@@ -250,34 +306,17 @@
     dirLight.color.setHex(th.dir);
     dirLight.intensity = 1.6;
 
-    const tex = ASSETS.textures[th.tex] || ASSETS.textures.brick_diff;
-    const bump = ASSETS.textures.brick_bump;
+    const tex = ASSETS.textures[th.tex] || ASSETS.textures.brick_diff, bump = ASSETS.textures.brick_bump;
     if (tex) tex.repeat.set(60, 60);
     if (bump) bump.repeat.set(60, 60);
-    floorMat = new THREE.MeshStandardMaterial({
-      map: tex || null,
-      bumpMap: bump || null,
-      bumpScale: 2.6,
-      color: th.floor,
-      roughness: 0.72,
-      metalness: 0.14
-    });
+    const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(bound * 2, bound * 2, 48, 48), new THREE.MeshStandardMaterial({
+      map: tex || null, bumpMap: bump || null, bumpScale: 2.6, color: th.floor, roughness: 0.72, metalness: 0.14
+    }));
+    floorMesh.rotation.x = -Math.PI / 2; floorMesh.receiveShadow = true; envGroup.add(floorMesh);
 
-    const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-    floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.receiveShadow = true;
-    envGroup.add(floorMesh);
+    const sanctumRing = new THREE.Mesh(new THREE.RingGeometry(188, 202, 48), new THREE.MeshBasicMaterial({ color: th.ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.42 }));
+    sanctumRing.rotation.x = -Math.PI / 2; sanctumRing.position.y = 1.2; envGroup.add(sanctumRing);
 
-    // Central Boss Sanctum Ritual Ring at (0, 0, 0) (kept clear inside r < 185 for portal!)
-    const sanctumRing = new THREE.Mesh(
-      new THREE.RingGeometry(188, 202, 48),
-      new THREE.MeshBasicMaterial({ color: th.ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.42 })
-    );
-    sanctumRing.rotation.x = -Math.PI / 2;
-    sanctumRing.position.y = 1.2;
-    envGroup.add(sanctumRing);
-
-    // Perimeter Pillars around the 6000x6000 boundary
     for (let i = -bound; i <= bound; i += 300) {
       placePropByHeight('pillar', i, -bound, 98, 0);
       placePropByHeight('pillar', i, bound, 98, Math.PI);
@@ -285,7 +324,6 @@
       placePropByHeight('pillar', bound, i, 98, -Math.PI / 2);
     }
 
-    // Procedurally Scattered Architectural Landmarks driven by seededRand(mapSeed)
     const rng = seededRand(mapSeed + (mapId ? mapId.charCodeAt(0) * 137 : 17));
     const biomePropPools = {
       strand:            [['tree_dead', 115], ['column', 64], ['rubble', 38], ['pillar', 84], ['torch', 24]],
@@ -296,36 +334,23 @@
       shaper_realm:      [['crypt', 124], ['arch_gate', 106], ['post_skull', 82], ['pillar', 94], ['banner', 62]]
     };
     const pool = biomePropPools[mapId] || biomePropPools.shaper_realm;
-
-    // Scatter 22 primary landmark clusters within r = 220..1250 (keeping r < 185 clear around (0,0) for portal)
-    const clusterCount = 18 + Math.floor(rng() * 7); // 18 to 24 clusters
+    const clusterCount = 18 + Math.floor(rng() * 7);
     for (let c = 0; c < clusterCount; c++) {
-      const ang = rng() * Math.PI * 2;
-      const rad = 220 + rng() * 1030;
-      const cx = Math.cos(ang) * rad;
-      const cz = Math.sin(ang) * rad;
+      const ang = rng() * Math.PI * 2, rad = 220 + rng() * 1030;
       const [mainKey, mainH] = pool[Math.floor(rng() * pool.length)];
-      const rot = rng() * Math.PI * 2;
-      placePropByHeight(mainKey, cx, cz, mainH * (0.88 + rng() * 0.26), rot);
-
-      // Satellite accent prop in cluster (torch, rubble, banner, skull post, or column)
+      placePropByHeight(mainKey, Math.cos(ang) * rad, Math.sin(ang) * rad, mainH * (0.88 + rng() * 0.26), rng() * Math.PI * 2);
       if (rng() < 0.72) {
-        const satAng = ang + (rng() - 0.5) * 0.45;
-        const satR = Math.max(195, rad + (rng() - 0.5) * 90);
+        const satAng = ang + (rng() - 0.5) * 0.45, satR = Math.max(195, rad + (rng() - 0.5) * 90);
         const [satKey, satH] = pool[Math.floor(rng() * pool.length)];
         placePropByHeight(satKey, Math.cos(satAng) * satR, Math.sin(satAng) * satR, satH * 0.85, rng() * Math.PI * 2);
       }
     }
-
-    // Outer exploration landmarks (1250 to 2550 units)
     for (let k = 0; k < 28; k++) {
-      const ang = rng() * Math.PI * 2;
-      const rad = 1280 + rng() * 1250;
-      const [pKey, pH] = pool[k % pool.length];
+      const ang = rng() * Math.PI * 2, rad = 1280 + rng() * 1250, [pKey, pH] = pool[k % pool.length];
       placePropByHeight(pKey, Math.cos(ang) * rad, Math.sin(ang) * rad, pH * (0.9 + rng() * 0.25), rng() * Math.PI * 2);
     }
   }
 
-  Object.assign(window.__POS_CTX__, { placePropByHeight, rebuildBiomeEnvironment });
+  Object.assign(window.__POS_CTX__, { placePropByHeight, buildPinnacleRaidCrucible, rebuildBiomeEnvironment });
   }
 })();

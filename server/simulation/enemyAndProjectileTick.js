@@ -1,12 +1,28 @@
 // Server Simulation Module: Projectile Physics/Collisions, Monster AI, Elite Skills & Boss Choreography
 const GameData = global.GameData || require('../../public/shared/gameData.js');
 
-function pushEnemyBolt(room, x, y, ang, speed, radius, damage, damageType, duration) {
-  if (room.projectiles.length >= 42) room.projectiles.shift();
+function pushEnemyBolt(room, xOrBolt, y, ang, speed, radius, damage, damageType, duration, skipExtraProj) {
+  if (room.projectiles.length >= 90) {
+    const pIdx = room.projectiles.findIndex(p => p.ownerId !== 'enemy');
+    if (pIdx >= 0) room.projectiles.splice(pIdx, 1);
+    else room.projectiles.shift();
+  }
+  if (xOrBolt && typeof xOrBolt === 'object') {
+    room.projectiles.push({ id: uid('eprj'), ownerId: 'enemy', skillId: 'enemy_bolt', behavior: 'standard', ...xOrBolt });
+    return;
+  }
+  const x = xOrBolt;
   room.projectiles.push({
     id: uid('eprj'), ownerId: 'enemy', skillId: 'enemy_bolt', behavior: 'standard',
     damageType, x, y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed, speed, radius, damage, duration
   });
+  if (!skipExtraProj && room.mapModStats && room.mapModStats.extraProj > 0) {
+    const extra = Math.min(2, room.mapModStats.extraProj);
+    for (let e = 1; e <= extra; e++) {
+      const sideAng = ang + (e % 2 === 1 ? 1 : -1) * Math.ceil(e / 2) * 0.18;
+      pushEnemyBolt(room, x, y, sideAng, speed, radius, damage, damageType, duration, true);
+    }
+  }
 }
 
 function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
@@ -21,7 +37,7 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
         room.fxEvents.push({ kind: 'nova', x: Math.round(prj.x), y: Math.round(prj.y), r: 56, color: '#ffe066' });
         for (let k = 0; k < 2; k++) {
           const ang = (Math.PI * 2 * k) / 2 + (prj.vx ? Math.atan2(prj.vy, prj.vx) : 0);
-          if (room.projectiles.length >= 42) room.projectiles.shift();
+          if (room.projectiles.length >= 90) room.projectiles.shift();
           room.projectiles.push({
             ...prj, id: uid('prj'), behavior: 'standard', vx: Math.cos(ang) * 540, vy: Math.sin(ang) * 540,
             duration: 0.42, maxDuration: 0.42, hitIds: new Set()
@@ -45,7 +61,7 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
         room.fxEvents.push({ kind: 'nova', sub: 'ice_nova', x: Math.round(prj.x), y: Math.round(prj.y), r: 78, color: '#74c0fc' });
         for (let k = 0; k < 2; k++) {
           const ang = (Math.PI * 2 * k) / 2;
-          if (room.projectiles.length >= 42) room.projectiles.shift();
+          if (room.projectiles.length >= 90) room.projectiles.shift();
           room.projectiles.push({
             ...prj, id: uid('prj'), behavior: 'standard', vx: Math.cos(ang) * 480, vy: Math.sin(ang) * 480,
             radius: 10, duration: 0.36, maxDuration: 0.36, hitIds: new Set()
@@ -280,7 +296,8 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
         spawnGroundHazard(room, m.x, m.y, 90, 1.1, Math.round(m.damage * 1.2), 'Frost Nova Pulse');
       }
     } else if (m.actionTimer <= 0) {
-      // 3. 16 VARIED MONSTER ARCHETYPE SKILLS
+      // 3. 16 VARIED MONSTER ARCHETYPE SKILLS (470 range & 1.8-2.4s cooldowns for ranged/casters)
+      const rangedCd = 1.8 + Math.random() * 0.6;
       if (m.behavior === 'treasure_goblin') {
         m.actionTimer = 2.6;
         target.runGold = (target.runGold || 0) + 3;
@@ -291,19 +308,18 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
         m.x = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(target.x - Math.cos(ang) * 58)));
         m.y = Math.max(-ARENA_HALF + 60, Math.min(ARENA_HALF - 60, Math.round(target.y - Math.sin(ang) * 58)));
         room.fxEvents.push({ kind: 'nova', x: Math.round(m.x), y: Math.round(m.y), r: 48, color: '#9775fa' });
-      } else if (m.behavior === 'storm_caller' && bestD < 340 && room.hazards.length <= 3) {
-        m.actionTimer = 4.2;
-        m.pauseTimer = 0.5;
-        spawnGroundHazard(room, target.x + randInt(-30, 30), target.y + randInt(-30, 30), 52, 1.0, Math.round(m.damage * 1.15), 'Stormcaller Strike');
-      } else if (m.behavior === 'frost_caster' && bestD < 340) {
-        m.actionTimer = 3.9;
+      } else if (m.behavior === 'storm_caller' && bestD < 470) {
+        m.actionTimer = m.specialCd = rangedCd;
         m.pauseTimer = 0.4;
-        for (const offset of [-0.24, 0, 0.24]) {
-          pushEnemyBolt(room, m.x, m.y, ang + offset, 195, 9, Math.round(m.damage * 0.85), 'cold', 2.6);
-        }
-      } else if (m.behavior === 'necromancer' && bestD < 380) {
-        m.actionTimer = 4.5;
-        m.pauseTimer = 0.55;
+        if (room.hazards.length <= 4) spawnGroundHazard(room, target.x + randInt(-30, 30), target.y + randInt(-30, 30), 52, 1.0, Math.round(m.damage * 1.15), 'Stormcaller Strike');
+        for (const offset of [-0.15, 0.15]) pushEnemyBolt(room, m.x, m.y, ang + offset, 215, 9, Math.round(m.damage * 0.85), 'lightning', 2.6);
+      } else if (m.behavior === 'frost_caster' && bestD < 470) {
+        m.actionTimer = m.specialCd = rangedCd;
+        m.pauseTimer = 0.35;
+        for (const offset of [-0.24, 0, 0.24]) pushEnemyBolt(room, m.x, m.y, ang + offset, 205, 9, Math.round(m.damage * 0.85), 'cold', 2.6);
+      } else if (m.behavior === 'necromancer' && bestD < 470) {
+        m.actionTimer = m.specialCd = rangedCd;
+        m.pauseTimer = 0.45;
         let healed = 0;
         for (const ally of room.enemies.values()) {
           if (ally.id !== m.id && ally.rarity !== 'boss' && dist(m.x, m.y, ally.x, ally.y) <= 160) {
@@ -313,38 +329,33 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
           }
         }
         room.fxEvents.push({ kind: 'nova', x: Math.round(m.x), y: Math.round(m.y), r: 72, color: '#be4bdb' });
-        if (healed === 0 && room.enemies.size < 85) {
+        pushEnemyBolt(room, m.x, m.y, ang, 210, 9, Math.round(m.damage * 0.85), 'cold', 2.5);
+        if (healed === 0 && room.enemies.size < 44) {
           spawnMonster(room, false, { x: m.x + Math.cos(ang) * 45, y: m.y + Math.sin(ang) * 45, exact: true }, 'normal', 'skeleton');
         }
-      } else if (m.behavior === 'toxic_mortar' && bestD < 340) {
-        m.actionTimer = 4.0;
+      } else if (m.behavior === 'toxic_mortar' && bestD < 470) {
+        m.actionTimer = m.specialCd = rangedCd;
         m.pauseTimer = 0.35;
-        for (const offset of [-0.28, 0, 0.28]) {
-          pushEnemyBolt(room, m.x, m.y, ang + offset, 180, 9, Math.round(m.damage * 0.82), 'physical', 2.5);
-        }
-      } else if (m.behavior === 'charge' && bestD >= 110 && bestD <= 300) {
-        m.actionTimer = 4.5;
+        for (const offset of [-0.26, 0, 0.26]) pushEnemyBolt(room, m.x, m.y, ang + offset, 195, 9, Math.round(m.damage * 0.85), 'physical', 2.6);
+      } else if (m.behavior === 'charge' && bestD >= 110 && bestD <= 320) {
+        m.actionTimer = 4.2;
         m.chargeWindup = 0.5;
         m.chargeAngle = ang;
-      } else if (m.behavior === 'flameblast_caster' && bestD < 340) {
-        m.actionTimer = 4.0;
-        m.pauseTimer = 0.45;
-        for (const offset of [-0.31, 0, 0.31]) {
-          pushEnemyBolt(room, m.x, m.y, ang + offset, 175, 9, Math.round(m.damage * 0.85), 'fire', 2.8);
-        }
+      } else if (m.behavior === 'flameblast_caster' && bestD < 470) {
+        m.actionTimer = m.specialCd = rangedCd;
+        m.pauseTimer = 0.4;
+        for (const offset of [-0.28, 0, 0.28]) pushEnemyBolt(room, m.x, m.y, ang + offset, 190, 9, Math.round(m.damage * 0.88), 'fire', 2.8);
       } else if ((m.typeId === 'devourer' || m.typeId === 'kitava_herald' || m.behavior === 'phalanx_tank') && bestD <= 95) {
-        m.actionTimer = 4.2;
+        m.actionTimer = 4.0;
         m.pauseTimer = 0.8;
-        if (room.hazards.length <= 3) {
-          spawnGroundHazard(room, m.x + Math.cos(ang) * 45, m.y + Math.sin(ang) * 45, 65, 0.95, Math.round(m.damage * 1.25), 'Heavy Slam');
-        }
-      } else if ((m.behavior === 'ranged_kite' || m.behavior === 'mortar_leap') && bestD < 320) {
-        m.actionTimer = 3.8 + Math.random() * 1.2;
+        if (room.hazards.length <= 3) spawnGroundHazard(room, m.x + Math.cos(ang) * 45, m.y + Math.sin(ang) * 45, 65, 0.95, Math.round(m.damage * 1.25), 'Heavy Slam');
+      } else if ((m.behavior === 'ranged_kite' || m.behavior === 'mortar_leap') && bestD < 470) {
+        m.actionTimer = m.specialCd = rangedCd;
         m.pauseTimer = 0.35;
         if (m.behavior === 'mortar_leap') {
-          for (const offset of [-0.16, 0.16]) pushEnemyBolt(room, m.x, m.y, ang + offset, 215, 8, Math.round(m.damage * 0.8), 'fire', 2.4);
+          for (const offset of [-0.16, 0, 0.16]) pushEnemyBolt(room, m.x, m.y, ang + offset, 220, 8, Math.round(m.damage * 0.82), 'fire', 2.5);
         } else {
-          pushEnemyBolt(room, m.x, m.y, ang, 230, 8, Math.round(m.damage * 0.85), 'cold', 2.3);
+          for (const offset of [-0.12, 0.12]) pushEnemyBolt(room, m.x, m.y, ang + offset, 235, 8, Math.round(m.damage * 0.85), 'cold', 2.4);
         }
       }
     }
@@ -355,6 +366,11 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
 
     m.x += Math.cos(moveAng) * m.speed * chillMult * buffSpeedMult * moveMult * dt;
     m.y += Math.sin(moveAng) * m.speed * chillMult * buffSpeedMult * moveMult * dt;
+    if (room.isRaidEncounter) {
+      const rBound = (typeof RAID_ARENA_HALF === 'number' ? RAID_ARENA_HALF : 560) - 40;
+      m.x = Math.max(-rBound, Math.min(rBound, m.x));
+      m.y = Math.max(-rBound, Math.min(rBound, m.y));
+    }
 
     // Individual Monster Contact Strike (Every monster hits independently!)
     if (m.hitTimer <= 0 && !m.shielded) {

@@ -21,7 +21,18 @@ function onEnemyKilled(room, enemy, killer) {
     }
   }
   if ((room.deliriumTimer || 0) > 0 && !enemy.isRaidPylon) {
-    room.deliriumKills = (room.deliriumKills || 0) + 1;
+    room.deliriumKills = (room.deliriumKills || 0) + (enemy.rarity === 'rare' ? 4 : enemy.rarity === 'magic' ? 2 : 1);
+    const newTier = Math.min(8, 1 + Math.floor(room.deliriumKills / 10));
+    if (newTier > (room.deliriumTier || 1)) {
+      room.deliriumTier = newTier;
+      addRoomChat(room, 'Delirium', `Delirium Reward Tier ${newTier} reached! (+${newTier * 60}% Item & Currency Rarity)`, '#dee2e6');
+      broadcastRoomEvent(room, {
+        type: 'announcement',
+        title: `DELIRIUM REWARD TIER ${newTier}! (+${newTier * 60}% Item & Currency Rarity)`,
+        subtitle: `Delirium Simulacrum intensity increased — slain foes drop higher-tier Orbs & Gear!`,
+        color: '#dee2e6'
+      });
+    }
   }
 
   // Advance Kill-Driven Wave Progress (10 Waves)
@@ -157,33 +168,30 @@ function onEnemyKilled(room, enemy, killer) {
   }
 
   // =========================================================================
-  // MAP TIER SCALED LOOT & UTILITY FLASK DROPS
+  // POE 2 RARITY-ONLY SCALED LOOT & CURRENCY DROPS (ZERO QUANTITY SCALING!)
   // =========================================================================
   if (enemy.isBreachMob && Array.isArray(room.activeBreaches) && room.activeBreaches.length > 0) {
     const activeB = room.activeBreaches[0];
     activeB.kills = (activeB.kills || 0) + 1;
   }
-  const breachMult = enemy.isBreachMob ? 0.22 : 1.0;
-  const totalLootQuantity = ((mapDef && mapDef.lootQuantity) || 100) + ((room.mapModStats && room.mapModStats.quant) || 0);
-  const totalRarityBonus = ((mapDef && mapDef.lootRarityBonus) || 0) + ((room.mapModStats && room.mapModStats.rarity) || 0);
-  const rawQtyMult = totalLootQuantity / 100;
-  // Dampen high-tier map quantity scaling so T10-T16 maps reward higher quality without flooding the screen with items!
-  const dropQtyMult = 1 + Math.pow(Math.max(0, rawQtyMult - 1), 0.55) * 0.32;
+  const breachMult = enemy.isBreachMob ? 0.25 : 1.0;
+  const mapIIR = ((mapDef && mapDef.lootRarityBonus) || 0) + ((room.mapModStats && room.mapModStats.rarity) || 0) + ((room.deliriumTier || 0) * 60);
+  const mobIIR = enemy.rarityBonusPct || (Array.isArray(enemy.mods) ? enemy.mods.length * 90 : 0);
+  const totalRarityBonus = mapIIR + mobIIR;
+  const iirMult = 1 + totalRarityBonus / 100;
   const baseIlvl = (mapTier - 1) * 3 + Math.ceil((room.wave || 1) / 2);
 
   if (enemy.rarity === 'boss' || enemy.rarity === 'unique') {
-    const bossOrbs = 1 + Math.min(3, Math.floor(mapTier / 5));
-    const bossGearCount = 1 + (mapTier >= 10 && Math.random() < 0.35 ? 1 : 0);
     const bossIlvl = baseIlvl + 2;
-    for (let i = 0; i < bossOrbs; i++) {
-      spawnGroundDrop(room, enemy.x - 20 + i * 16, enemy.y, 'currency');
-    }
+    const bossIIR = totalRarityBonus + (enemy.isPinnacleRaid ? 320 : 180);
+    // Bosses drop 1 guaranteed high-rarity PoE 2 Currency Orb & 1 guaranteed high-rarity item (50% chance for a 2nd on Raid Boss)
+    spawnCurrencyDrop(room, enemy.x - 18, enemy.y, null, bossIIR);
+    const bossGearCount = (enemy.isPinnacleRaid && Math.random() < 0.5) ? 2 : 1;
     for (let i = 0; i < bossGearCount; i++) {
-      const uniqueChance = 0.022 + (mapTier - 1) * 0.0025;
-      spawnGroundDrop(room, enemy.x + 20 + i * 18, enemy.y, 'gear', Math.random() < uniqueChance ? 'unique' : 'rare', bossIlvl, totalRarityBonus);
+      const uniqueChance = Math.min(0.18, (0.018 + (mapTier - 1) * 0.002) * Math.sqrt(iirMult));
+      spawnGroundDrop(room, enemy.x + 18 + i * 20, enemy.y, 'gear', Math.random() < uniqueChance ? 'unique' : 'rare', bossIlvl, bossIIR);
     }
-    // Map Bosses have a 3.5% chance to drop a Flask
-    if (Math.random() < 0.035) {
+    if (Math.random() < 0.05) {
       spawnGroundDrop(room, enemy.x, enemy.y + 24, 'flask');
     }
 
@@ -200,28 +208,37 @@ function onEnemyKilled(room, enemy, killer) {
 
   if (enemy.isRaidPylon) return;
   if (enemy.typeId === 'gilded_goblin') {
-    for (let k = 0; k < 2; k++) {
-      spawnGroundDrop(room, enemy.x + randInt(-24, 24), enemy.y + randInt(-24, 24), 'currency');
-    }
-    spawnGroundDrop(room, enemy.x, enemy.y, 'gear', Math.random() < 0.015 ? 'unique' : 'rare', baseIlvl + 2, totalRarityBonus);
-    addRoomChat(room, 'Perandus', `🪙 ${killer ? killer.name : 'The party'} slayed the Perandus Treasure Hoarder — Jackpot Loot Explosion!`, '#fcc419');
+    spawnCurrencyDrop(room, enemy.x - 16, enemy.y, null, totalRarityBonus + 220);
+    spawnGroundDrop(room, enemy.x + 16, enemy.y, 'gear', Math.random() < 0.025 ? 'unique' : 'rare', baseIlvl + 2, totalRarityBonus + 220);
+    addRoomChat(room, 'Perandus', `🪙 ${killer ? killer.name : 'The party'} slayed the Perandus Treasure Hoarder — Jackpot Loot Drop!`, '#fcc419');
     return;
   }
 
-  // Rare monsters have a very low chance (0.3%) to drop a Flask!
+  // Rare monsters have a low chance (0.3%) to drop a Flask
   if (enemy.rarity === 'rare' && Math.random() < 0.003 * breachMult) {
     spawnGroundDrop(room, enemy.x, enemy.y - 16, 'flask');
   }
 
-  // Controlled drop rates across all map tiers (no loot flood at high tiers):
-  const gearChance = (enemy.rarity === 'rare' ? 0.0075 : enemy.rarity === 'magic' ? 0.00045 : 0) * dropQtyMult * breachMult;
-  const currencyChance = (enemy.rarity === 'rare' ? 0.015 : enemy.rarity === 'magic' ? 0.0016 : 0.00025) * dropQtyMult * breachMult;
+  // Fixed low drop frequencies (do NOT scale with lootQuantity — only item/currency tier scales with totalRarityBonus!)
+  const modCount = Array.isArray(enemy.mods) ? enemy.mods.length : 0;
+  const gearChance = (enemy.rarity === 'rare'
+    ? Math.min(0.45, 0.12 + modCount * 0.05)
+    : enemy.rarity === 'magic'
+      ? 0.022
+      : 0.0035) * breachMult;
 
-  if (gearChance > 0 && Math.random() < gearChance) {
+  const currencyChance = (enemy.rarity === 'rare'
+    ? (0.18 + modCount * 0.05)
+    : enemy.rarity === 'magic'
+      ? 0.035
+      : 0.008) * breachMult;
+
+  if (Math.random() < gearChance) {
     const dropIlvl = baseIlvl + (enemy.rarity === 'rare' ? 1 : 0);
     spawnGroundDrop(room, enemy.x, enemy.y, 'gear', null, dropIlvl, totalRarityBonus);
-  } else if (Math.random() < currencyChance) {
-    spawnGroundDrop(room, enemy.x, enemy.y, 'currency', null, 1, totalRarityBonus);
+  }
+  if (Math.random() < currencyChance) {
+    spawnCurrencyDrop(room, enemy.x + randInt(-14, 14), enemy.y + randInt(-14, 14), null, totalRarityBonus);
   }
 }
 

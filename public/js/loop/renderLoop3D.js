@@ -52,6 +52,15 @@
       while (diff < -Math.PI) diff += Math.PI * 2;
       ent.group.rotation.y += diff * 0.22;
 
+      if (ent.bossAttachments && !worldState.paused) {
+        if (ent.bossAttachments.userData && ent.bossAttachments.userData.spinGroup) {
+          ent.bossAttachments.userData.spinGroup.rotation.y += dt * 1.8;
+        }
+        for (const r of ((ent.bossAttachments.userData && ent.bossAttachments.userData.rings) || [])) {
+          r.rotation.z += dt * 1.4;
+          r.rotation.y += dt * 0.7;
+        }
+      }
       if (ent.mixer && !worldState.paused && ((eIdx++ % 3) === renderLoop._frameMod3)) {
         ent.mixer.update(dt * 3);
       }

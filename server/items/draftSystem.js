@@ -197,7 +197,7 @@ function generateGemDraftOptions(player) {
           title: `${act.name} (Lv. ${info.level + 1})`,
           subtitle: `${colorLabel(act.color)} ACTIVE SKILL UPGRADE`,
           desc: `Levels up ${act.name} to Lv. ${info.level + 1}: +14% MORE Damage, +3% Area & +3% Speed.`,
-          weight: 3.4
+          weight: 2.8
         });
       }
     } else if (hasOpenActiveSlot) {
@@ -210,12 +210,12 @@ function generateGemDraftOptions(player) {
         title: `New Skill: ${act.name}`,
         subtitle: `NEW ${colorLabel(act.color)} ACTIVE SKILL GEM`,
         desc: act.description,
-        weight: 4.2
+        weight: 2.8
       });
     }
   }
 
-  // Add Link Expansion option for ALL active slots that have < 5 support sockets (6-Link max) with high weight!
+  // Add Link Expansion option for ALL active slots that have < 5 support sockets (6-Link max)
   for (const s of player.gemLinks) {
     if (s && s.activeGem && s.maxSupports < 5) {
       const actDef = GameData.SKILL_GEMS[s.activeGem.id];
@@ -229,50 +229,47 @@ function generateGemDraftOptions(player) {
         title: `Orb of Fusing: ${actDef.name} (${s.maxSupports + 2}-Link)`,
         subtitle: 'SOCKET LINK EXPANSION',
         desc: `Adds +1 Linked Support Socket to ${actDef.name} (up to ${s.maxSupports + 2}-Link).`,
-        weight: 6.5
+        weight: 2.8
       });
     }
   }
 
-  // 2. Compatible Support Gem Pool (ONLY Support Gems that work with your currently equipped Active Skills!)
+  // 2. Compatible Support Gem Pool (ONLY offered if at least 1 equipped Active Skill has an open support socket that fits!)
   const supportPool = [];
-  for (const sup of supportDefs) {
-    const compatibleSkillNames = [];
-    let isUpgradeable = false;
-    let canSocketInEquipped = false;
-
-    for (const { actDef, slot } of equippedActiveDefs) {
-      if (!canSupportLinkToActive(actDef, sup)) continue;
-      const existingSup = slot.supports.find(s => s && s.id === sup.id);
-      if (existingSup) {
-        if ((existingSup.level || 1) < 5) {
-          isUpgradeable = true;
-          compatibleSkillNames.push(`${actDef.name} (Lv.${(existingSup.level || 1) + 1})`);
+  const anyOpenSupportSocket = equippedActiveDefs.some(({ slot }) => (slot.supports || []).length < (slot.maxSupports || 2));
+  if (anyOpenSupportSocket) {
+    for (const sup of supportDefs) {
+      const compatibleSkillNames = [];
+      for (const { actDef, slot } of equippedActiveDefs) {
+        if ((slot.supports || []).length < (slot.maxSupports || 2) && canSupportLinkToActive(actDef, sup) && !slot.supports.some(s => s && s.id === sup.id)) {
+          compatibleSkillNames.push(actDef.name);
         }
-      } else if (slot.supports.length < slot.maxSupports) {
-        canSocketInEquipped = true;
-        compatibleSkillNames.push(actDef.name);
       }
+      if (compatibleSkillNames.length === 0) continue;
+
+      supportPool.push({
+        optionId: `sup_${sup.id}`,
+        optionType: 'support_gem',
+        kind: 'support_gem',
+        gemId: sup.id,
+        color: sup.color,
+        title: `${sup.name} (${sup.short})`,
+        subtitle: `SUPPORTS: ${compatibleSkillNames.join(', ').toUpperCase()}`,
+        desc: sup.description,
+        weight: 2.6
+      });
     }
-
-    if (!isUpgradeable && !canSocketInEquipped) continue;
-
-    supportPool.push({
-      optionId: `sup_${sup.id}`,
-      optionType: 'support_gem',
-      kind: 'support_gem',
-      gemId: sup.id,
-      color: sup.color,
-      title: `${sup.name} (${sup.short})`,
-      subtitle: `SUPPORTS: ${compatibleSkillNames.join(', ').toUpperCase()}`,
-      desc: sup.description,
-      weight: isUpgradeable ? 3.2 : 3.0
-    });
   }
 
-  // 3. Context-Aware, Varied Rogue-lite Boon Pool (24 balanced boons filtered by your active skill tags!)
+  // 3. Context-Aware, Varied Rogue-lite Boon & Ascendancy Pool
   const runPool = [];
-  const runCatalog = getRunUpgradesCatalog();
+  const runCatalog = Object.assign({}, getRunUpgradesCatalog());
+  if (GameData.ASCENDANCY_BOONS) {
+    const ascList = Array.isArray(GameData.ASCENDANCY_BOONS) ? GameData.ASCENDANCY_BOONS : Object.values(GameData.ASCENDANCY_BOONS);
+    for (const ab of ascList) {
+      if (ab && ab.id && !runCatalog[ab.id]) runCatalog[ab.id] = ab;
+    }
+  }
   const currentRunUpgrades = player.runUpgrades || {};
   for (const up of Object.values(runCatalog)) {
     const stacks = currentRunUpgrades[up.id] || 0;
@@ -291,7 +288,7 @@ function generateGemDraftOptions(player) {
       title: maxRanks > 1 ? `${up.name} (Rank ${stacks + 1}/${maxRanks})` : up.name,
       subtitle: up.subtitle || 'ROGUE-LITE RUN BOON',
       desc: up.desc || up.description || 'Increases character power for the current Map Run.',
-      weight: 2.5
+      weight: 3.2
     });
   }
 
@@ -309,29 +306,7 @@ function generateGemDraftOptions(player) {
     return arr.splice(chosenIdx, 1)[0];
   };
 
-  // Guarantee a balanced 3-choice spread: 1 Active Skill/Link, 1 Compatible Support Gem, 1 Compatible Rogue-lite Boon
-  if (activePool.length > 0) {
-    const chosen = pickWeighted(activePool);
-    if (chosen && !usedIds.has(chosen.optionId)) {
-      usedIds.add(chosen.optionId);
-      options.push(chosen);
-    }
-  }
-  if (supportPool.length > 0) {
-    const chosen = pickWeighted(supportPool);
-    if (chosen && !usedIds.has(chosen.optionId)) {
-      usedIds.add(chosen.optionId);
-      options.push(chosen);
-    }
-  }
-  if (runPool.length > 0 && options.length < 3) {
-    const chosen = pickWeighted(runPool);
-    if (chosen && !usedIds.has(chosen.optionId)) {
-      usedIds.add(chosen.optionId);
-      options.push(chosen);
-    }
-  }
-
+  // Pick all 3 choices randomly from combined pool (weighted 3.2 runPool, 2.8 activePool, 2.6 supportPool)
   const combined = [...activePool, ...supportPool, ...runPool];
   while (options.length < 3 && combined.length > 0) {
     const chosen = pickWeighted(combined);

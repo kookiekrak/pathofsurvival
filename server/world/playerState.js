@@ -44,15 +44,15 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
 
   const flaskCharges = {
     life: 15,
-    quicksilver: 0,
+    quicksilver: 20,
     granite: 0,
     diamond: 0,
     quartz: 0,
     silver: 0,
     amethyst: 0
   };
-  let unlockedFlasks = ['life'];
-  let flaskBelt = ['life', null, null, null, null];
+  let unlockedFlasks = ['life', 'quicksilver'];
+  let flaskBelt = ['life', 'quicksilver', null, null, null];
 
   let passives = [cls.startNode];
   let equipment = starter.equipment;
@@ -117,6 +117,10 @@ function createPlayer(ws, name, classId, accountId = 'global', characterId = nul
           flaskBelt = parsedCur._flaskBelt.map(fId => (fId && GameData.FLASKS.some(f => f.id === fId) ? fId : null));
         } else if (unlockedFlasks.length > 1) {
           flaskBelt = [0, 1, 2, 3, 4].map(idx => unlockedFlasks[idx] || null);
+        }
+        if (flaskBelt[0] === 'life' && flaskBelt.slice(1).every(s => !s) && !inventory.some(i => i && i.slot === 'flask')) {
+          flaskBelt[1] = 'quicksilver';
+          unlockedFlasks = Array.from(new Set([...unlockedFlasks, 'quicksilver']));
         }
         currencies = { ...starter.currencies, ...parsedCur };
         league = parsedCur._league === 'Hardcore' ? 'Hardcore' : 'Standard';
@@ -215,7 +219,7 @@ function recalcPlayer(player, healFull = false) {
 
 function sendPrivateProfile(player) {
   if (!Array.isArray(player.flaskBelt) || player.flaskBelt.length !== 5) {
-    player.flaskBelt = ['life', null, null, null, null];
+    player.flaskBelt = ['life', 'quicksilver', null, null, null];
   }
   if (!Array.isArray(player.flaskSlotCharges) || player.flaskSlotCharges.length !== 5) {
     player.flaskSlotCharges = player.flaskBelt.map(fId => {

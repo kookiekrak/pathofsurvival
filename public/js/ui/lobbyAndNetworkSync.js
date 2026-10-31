@@ -2,6 +2,9 @@
 (function () {
   with (window.__POS_CTX__) {
   window.__POS_CTX__.roomPrivacyPrivate = false;
+  window.__POS_CTX__.sanctuaryMesh3D = null;
+  window.__POS_CTX__.mavenFlashMesh3D = null;
+  window.__POS_CTX__.ritualRingMesh3D = null;
 
   function syncPrivacyBtnUI() {
     const btn = document.getElementById('roomPrivacyToggleBtn');
@@ -29,9 +32,7 @@
   function closeLobbyModal() {
     document.getElementById('lobbyModal')?.classList.add('hidden');
     renderSelectedClassSummary();
-    if (!myPlayerId) {
-      document.getElementById('loginModal')?.classList.remove('hidden');
-    }
+    if (!myPlayerId) document.getElementById('loginModal')?.classList.remove('hidden');
   }
 
   async function fetchActiveRooms() {
@@ -47,22 +48,13 @@
         const isTown = r.code === 'ORIATH' || r.isTown;
         const stateText = isTown ? 'Public Town Hub (No Map Runs)' : (r.state === 'HIDEOUT' ? 'Sanctuary Hideout' : `Map Wave ${r.wave}`);
         const countText = isTown ? `${r.playerCount} Online (∞)` : `${r.playerCount} / ${r.maxPlayers || 6}`;
-        tr.innerHTML = `
-          <td><strong style="color:var(--poe-gold)">${r.code}</strong></td>
-          <td>${r.roomName || r.code}</td>
-          <td>${countText}</td>
-          <td>${stateText}</td>
-          <td><button class="poe-chisel-btn" type="button">JOIN</button></td>
-        `;
+        tr.innerHTML = `<td><strong style="color:var(--poe-gold)">${r.code}</strong></td><td>${r.roomName || r.code}</td><td>${countText}</td><td>${stateText}</td><td><button class="poe-chisel-btn" type="button">JOIN</button></td>`;
         tr.querySelector('button').addEventListener('click', () => {
           document.getElementById('roomCodeInput').value = r.code;
           document.getElementById('roomNameInput').value = r.roomName || r.code;
           renderSelectedClassSummary();
-          if (myPlayerId && myProfile) {
-            connectAndJoin(myProfile.name, r.code, r.roomName, myProfile.classId, myProfile.characterId);
-          } else {
-            closeLobbyModal();
-          }
+          if (myPlayerId && myProfile) connectAndJoin(myProfile.name, r.code, r.roomName, myProfile.classId, myProfile.characterId);
+          else closeLobbyModal();
         });
         tbody.appendChild(tr);
       }
@@ -70,12 +62,10 @@
   }
 
   document.getElementById('refreshRoomsBtn')?.addEventListener('click', fetchActiveRooms);
-
   document.getElementById('openLobbyFromCreateBtn')?.addEventListener('click', () => {
     document.getElementById('loginModal')?.classList.add('hidden');
     openLobbyModal();
   });
-
   document.getElementById('backToCharCreateBtn')?.addEventListener('click', closeLobbyModal);
   document.getElementById('closeLobbyModalBtn')?.addEventListener('click', closeLobbyModal);
 
@@ -83,21 +73,14 @@
     const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase() || 'ORIATH';
     const roomName = document.getElementById('roomNameInput').value.trim() || `${roomCode} Instance`;
     renderSelectedClassSummary();
-    if (myPlayerId && myProfile) {
-      connectAndJoin(myProfile.name, roomCode, roomName, myProfile.classId, myProfile.characterId);
-    } else {
-      closeLobbyModal();
-    }
+    if (myPlayerId && myProfile) connectAndJoin(myProfile.name, roomCode, roomName, myProfile.classId, myProfile.characterId);
+    else closeLobbyModal();
   });
 
   document.getElementById('enterWraeclastBtn')?.addEventListener('click', submitCreateCharacter);
 
   function connectAndJoin(name, roomCode, roomName, classId, characterId = null) {
-    if (ws) {
-      ws._manualClose = true;
-      try { ws.close(); } catch {}
-      ws = null;
-    }
+    if (ws) { ws._manualClose = true; try { ws.close(); } catch {} ws = null; }
     clearTimeout(connectAndJoin._reconnTimer);
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(`${proto}//${location.host}`);
@@ -117,9 +100,7 @@
 
     socket.addEventListener('close', () => {
       if (socket._manualClose) return;
-      connectAndJoin._reconnTimer = setTimeout(() => {
-        connectAndJoin(name, roomCode, roomName, classId, characterId);
-      }, 1500);
+      connectAndJoin._reconnTimer = setTimeout(() => connectAndJoin(name, roomCode, roomName, classId, characterId), 1500);
     });
 
     ws.addEventListener('message', (ev) => {
@@ -134,20 +115,30 @@
           window.__POS_CTX__.roomPrivacyPrivate = msg.isPrivate;
           syncPrivacyBtnUI();
         }
+        worldState.raidId = msg.raidId || null;
         worldState.raidBeams = msg.raidBeams || [];
         worldState.raidSanctuary = msg.raidSanctuary || null;
+        worldState.mavenMemory = msg.mavenMemory || null;
         worldState.deliriumRem = msg.deliriumRem || 0;
         worldState.deliriumKills = msg.deliriumKills || 0;
+        worldState.deliriumTier = msg.deliriumTier || 0;
+        worldState.activeRitual = msg.activeRitual || null;
+
+        const me = (msg.players || []).find(p => p.id === myPlayerId);
+        if (me && myProfile && Array.isArray(me.fc)) {
+          myProfile.flaskSlotCharges = me.fc;
+          if (Array.isArray(me.ft)) myProfile.flaskSlotTimers = me.ft;
+          const fSig = me.fc.join(',') + '|' + (me.ft || []).map(t => t > 0 ? 1 : 0).join(',');
+          if (myProfile._fSig !== fSig) { myProfile._fSig = fSig; renderFlaskBelt(); }
+        }
+
         rebuildBiomeEnvironment(worldState.mode, worldState.mapId, msg.mapSeed || 1);
         if (msg.fx && msg.fx.length > 0) {
           for (const f of msg.fx) {
             if (f.kind === 'dmg_num') {
               if (worldState.mode === 'HIDEOUT') {
                 if (floatingTexts.length >= 32) floatingTexts.shift();
-                floatingTexts.push({
-                  x: f.x, z: f.y, yOffset: 34, text: f.val,
-                  crit: f.crit, dtype: f.dtype, life: 0.72, maxLife: 0.72
-                });
+                floatingTexts.push({ x: f.x, z: f.y, yOffset: 34, text: f.val, crit: f.crit, dtype: f.dtype, life: 0.72, maxLife: 0.72 });
               }
             } else {
               spawn3DFxEvent(f);
@@ -188,29 +179,20 @@
   chatInput.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter') {
       const txt = chatInput.value.trim();
-      if (txt && ws) {
-        ws.send(JSON.stringify({ type: 'chat', text: txt }));
-        chatInput.value = '';
-      }
+      if (txt && ws) { ws.send(JSON.stringify({ type: 'chat', text: txt })); chatInput.value = ''; }
       chatInput.blur();
     }
   });
 
   function showBanner(title, sub, color = '#f2c76e') {
     const el = document.getElementById('bannerAnnouncement');
-    const tEl = document.getElementById('bannerTitle');
-    const sEl = document.getElementById('bannerSub');
-    tEl.textContent = title;
-    tEl.style.color = color;
-    sEl.textContent = sub || '';
+    const tEl = document.getElementById('bannerTitle'), sEl = document.getElementById('bannerSub');
+    tEl.textContent = title; tEl.style.color = color; sEl.textContent = sub || '';
     el.classList.remove('hidden');
     clearTimeout(showBanner._timer);
     showBanner._timer = setTimeout(() => el.classList.add('hidden'), 4000);
   }
 
-  // =========================================================================
-  // SYNC 3D ENTITIES WITH AUTHORITATIVE SERVER STATE
-  // =========================================================================
   function syncWorldEntities() {
     if (!ASSETS.ready) return;
 
@@ -219,10 +201,7 @@
     for (const p of worldState.players) {
       seenPlayers.add(p.id);
       const ent = getOrCreatePlayer3D(p);
-      ent.targetX = p.x;
-      ent.targetZ = p.y;
-      ent.data = p;
-
+      ent.targetX = p.x; ent.targetZ = p.y; ent.data = p;
       if (p.rfRadius > 0 && !p.dead) {
         ent.rfGroup.visible = true;
         ent.rfDisc.scale.setScalar(p.rfRadius);
@@ -230,17 +209,12 @@
       } else {
         ent.rfGroup.visible = false;
       }
-
       ent.esMesh.visible = p.es > 0 && !p.dead;
-
       if (p.atkSeq !== ent.lastAtkSeq) {
         ent.lastAtkSeq = p.atkSeq;
         if (ent.actions.atk && !p.dead) ent.actions.atk.reset().play();
-        if (typeof p.atkAng === 'number') {
-          ent.yaw = Math.atan2(Math.cos(p.atkAng), Math.sin(p.atkAng));
-        }
+        if (typeof p.atkAng === 'number') ent.yaw = Math.atan2(Math.cos(p.atkAng), Math.sin(p.atkAng));
       }
-
       const isMoving = Math.hypot(p.vx || 0, p.vy || 0) > 10;
       if (p.dead) switchBaseAction(ent, ent.actions.death);
       else if (p.dashing && ent.actions.dash) switchBaseAction(ent, ent.actions.dash);
@@ -256,13 +230,9 @@
     for (const m of worldState.enemies) {
       seenEnemies.add(m.id);
       const ent = getOrCreateEnemy3D(m);
-      const dx = m.x - ent.targetX;
-      const dz = m.y - ent.targetZ;
+      const dx = m.x - ent.targetX, dz = m.y - ent.targetZ;
       if (Math.hypot(dx, dz) > 1.5) ent.yaw = Math.atan2(dx, dz);
-      ent.targetX = m.x;
-      ent.targetZ = m.y;
-      ent.data = m;
-
+      ent.targetX = m.x; ent.targetZ = m.y; ent.data = m;
       const isChilled = Boolean(m.chilled);
       if (ent.lastChilled !== isChilled) {
         ent.lastChilled = isChilled;
@@ -272,16 +242,13 @@
     let deathBursts = 0;
     for (const [id, ent] of enemyEntities.entries()) {
       if (!seenEnemies.has(id)) {
-        if (deathBursts < 2) {
-          deathBursts++;
-          spawnDeathBurst3D(ent.group.position.x, ent.group.position.z, ent.rarity === 'rare' ? 0xffd43b : 0xd93829);
-        }
+        if (deathBursts < 2) { deathBursts++; spawnDeathBurst3D(ent.group.position.x, ent.group.position.z, ent.rarity === 'rare' ? 0xffd43b : 0xd93829); }
         releaseEnemy3D(ent);
         enemyEntities.delete(id);
       }
     }
 
-    // 3. Sync Projectiles
+    // 3. Sync Projectiles & Ground Hazards
     const seenProjs = new Set();
     for (const prj of worldState.projectiles) {
       seenProjs.add(prj.id);
@@ -293,7 +260,6 @@
       if (!seenProjs.has(id)) { projectilesGroup.remove(ent.group); cleanupEntity3D(ent); projEntities.delete(id); }
     }
 
-    // 4. Sync Telegraphed Ground Hazards
     const seenHaz = new Set();
     for (const h of (worldState.hazards || [])) {
       seenHaz.add(h.id);
@@ -304,52 +270,105 @@
       if (!seenHaz.has(id)) { hazardsGroup.remove(ent.group); cleanupEntity3D(ent); hazardEntities.delete(id); }
     }
 
-    // 5. Sync Map Interactables, Upgrade Chests, Breaches & Ground Drops
+    // 4. 3D Raid Sanctuary Safe Dome (Sirus Meteor Maze / Eater Doom / Maven Memory Steps 1->2->3)
+    if (!window.__POS_CTX__.sanctuaryMesh3D) {
+      const sGroup = new THREE.Group();
+      const sRing = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.0, 48), new THREE.MeshBasicMaterial({ color: 0x69db7c, side: THREE.DoubleSide, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending, depthWrite: false }));
+      sRing.rotation.x = -Math.PI / 2;
+      const sDome = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.5), new THREE.MeshBasicMaterial({ color: 0xffd43b, side: THREE.DoubleSide, transparent: true, opacity: 0.24, blending: THREE.AdditiveBlending, depthWrite: false }));
+      const sBeacon = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.45, 36, 1, true), new THREE.MeshBasicMaterial({ color: 0x69db7c, side: THREE.DoubleSide, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
+      sBeacon.position.y = 0.22;
+      sGroup.add(sRing, sDome, sBeacon); sGroup.visible = false;
+      hazardsGroup.add(sGroup);
+      window.__POS_CTX__.sanctuaryMesh3D = sGroup;
+    }
+    if (worldState.raidSanctuary) {
+      const s = worldState.raidSanctuary, sr = Math.max(40, s.r || 110);
+      window.__POS_CTX__.sanctuaryMesh3D.position.set(s.x, 0.5, s.y);
+      window.__POS_CTX__.sanctuaryMesh3D.scale.set(sr, sr * 0.55, sr);
+      window.__POS_CTX__.sanctuaryMesh3D.visible = true;
+    } else {
+      window.__POS_CTX__.sanctuaryMesh3D.visible = false;
+    }
+
+    // 5. 3D Maven Memory Quadrant Flash (NORTH/EAST/SOUTH/WEST preview pillar)
+    if (!window.__POS_CTX__.mavenFlashMesh3D) {
+      const mGroup = new THREE.Group();
+      const mCyl = new THREE.Mesh(new THREE.CylinderGeometry(120, 120, 90, 36, 1, true), new THREE.MeshBasicMaterial({ color: 0x69db7c, side: THREE.DoubleSide, transparent: true, opacity: 0.48, blending: THREE.AdditiveBlending, depthWrite: false }));
+      mCyl.position.y = 45;
+      const mDisc = new THREE.Mesh(new THREE.CircleGeometry(125, 36), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.62, blending: THREE.AdditiveBlending, depthWrite: false }));
+      mDisc.rotation.x = -Math.PI / 2; mDisc.position.y = 1.8;
+      mGroup.add(mCyl, mDisc); mGroup.visible = false;
+      hazardsGroup.add(mGroup);
+      window.__POS_CTX__.mavenFlashMesh3D = mGroup;
+    }
+    const mm = worldState.mavenMemory;
+    if (mm && mm.phase === 'preview' && (mm.flashIdx >= 0 || mm.flashLabel)) {
+      const pads = [
+        { label: 'NORTH', x: 0, z: -220, hex: 0x74c0fc },
+        { label: 'EAST',  x: 220, z: 0,  hex: 0xffd43b },
+        { label: 'SOUTH', x: 0, z: 220,  hex: 0x69db7c },
+        { label: 'WEST',  x: -220, z: 0, hex: 0xda77f2 }
+      ];
+      const pad = pads.find(q => q.label === mm.flashLabel) || pads[mm.flashIdx] || pads[0];
+      window.__POS_CTX__.mavenFlashMesh3D.position.set(pad.x, 0.5, pad.z);
+      window.__POS_CTX__.mavenFlashMesh3D.children[0].material.color.setHex(pad.hex);
+      window.__POS_CTX__.mavenFlashMesh3D.visible = true;
+    } else {
+      window.__POS_CTX__.mavenFlashMesh3D.visible = false;
+    }
+
+    // 6. 3D Active Blood Ritual Ring (worldState.activeRitual)
+    if (!window.__POS_CTX__.ritualRingMesh3D) {
+      const rGroup = new THREE.Group();
+      const rBand = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.0, 48), new THREE.MeshBasicMaterial({ color: 0xe03131, side: THREE.DoubleSide, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending, depthWrite: false }));
+      rBand.rotation.x = -Math.PI / 2;
+      const rFill = new THREE.Mesh(new THREE.CircleGeometry(0.96, 48), new THREE.MeshBasicMaterial({ color: 0x660708, side: THREE.DoubleSide, transparent: true, opacity: 0.22, depthWrite: false }));
+      rFill.rotation.x = -Math.PI / 2;
+      rGroup.add(rBand, rFill); rGroup.visible = false;
+      hazardsGroup.add(rGroup);
+      window.__POS_CTX__.ritualRingMesh3D = rGroup;
+    }
+    if (worldState.activeRitual) {
+      const rit = worldState.activeRitual, rr = Math.max(80, rit.r || 230);
+      window.__POS_CTX__.ritualRingMesh3D.position.set(rit.x, 0.4, rit.y);
+      window.__POS_CTX__.ritualRingMesh3D.scale.set(rr, 1, rr);
+      window.__POS_CTX__.ritualRingMesh3D.visible = true;
+    } else {
+      window.__POS_CTX__.ritualRingMesh3D.visible = false;
+    }
+
+    // 7. Sync Map Interactables, Upgrade Chests, Breaches, Ground Drops & Extraction Portal
     const seenInt = new Set();
     for (const it of (worldState.interactables || [])) { seenInt.add(it.id); getOrCreateInteractable3D(it); }
     for (const [id, ent] of interactableEntities.entries()) {
       if (!seenInt.has(id)) { interactablesGroup.remove(ent.group); cleanupEntity3D(ent); interactableEntities.delete(id); }
     }
-
     const seenChests = new Set();
     for (const ch of (worldState.upgradeChests || [])) {
       if (ch.opened) continue;
-      seenChests.add(ch.id);
-      getOrCreateUpgradeChest3D(ch);
+      seenChests.add(ch.id); getOrCreateUpgradeChest3D(ch);
     }
     for (const [id, ent] of upgradeChestEntities.entries()) {
       if (!seenChests.has(id)) { interactablesGroup.remove(ent.group); cleanupEntity3D(ent); upgradeChestEntities.delete(id); }
     }
-
     const seenBreaches = new Set();
     for (const b of (worldState.breaches || [])) { seenBreaches.add(b.id); getOrCreateBreachRing3D(b); }
     for (const [id, ent] of breachRingEntities.entries()) {
       if (!seenBreaches.has(id)) { interactablesGroup.remove(ent.group); cleanupEntity3D(ent); breachRingEntities.delete(id); }
     }
-
     const seenDrops = new Set();
     for (const d of worldState.drops) { seenDrops.add(d.id); getOrCreateDrop3D(d); }
     for (const [id, ent] of dropEntities.entries()) {
       if (!seenDrops.has(id)) { dropsGroup.remove(ent.group); cleanupEntity3D(ent); dropEntities.delete(id); }
     }
-
-    // 7. Extraction Portal
     if (worldState.mode === 'RUN' && worldState.portalsOpen && !extractionPortalMesh) {
-      const pGroup = new THREE.Group();
-      pGroup.position.set(0, 26, 0);
-      const arch = new THREE.Mesh(
-        new THREE.TorusGeometry(24, 3.0, 16, 36),
-        new THREE.MeshStandardMaterial({ color: 0x74c0fc, emissive: 0x1c7ed6, emissiveIntensity: 0.9 })
-      );
+      const pGroup = new THREE.Group(); pGroup.position.set(0, 26, 0);
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(24, 3.0, 16, 36), new THREE.MeshStandardMaterial({ color: 0x74c0fc, emissive: 0x1c7ed6, emissiveIntensity: 0.9 }));
       arch.scale.set(0.75, 1.35, 1);
-      const vortex = new THREE.Mesh(
-        new THREE.CircleGeometry(22, 32),
-        new THREE.MeshBasicMaterial({ color: 0x4dabf7, transparent: true, opacity: 0.78, side: THREE.DoubleSide })
-      );
+      const vortex = new THREE.Mesh(new THREE.CircleGeometry(22, 32), new THREE.MeshBasicMaterial({ color: 0x4dabf7, transparent: true, opacity: 0.78, side: THREE.DoubleSide }));
       vortex.scale.set(0.75, 1.35, 1);
-      pGroup.add(arch, vortex);
-      envGroup.add(pGroup);
-      extractionPortalMesh = pGroup;
+      pGroup.add(arch, vortex); envGroup.add(pGroup); extractionPortalMesh = pGroup;
     }
   }
 
