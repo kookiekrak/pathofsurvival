@@ -1,0 +1,351 @@
+.poe-xp-bar-ticks {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent calc(10% - 2px),
+    #1c150d calc(10% - 2px),
+    #000000 10%
+  );
+  pointer-events: none;
+}
+
+.poe-xp-bar-text {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 13px;
+  color: var(--poe-gold);
+  letter-spacing: 1.2px;
+  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
+}
+
+/* ========================================================================= */
+/* POE 1 DOCKED PANELS: RIGHT INVENTORY & PAPER-DOLL (I), LEFT GEMS (G)      */
+/* ========================================================================= */
+.poe-dock-panel {
+  position: fixed;
+  top: 40px;
+  bottom: 84px;
+  width: min(426px, 47vw);
+  background-color: #080705;
+  background-image:
+    linear-gradient(180deg, rgba(16, 13, 9, 0.96) 0%, rgba(6, 5, 4, 0.98) 100%),
+    url('/assets/textures/brick_roughness.jpg');
+  background-size: cover, 256px 256px;
+  background-blend-mode: normal, overlay;
+  border: 2px solid var(--poe-brass-mid);
+  outline: 2px solid #030202;
+  box-shadow: 0 18px 60px #000, inset 0 0 0 1px #241b12;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.right-dock-panel {
+  right: 8px;
+}
+
+.left-dock-panel {
+  left: 8px;
+}
+
+.poe-window {
+  position: fixed;
+  top: 42px;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(980px, 95vw);
+  background-color: #080705;
+  background-image:
+    linear-gradient(180deg, rgba(16, 13, 9, 0.96) 0%, rgba(6, 5, 4, 0.98) 100%),
+    url('/assets/textures/brick_roughness.jpg');
+  background-size: cover, 256px 256px;
+  background-blend-mode: normal, overlay;
+  border: 2px solid var(--poe-brass-mid);
+  outline: 2px solid #030202;
+  box-shadow: 0 24px 80px #000, inset 0 0 0 1px #241b12;
+  z-index: 75;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fullscreen-window {
+  top: 18px;
+  bottom: 18px;
+  width: 96vw;
+}
+
+.map-window {
+  top: 50%;
+  bottom: auto;
+  height: auto;
+  max-height: calc(100vh - 24px);
+  transform: translate(-50%, -50%);
+  max-width: 860px;
+  width: min(860px, 95vw);
+  padding-bottom: 12px;
+  overflow-y: auto;
+  z-index: 80;
+}
+
+.poe-window-header {
+  background: linear-gradient(90deg, #120e09 0%, #261d12 50%, #120e09 100%);
+  border-bottom: 2px solid var(--poe-brass-mid);
+  box-shadow: 0 2px 8px #000;
+  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-ornament {
+  color: var(--poe-brass-bright);
+  font-size: 0.7rem;
+}
+
+.poe-window-header h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--poe-gold);
+  letter-spacing: 2px;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.header-sub {
+  font-size: 0.86rem;
+  color: var(--poe-gold-muted);
+}
+
+.window-close {
+  background: #120d08;
+  border: 1px solid var(--poe-brass-mid);
+  color: var(--poe-gold);
+  width: 26px;
+  height: 26px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.window-close:hover {
+  border-color: var(--poe-gold-bright);
+  background: #291e12;
+}
+
+.poe-inventory-body, .poe-gems-body {
+  padding: 6px 9px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.poe-sub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-serif);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--poe-gold-muted);
+  letter-spacing: 0.8px;
+  border-bottom: 1px solid #292016;
+  padding-bottom: 2px;
+}
+
+.craft-hint-inline {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  color: #a3937c;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+/* ========================================================================= */
+/* AUTHENTIC POE 1 SPATIAL PAPER-DOLL LAYOUT (ULTRA-COMPACT 156PX STAGE)     */
+/* ========================================================================= */
+.poe-paperdoll-stage {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(36, 27, 17, 0.38) 0%, rgba(5, 4, 3, 0.95) 85%);
+  border: 1px solid #2e2418;
+  box-shadow: inset 0 0 24px #000;
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.poe-paperdoll-canvas {
+  position: relative;
+  width: 100%;
+  height: 156px;
+}
+
+.pd-slot {
+  position: absolute;
+  background: #050403;
+  border: 1px solid #382c1e;
+  box-shadow: inset 0 0 12px #000;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pd-slot:hover {
+  border-color: var(--poe-gold);
+}
+
+/* Exact PoE 1 Spatial Coordinates for the 8 Equipment Slots (156px Stage) */
+.pd-slot-weapon { left: 10px;  top: 6px;   width: 82px; height: 98px; }
+.pd-slot-helm   { left: 146px; top: 2px;   width: 78px; height: 46px; }
+.pd-slot-amulet { left: 236px; top: 8px;   width: 58px; height: 40px; }
+.pd-slot-body   { left: 144px; top: 51px;  width: 82px; height: 68px; }
+.pd-slot-gloves { left: 50px;  top: 108px; width: 74px; height: 45px; }
+.pd-slot-belt   { left: 144px; top: 122px; width: 82px; height: 31px; }
+.pd-slot-ring   { left: 236px; top: 76px;  width: 58px; height: 40px; }
+.pd-slot-boots  { left: 302px; top: 106px; width: 74px; height: 47px; }
+
+/* PoE Rarity Slot Backdrop Tints */
+.pd-slot.rarity-normal {
+  background: radial-gradient(circle, rgba(90, 90, 95, 0.16) 0%, #050403 90%);
+  border-color: #6b6b6b;
+}
+.pd-slot.rarity-magic {
+  background: radial-gradient(circle, rgba(50, 65, 165, 0.26) 0%, #05050a 90%);
+  border-color: #4c59b8;
+}
+.pd-slot.rarity-rare {
+  background: radial-gradient(circle, rgba(165, 140, 35, 0.26) 0%, #080703 90%);
+  border-color: #9e8b34;
+}
+.pd-slot.rarity-unique {
+  background: radial-gradient(circle, rgba(165, 75, 25, 0.3) 0%, #0a0503 90%);
+  border-color: #9e5220;
+}
+
+.pd-slot-watermark {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-family: var(--font-serif);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #70604c;
+  letter-spacing: 0.6px;
+  pointer-events: none;
+}
+
+.pd-item-art {
+  width: 78%;
+  height: 74%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pd-item-caption {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 1px 1px 0 #000, 0 0 3px #000;
+}
+
+.text-normal { color: var(--rarity-normal); }
+.text-magic { color: var(--rarity-magic); }
+.text-rare { color: var(--rarity-rare); }
+.text-unique { color: var(--rarity-unique); }
+.text-gem { color: var(--rarity-gem); }
+
+/* Compact Character Attribute & Stat Sheet (in Left Character Sheet Drawer) */
+.poe-stats-strip {
+  background: #050403;
+  border: 1px solid #292016;
+  padding: 5px 8px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px 10px;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.stat-pair {
+  display: flex;
+  justify-content: space-between;
+}
+.stat-pair span { color: #a3937c; font-family: var(--font-serif); font-size: 0.7rem; font-weight: 600; }
+.stat-pair strong { color: var(--poe-gold); font-family: var(--font-serif); font-size: 0.78rem; }
+
+/* PoE 1 Currency Stash Socket Row */
+.poe-currency-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.currency-btn {
+  height: 38px;
+  background: #050403;
+  border: 1px solid #382c1d;
+  box-shadow: inset 0 0 8px #000;
+  position: relative;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.currency-btn:hover {
+  border-color: var(--poe-gold);
+}
+
+.currency-btn.active-currency {
+  border: 1px solid var(--poe-gold-bright);
+  background: radial-gradient(circle, rgba(163, 130, 60, 0.35) 0%, #080604 100%);
+  box-shadow: 0 0 10px rgba(223, 207, 153, 0.4);
+}
+
+.orb-stack-num {
+  position: absolute;
+  top: 1px;
+  left: 3px;
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--poe-gold);
+  text-shadow: 1px 1px 0 #000;
+  z-index: 2;
+}
+
+.orb-svg-wrap {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

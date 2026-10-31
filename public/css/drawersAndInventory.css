@@ -1,0 +1,366 @@
+.poe-gold-btn {
+  background: linear-gradient(180deg, #42311b 0%, #1f160b 55%, #120c06 100%);
+  border: 1px solid var(--poe-brass-bright);
+  outline: 1px solid #050403;
+  color: var(--poe-gold-bright);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 10px 18px;
+  cursor: pointer;
+  text-shadow: 0 2px 4px #000;
+  box-shadow: 0 3px 10px #000, inset 0 1px 0 rgba(245, 226, 168, 0.22);
+}
+
+.poe-gold-btn:hover {
+  border-color: var(--poe-gold-bright);
+  color: #fff;
+  background: linear-gradient(180deg, #543e22 0%, #2b1e0f 55%, #171008 100%);
+}
+
+.large-btn {
+  width: 100%;
+  font-size: 1.0rem;
+}
+
+.danger-btn {
+  background: linear-gradient(180deg, #471612 0%, #210907 100%);
+  border-color: #8a352d;
+}
+
+/* ========================================================================= */
+/* TOP HUD: POE 1 PARTY PORTRAITS (LEFT), GEM ALTAR (CENTER), ZONE MAP (R)   */
+/* ========================================================================= */
+.top-hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.top-hud > * {
+  pointer-events: auto;
+}
+
+/* Top-Left Party Portraits */
+.hud-left-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.poe-party-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.poe-gold-chest-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.poe-gold-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(180deg, #1f1709 0%, #0d0904 100%);
+  border: 1px solid #8a6c32;
+  padding: 5px 10px;
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #ffe07d;
+  text-shadow: 0 2px 4px #000;
+  box-shadow: 0 3px 10px #000;
+}
+
+.gold-coin-icon {
+  font-size: 0.95rem;
+}
+
+.gold-val-num {
+  color: #fff2b8;
+  font-size: 0.96rem;
+}
+
+.gold-lbl {
+  color: #d6b05c;
+  font-size: 0.78rem;
+  letter-spacing: 0.8px;
+}
+
+.buy-chest-btn {
+  border-color: #8a6c32;
+  color: #f5d37a;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 5px 11px;
+  background: linear-gradient(180deg, #241a0b 0%, #100b05 100%);
+}
+
+.buy-chest-btn.can-afford {
+  border-color: #ffe07d;
+  color: #fff6cf;
+  background: linear-gradient(180deg, #4a3412 0%, #1f1507 100%);
+  box-shadow: 0 0 12px rgba(255, 224, 125, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.ready-chisel {
+  border-color: #6b5535;
+  color: var(--poe-gold);
+  font-weight: 700;
+  font-size: 0.84rem;
+  padding: 5px 12px;
+}
+
+.ready-chisel.is-ready {
+  background: linear-gradient(180deg, #3b2d16 0%, #1c1409 100%);
+  border-color: var(--poe-gold);
+  color: var(--poe-gold-bright);
+  box-shadow: 0 0 8px rgba(223, 207, 153, 0.25);
+}
+
+.switch-class-btn {
+  border-color: var(--poe-brass-mid);
+  color: #e6c88a;
+  font-weight: 700;
+  font-size: 0.84rem;
+  padding: 5px 11px;
+}
+
+.party-portraits-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.poe-party-portrait {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(90deg, rgba(10, 8, 6, 0.94) 0%, rgba(10, 8, 6, 0.55) 100%);
+  border: 1px solid #382c1e;
+  padding: 4px 10px 4px 5px;
+  min-width: 210px;
+}
+
+.portrait-medallion {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #1f1811 0%, #070504 100%);
+  border: 2px solid var(--poe-brass-mid);
+  box-shadow: 0 0 6px #000;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.portrait-lvl-pip {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  background: #090705;
+  border: 1px solid var(--poe-brass-mid);
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--poe-gold);
+  padding: 0 4px;
+  line-height: 14px;
+}
+
+.portrait-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.portrait-name-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-serif);
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--poe-gold);
+  text-shadow: 1px 1px 0 #000;
+}
+
+.portrait-status {
+  color: var(--poe-gold-muted);
+  font-size: 0.76rem;
+}
+
+.portrait-bars {
+  width: 100%;
+  height: 7px;
+  background: #040302;
+  border: 1px solid #2e2318;
+  position: relative;
+  overflow: hidden;
+}
+
+.portrait-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6e0d09, #b31912);
+}
+
+.portrait-es-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: #6bc2ff;
+}
+
+/* Top-Center Divine Gem Draft Altar */
+.hud-center-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 46px; /* Leaves room at top-center for PoE Monster Health Plaque! */
+  pointer-events: none;
+}
+
+.gem-draft-banner {
+  position: relative;
+  z-index: 45;
+  pointer-events: auto;
+  background-color: rgba(9, 7, 5, 0.88);
+  background-image:
+    linear-gradient(180deg, rgba(22, 16, 10, 0.92) 0%, rgba(7, 6, 4, 0.94) 100%),
+    url('/assets/textures/brick_roughness.jpg');
+  background-size: cover, 200px 200px;
+  background-blend-mode: normal, overlay;
+  border: 2px solid var(--poe-brass-bright);
+  outline: 1px solid #000;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.85), inset 0 0 0 1px #291f14;
+  padding: 8px 12px 10px;
+  width: 690px;
+  max-width: 90vw;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.draft-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--poe-gold);
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--poe-brass-dark);
+  padding-bottom: 6px;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.draft-queue-pill {
+  background: #1c150c;
+  border: 1px solid var(--poe-brass-mid);
+  padding: 1px 7px;
+  font-size: 0.78rem;
+  color: var(--poe-gold);
+}
+
+.gem-draft-choices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.draft-card {
+  background: linear-gradient(180deg, #13100c 0%, #080605 100%);
+  border: 1px solid var(--poe-brass-dark);
+  box-shadow: inset 0 0 0 1px #040302;
+  padding: 9px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.draft-card:hover {
+  border-color: var(--poe-gold);
+  background: linear-gradient(180deg, #1f1911 0%, #0d0a07 100%);
+}
+
+.draft-card.draft-boon {
+  border-color: #9e7832;
+  background: linear-gradient(180deg, #21180b 0%, #0a0704 100%);
+  box-shadow: inset 0 0 12px rgba(214, 176, 92, 0.18);
+}
+
+.draft-card.draft-boon:hover {
+  border-color: #ffe07d;
+}
+
+.draft-card.draft-boon .draft-card-title {
+  color: #f5d37a;
+}
+
+.draft-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.draft-gem-svg-wrap {
+  width: 28px;
+  height: 28px;
+  background: #050403;
+  border: 1px solid var(--poe-brass-mid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.draft-card-title {
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--rarity-gem);
+  text-shadow: 1px 1px 0 #000;
+}
+
+.draft-card-sub {
+  font-family: var(--font-serif);
+  font-size: 0.74rem;
+  color: var(--poe-gold-muted);
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+
+.draft-card-desc {
+  font-size: 0.88rem;
+  color: var(--poe-mod-blue);
+  line-height: 1.24;
+}
+
+.draft-hotkey {
+  margin-top: 6px;
+  text-align: right;
+  font-family: var(--font-serif);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #9e8d73;
+}

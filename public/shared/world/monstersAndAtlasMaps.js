@@ -1,0 +1,240 @@
+// Shared GameData Module: Monsters, Rare Modifiers & Atlas Maps
+(function (exports) {
+  // ============================================================================
+  // 6. BALANCED MONSTER ARCHETYPES, RARE MODS & 6 ATLAS MAPS (TIERS 1-6)
+  // ============================================================================
+  const MONSTER_TYPES = [
+    {
+      id: 'skeleton',
+      name: 'Brittle Emperor Guard',
+      role: 'swarmer',
+      minWave: 1,
+      hp: 46,
+      speed: 138,
+      radius: 14,
+      damage: 18,
+      xp: 18,
+      color: '#d9d2c5',
+      behavior: 'melee'
+    },
+    {
+      id: 'scarab',
+      name: 'Vaal Blood Swarmer',
+      role: 'swarmer',
+      minWave: 1,
+      hp: 36,
+      speed: 154,
+      radius: 13,
+      damage: 16,
+      xp: 16,
+      color: '#e03131',
+      behavior: 'melee'
+    },
+    {
+      id: 'archer',
+      name: 'Undying Vaal Archer',
+      role: 'ranged',
+      minWave: 1,
+      hp: 54,
+      speed: 128,
+      radius: 15,
+      damage: 20,
+      xp: 20,
+      color: '#74c0fc',
+      behavior: 'ranged_kite'
+    },
+    {
+      id: 'rhoa',
+      name: 'Albino Bone Rhoa',
+      role: 'charger',
+      minWave: 3,
+      hp: 98,
+      speed: 162,
+      radius: 16,
+      damage: 28,
+      xp: 26,
+      color: '#a89f91',
+      behavior: 'charge'
+    },
+    {
+      id: 'goatman',
+      name: 'Molten Goatman Shaman',
+      role: 'caster',
+      minWave: 3,
+      hp: 110,
+      speed: 134,
+      radius: 17,
+      damage: 26,
+      xp: 28,
+      color: '#a65332',
+      behavior: 'mortar_leap'
+    },
+    {
+      id: 'cultist',
+      name: 'Atziri Blood Cultist',
+      role: 'caster',
+      minWave: 5,
+      hp: 120,
+      speed: 132,
+      radius: 16,
+      damage: 30,
+      xp: 30,
+      color: '#c92a2a',
+      behavior: 'flameblast_caster'
+    },
+    {
+      id: 'devourer',
+      name: 'Abyssal Executioner',
+      role: 'tank',
+      minWave: 5,
+      hp: 195,
+      speed: 136,
+      radius: 20,
+      damage: 38,
+      xp: 36,
+      color: '#5c940d',
+      behavior: 'melee'
+    },
+    {
+      id: 'kitava_herald',
+      name: 'Herald of Kitava',
+      role: 'tank',
+      minWave: 7,
+      hp: 280,
+      speed: 142,
+      radius: 23,
+      damage: 46,
+      xp: 48,
+      color: '#f03e3e',
+      behavior: 'mortar_leap'
+    }
+  ];
+
+  const RARE_MODS = [
+    { id: 'hasted', name: 'Hasted', color: '#74c0fc', speedMulti: 1.32, hpMulti: 1.55, dmgMulti: 1.2 },
+    { id: 'gargantuan', name: 'Gargantuan', color: '#ffa94d', radiusMulti: 1.35, hpMulti: 2.25, dmgMulti: 1.35 },
+    { id: 'soul_eater', name: 'Soul Conduit', color: '#da77f2', hpMulti: 1.8, dmgMulti: 1.3, speedMulti: 1.2 },
+    { id: 'flameweaver', name: 'Flameweaver', color: '#ff6b6b', hpMulti: 1.7, dmgMulti: 1.4 },
+    { id: 'frost_strider', name: 'Frost Strider', color: '#66d9e8', hpMulti: 1.7, speedMulti: 1.22, dmgMulti: 1.25 },
+    { id: 'steel_infused', name: 'Steel-Infused', color: '#ced4da', hpMulti: 1.95, dmgMulti: 1.35, radiusMulti: 1.18 }
+  ];
+
+  const ATLAS_MAPS = [
+    {
+      id: 'strand',
+      name: 'Forsaken Strand',
+      tier: 1,
+      durationSec: 240,
+      monsterScale: 1.0,
+      dmgScale: 1.0,
+      monsterArmor: 0,
+      speedScale: 1.0,
+      packDensity: 1.0,
+      eliteBonus: 0,
+      lootQuantity: 100,
+      lootRarityBonus: 0,
+      goldMult: 1.0,
+      recGear: 'Starter Gear',
+      bossName: 'Hillock',
+      themeColor: '#1f2933',
+      desc: 'Baseline monster strength & drops.'
+    },
+    {
+      id: 'fetid_pool',
+      name: 'The Fetid Pool',
+      tier: 2,
+      durationSec: 250,
+      monsterScale: 3.5,
+      dmgScale: 2.4,
+      monsterArmor: 24,
+      speedScale: 1.12,
+      packDensity: 1.18,
+      eliteBonus: 0.05,
+      lootQuantity: 150,
+      lootRarityBonus: 35,
+      goldMult: 1.12,
+      recGear: 'ilvl 3+ Gear • 6+ Tree Pts',
+      bossName: 'Kadavrus',
+      themeColor: '#1b2b1e',
+      desc: '3.5x Monster HP • +50% Drops • +35% Rarity.'
+    },
+    {
+      id: 'vaal_pyramid',
+      name: 'Ancient Pyramid',
+      tier: 3,
+      durationSec: 260,
+      monsterScale: 11.0,
+      dmgScale: 5.2,
+      monsterArmor: 78,
+      speedScale: 1.24,
+      packDensity: 1.36,
+      eliteBonus: 0.10,
+      lootQuantity: 220,
+      lootRarityBonus: 80,
+      goldMult: 1.25,
+      recGear: 'ilvl 6+ Gear • 14+ Tree Pts',
+      bossName: 'Oversoul Construct',
+      themeColor: '#2b2118',
+      desc: '11x Monster HP • +120% Drops • +80% Rarity.'
+    },
+    {
+      id: 'crimson_temple',
+      name: 'Crimson Temple',
+      tier: 4,
+      durationSec: 270,
+      monsterScale: 32.0,
+      dmgScale: 10.5,
+      monsterArmor: 220,
+      speedScale: 1.36,
+      packDensity: 1.56,
+      eliteBonus: 0.16,
+      lootQuantity: 320,
+      lootRarityBonus: 145,
+      goldMult: 1.40,
+      recGear: 'ilvl 10+ Gear • 22+ Tree Pts',
+      bossName: 'Crimson Queen',
+      themeColor: '#291518',
+      desc: '32x Monster HP • +220% Drops • +145% Rarity.'
+    },
+    {
+      id: 'defiled_cathedral',
+      name: 'Defiled Cathedral',
+      tier: 5,
+      durationSec: 285,
+      monsterScale: 90.0,
+      dmgScale: 20.0,
+      monsterArmor: 580,
+      speedScale: 1.48,
+      packDensity: 1.78,
+      eliteBonus: 0.22,
+      lootQuantity: 460,
+      lootRarityBonus: 230,
+      goldMult: 1.55,
+      recGear: 'ilvl 13+ Gear • 30+ Tree Pts',
+      bossName: 'High Templar Avarius',
+      themeColor: '#1c1d2e',
+      desc: '90x Monster HP • +360% Drops • +230% Rarity.'
+    },
+    {
+      id: 'shaper_realm',
+      name: 'Void Crucible',
+      tier: 6,
+      durationSec: 300,
+      monsterScale: 250.0,
+      dmgScale: 38.0,
+      monsterArmor: 1450,
+      speedScale: 1.62,
+      packDensity: 2.10,
+      eliteBonus: 0.30,
+      lootQuantity: 680,
+      lootRarityBonus: 360,
+      goldMult: 1.75,
+      recGear: 'ilvl 16+ Gear • 38+ Tree Pts',
+      bossName: 'The Void Arbiter',
+      themeColor: '#161326',
+      desc: '250x Monster HP • +580% Drops • +360% Rarity.'
+    }
+  ];
+
+  Object.assign(exports, { MONSTER_TYPES, RARE_MODS, ATLAS_MAPS });
+})(typeof exports === "undefined" ? (window.GameData = window.GameData || {}) : (global.GameData = global.GameData || exports));

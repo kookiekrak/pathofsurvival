@@ -1,0 +1,328 @@
+.orb-short-lbl {
+  font-family: var(--font-serif);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--rarity-currency);
+  letter-spacing: 0.3px;
+}
+
+/* Authentic PoE 1 8x4 Dark-Iron Grid Inventory Bag */
+.poe-bag-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(4, 36px);
+  background: #040302;
+  border: 1px solid var(--poe-brass-dark);
+  box-shadow: inset 0 0 14px #000;
+  flex-shrink: 0;
+}
+
+.bag-cell {
+  border: 1px solid #1c160f;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.bag-cell.occupied {
+  cursor: pointer;
+}
+
+.bag-cell.occupied:hover {
+  border-color: var(--poe-gold);
+}
+
+.bag-cell.rarity-normal { background: radial-gradient(circle, rgba(100, 100, 105, 0.16) 0%, #050403 95%); }
+.bag-cell.rarity-magic  { background: radial-gradient(circle, rgba(50, 65, 165, 0.25) 0%, #05050a 95%); border-color: #364085; }
+.bag-cell.rarity-rare   { background: radial-gradient(circle, rgba(165, 140, 35, 0.25) 0%, #080703 95%); border-color: #6e6023; }
+.bag-cell.rarity-unique { background: radial-gradient(circle, rgba(165, 75, 25, 0.3) 0%, #0a0503 95%); border-color: #733b16; }
+.bag-cell.rarity-flask  { background: radial-gradient(circle, rgba(32, 201, 151, 0.25) 0%, #040d0a 95%); border-color: #208c68; }
+.bag-cell.selected-flask-item { border: 1.5px solid #38d9a9 !important; box-shadow: 0 0 10px rgba(56, 217, 169, 0.55); }
+
+/* Customizable 5-Slot Flask Belt Rack inside Inventory Drawer */
+.inv-flask-belt-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.inv-flask-slot {
+  height: 48px;
+  background: #050403;
+  border: 1px solid #382c1d;
+  box-shadow: inset 0 0 10px #000;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+}
+
+.inv-flask-slot:hover {
+  border-color: var(--poe-gold);
+}
+
+.inv-flask-slot.selected-belt-slot {
+  border: 1.5px solid #ffd43b;
+  background: radial-gradient(circle, rgba(255, 212, 59, 0.25) 0%, #080603 100%);
+  box-shadow: 0 0 10px rgba(255, 212, 59, 0.45);
+}
+
+.inv-flask-slot-key {
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  font-family: var(--font-serif);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--poe-gold);
+  text-shadow: 1px 1px 0 #000;
+}
+
+.inv-flask-slot-name {
+  font-family: var(--font-serif);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #dfcf99;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 94%;
+  margin-top: -2px;
+}
+
+.bag-cell-art {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bag-cell-slot-tag {
+  position: absolute;
+  bottom: 1px;
+  right: 2px;
+  font-family: var(--font-serif);
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #a3937c;
+}
+
+/* ========================================================================= */
+/* SKILL GEM LINKS & SUPPORT BOARD (LEFT DOCK PANEL — KEY: G)                */
+/* ========================================================================= */
+.gem-links-board {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gem-slot-row {
+  background: #060504;
+  border: 1px solid #382c1d;
+  box-shadow: inset 0 0 10px #000;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.gem-slot-row:hover {
+  border-color: var(--poe-gold);
+}
+
+.gem-slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.gem-active-title {
+  font-family: var(--font-serif);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--rarity-gem);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.gem-links-chain {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* PoE 1 Metallic Socket Rings & Golden Link Bridges */
+.gem-socket-orb {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--poe-brass-mid);
+  background: #040302;
+  box-shadow: inset 0 0 6px #000, 0 1px 3px #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--poe-gold);
+  cursor: pointer;
+  position: relative;
+}
+
+.gem-socket-orb.active-orb {
+  width: 34px;
+  height: 34px;
+  border-width: 2px;
+}
+
+.orb-R { border-color: #c9342c; background: radial-gradient(circle, #6e110d 0%, #170302 100%); }
+.orb-G { border-color: #2ca849; background: radial-gradient(circle, #0f521f 0%, #031407 100%); }
+.orb-B { border-color: #327ad9; background: radial-gradient(circle, #10386e 0%, #030c1a 100%); }
+.orb-empty { border-color: #3d3122; color: #544736; }
+
+.gem-link-bridge {
+  width: 14px;
+  height: 4px;
+  background: linear-gradient(180deg, #d9bc75 0%, #6e5226 100%);
+  border-top: 1px solid #24190a;
+  border-bottom: 1px solid #24190a;
+}
+
+.support-reserve-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.reserve-gem-card {
+  background: #060504;
+  border: 1px solid #33281b;
+  padding: 6px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.reserve-gem-card.selected {
+  border-color: var(--rarity-gem);
+  background: #0a1716;
+}
+
+.gem-lore-note {
+  margin-top: auto;
+  background: #050403;
+  border: 1px solid #241c13;
+  padding: 8px 10px;
+  font-size: 0.86rem;
+  color: #a3937c;
+  line-height: 1.32;
+}
+
+/* ========================================================================= */
+/* PASSIVE TREE & MAP DEVICE                                                 */
+/* ========================================================================= */
+.tree-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.passive-points-pill {
+  background: #080604;
+  border: 1px solid var(--poe-brass-mid);
+  padding: 4px 10px;
+  font-family: var(--font-serif);
+  font-size: 0.84rem;
+  color: var(--poe-gold-muted);
+}
+
+.passive-points-pill strong {
+  color: var(--poe-gold);
+}
+
+.tree-canvas-container {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, #0f0c08 0%, #030202 100%);
+  overflow: hidden;
+}
+
+#passiveTreeCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+
+.map-device-intro {
+  margin: 6px 0;
+  padding: 0 14px;
+  font-size: 0.86rem;
+  line-height: 1.25;
+  color: #b5a690;
+}
+
+.atlas-map-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 4px 14px 10px;
+}
+
+.map-card {
+  background: #060504;
+  border: 1px solid #33281a;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.map-card.selected {
+  border: 1px solid var(--poe-gold);
+  background: linear-gradient(180deg, #1f170d 0%, #090705 100%);
+}
+
+.map-tier-badge {
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--poe-gold-muted);
+}
+
+.map-card h3 {
+  margin: 2px 0 4px;
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  color: var(--poe-gold);
+  line-height: 1.15;
+}
+
+.map-stat-line {
+  font-size: 0.8rem;
+  color: var(--poe-mod-blue);
+  margin-bottom: 3px;
+  line-height: 1.2;
+}
+
+.map-desc {
+  font-size: 0.78rem;
+  color: #a3937c;
+  line-height: 1.22;
+}
+
+.map-device-actions {
+  padding: 0 14px;
+  display: flex;
+  gap: 10px;
+}

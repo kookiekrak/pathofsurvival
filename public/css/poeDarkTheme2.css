@@ -1,0 +1,357 @@
+/* ========================================================================= */
+/* AUTHENTIC PATH OF EXILE 1 ITEM & GEM TOOLTIP                              */
+/* ========================================================================= */
+.poe-tooltip {
+  position: fixed;
+  z-index: 120;
+  background: rgba(0, 0, 0, 0.97);
+  border: 1px solid #6e583b;
+  min-width: 310px;
+  max-width: 390px;
+  box-shadow: 0 14px 42px #000;
+  pointer-events: none;
+  font-size: 0.94rem;
+  text-align: center;
+}
+
+.poe-tooltip.tt-border-normal { border-color: #787878; }
+.poe-tooltip.tt-border-magic  { border-color: #5252b8; }
+.poe-tooltip.tt-border-rare   { border-color: #9e9132; }
+.poe-tooltip.tt-border-unique { border-color: #964c1b; }
+.poe-tooltip.tt-border-gem    { border-color: #1ba29b; }
+
+.tt-header {
+  padding: 7px 14px;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  line-height: 1.24;
+  position: relative;
+  border-bottom: 1px solid #3d3122;
+}
+
+.tt-header-normal {
+  background: linear-gradient(90deg, #141414 0%, #2b2b2b 50%, #141414 100%);
+  border-bottom-color: #6b6b6b;
+  color: var(--rarity-normal);
+}
+
+.tt-header-magic {
+  background: linear-gradient(90deg, #0b0d24 0%, #1c2252 50%, #0b0d24 100%);
+  border-bottom-color: #4f59b8;
+  color: var(--rarity-magic);
+}
+
+.tt-header-rare {
+  background: linear-gradient(90deg, #171406 0%, #3b320d 50%, #171406 100%);
+  border-bottom-color: #9e8f2e;
+  color: var(--rarity-rare);
+}
+
+.tt-header-unique {
+  background: linear-gradient(90deg, #1a0b04 0%, #3d1b08 50%, #1a0b04 100%);
+  border-bottom-color: #964c1b;
+  color: var(--rarity-unique);
+}
+
+.tt-header-gem {
+  background: linear-gradient(90deg, #061716 0%, #103835 50%, #061716 100%);
+  border-bottom-color: #1ba29b;
+  color: var(--rarity-gem);
+}
+
+.tt-title-main {
+  font-size: 1.06rem;
+}
+
+.tt-title-base {
+  font-size: 0.88rem;
+  opacity: 0.94;
+}
+
+.tt-body {
+  padding: 8px 14px 10px;
+}
+
+.tt-prop-line {
+  color: var(--poe-prop-grey);
+  font-size: 0.9rem;
+}
+
+.tt-prop-line strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.tt-separator {
+  height: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0;
+}
+
+.tt-separator::before {
+  content: '';
+  width: 85%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #59472e 50%, transparent 100%);
+}
+
+.tt-implicit {
+  color: var(--poe-mod-blue);
+  font-size: 0.94rem;
+}
+
+.tt-affix {
+  color: var(--poe-mod-blue);
+  font-size: 0.94rem;
+  margin: 2px 0;
+}
+
+.tt-deltas-box {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #2e2418;
+}
+
+.tt-delta-title {
+  font-family: var(--font-serif);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--poe-gold-muted);
+  letter-spacing: 0.8px;
+  margin-bottom: 3px;
+}
+
+.delta-pos {
+  color: #47d147;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.delta-neg {
+  color: #e04343;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.tt-flavor {
+  margin-top: 6px;
+  font-style: italic;
+  color: var(--rarity-unique);
+  font-size: 0.88rem;
+}
+
+.tt-hint {
+  margin-top: 6px;
+  font-family: var(--font-serif);
+  font-size: 0.76rem;
+  color: #9e8d73;
+}
+
+/* Center Area Banner Announcement (Stacks inside .hud-center-stack so it never blocks Gem Drafts) */
+.banner-announcement {
+  position: relative;
+  background: linear-gradient(90deg, transparent 0%, rgba(5, 4, 3, 0.92) 18%, rgba(5, 4, 3, 0.92) 82%, transparent 100%);
+  padding: 6px 42px;
+  text-align: center;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.bm-gamble-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.bm-gamble-card {
+  background: linear-gradient(180deg, #17120c 0%, #090704 100%);
+  border: 1px solid var(--poe-brass-mid);
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--poe-gold);
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.bm-gamble-card:hover {
+  border-color: var(--poe-gold-bright);
+  background: linear-gradient(180deg, #241b11 0%, #100c07 100%);
+}
+
+.bm-gamble-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-serif);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.bm-gamble-sub {
+  font-size: 0.76rem;
+  color: #a3937c;
+  line-height: 1.2;
+}
+
+.bm-buyback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.bm-buyback-row {
+  background: linear-gradient(90deg, #14100a 0%, #090705 100%);
+  border: 1px solid #382c1d;
+  padding: 6px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bm-buyback-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bm-buyback-art {
+  width: 34px;
+  height: 34px;
+  background: #050403;
+  border: 1px solid #382c1d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.banner-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--poe-brass-bright) 50%, transparent 100%);
+  margin: 4px 0;
+}
+
+.banner-title {
+  font-family: var(--font-serif);
+  font-size: 1.38rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--poe-gold);
+  text-shadow: 0 2px 6px #000;
+}
+
+.banner-sub {
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  color: var(--poe-gold-muted);
+}
+
+/* ========================================================================= */
+/* RESPONSIVE VIEWPORT SCALING FOR LAPTOP & COMPACT WINDOWS                  */
+/* ========================================================================= */
+@media (max-width: 1180px), (max-height: 780px) {
+  .bottom-hud {
+    height: 152px;
+  }
+  .poe-corner-globe {
+    width: 150px;
+    height: 150px;
+  }
+  .globe-orb-wrapper {
+    width: 132px;
+    height: 132px;
+  }
+  .globe-sphere {
+    width: 112px;
+    height: 112px;
+  }
+  .globe-num-plate {
+    font-size: 0.74rem;
+    padding: 1px 8px;
+  }
+  .plate-lbl { font-size: 0.68rem; }
+  .plate-val { font-size: 0.78rem; }
+  .plate-es-val { font-size: 0.72rem; }
+  .stats-mini-list { width: 72%; gap: 1px; }
+  .stats-mini-list span { font-size: 0.56rem; }
+  .stats-mini-list strong { font-size: 0.64rem; }
+
+  .flask-slot {
+    width: 35px;
+    height: 54px;
+  }
+  .flask-svg-wrap {
+    width: 28px;
+    height: 30px;
+  }
+  .poe-skill-socket {
+    width: 46px;
+    height: 46px;
+  }
+  .poe-menu-btn {
+    width: 38px;
+    height: 46px;
+  }
+  .poe-chat-widget {
+    bottom: 158px;
+    width: 270px;
+  }
+  .chat-messages {
+    height: 62px;
+    font-size: 0.8rem;
+  }
+  #minimapCanvas {
+    width: 138px;
+    height: 138px;
+  }
+  .poe-dock-panel {
+    top: 36px;
+    bottom: 72px;
+    width: min(410px, 48vw);
+  }
+}
+
+@media (max-width: 960px) {
+  .poe-corner-globe {
+    width: 124px;
+    height: 128px;
+  }
+  .globe-orb-wrapper {
+    width: 112px;
+    height: 112px;
+  }
+  .globe-sphere {
+    width: 96px;
+    height: 96px;
+  }
+  .stats-mini-list span { font-size: 0.5rem; }
+  .stats-mini-list strong { font-size: 0.58rem; }
+  .flask-slot {
+    width: 31px;
+    height: 48px;
+  }
+  .poe-skill-socket {
+    width: 41px;
+    height: 41px;
+  }
+  .poe-menu-btn {
+    width: 34px;
+    height: 41px;
+  }
+  .menu-lbl {
+    font-size: 0.58rem;
+  }
+  .char-create-top-bar {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+}

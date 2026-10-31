@@ -69,12 +69,24 @@ window.__POS_CTX__ = {
 };
 
 const CLIENT_MODULES = [
-  "/js/sceneAndEnv3D.js",
-  "/js/entities3D.js",
-  "/js/svgAndLobby.js",
-  "/js/hudAndInventory.js",
-  "/js/passiveTreeAndMap.js",
-  "/js/inputAndRenderLoop.js"
+  "/js/renderer/sceneSetup3D.js",
+  "/js/renderer/environmentBuilder3D.js",
+  "/js/entities/playerMesh3D.js",
+  "/js/entities/enemyAndProps3D.js",
+  "/js/entities/projectilesAndDrops3D.js",
+  "/js/entities/combatVfx3D.js",
+  "/js/ui/svgArtwork.js",
+  "/js/ui/charSelectAndAuth.js",
+  "/js/ui/lobbyAndNetworkSync.js",
+  "/js/hud/vitalsAndBeltHUD.js",
+  "/js/hud/skillGemsAndDraftUI.js",
+  "/js/hud/inventoryAndMarketUI.js",
+  "/js/hud/tooltipsAndStatsUI.js",
+  "/js/panels/passiveTreeCanvas.js",
+  "/js/panels/mapDeviceAndDrawers.js",
+  "/js/loop/inputAndRaycast.js",
+  "/js/loop/hudOverlay2D.js",
+  "/js/loop/renderLoop3D.js"
 ];
 
 function loadScriptSequential(src) {
