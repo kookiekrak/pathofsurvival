@@ -61,11 +61,21 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
         }
         if (soakers.length > 0) {
           room.fxEvents.push({ kind: 'nova', x: haz.x, y: haz.y, r: haz.r, color: '#69db7c' });
-          const splitDmg = Math.max(4, Math.round((haz.damage * 0.32) / soakers.length));
+          const splitDmg = Math.max(4, Math.round((haz.damage * 0.25) / soakers.length));
           for (const sp of soakers) {
             applyDamageToPlayer(room, sp, splitDmg, 'elemental', true);
             if ((sp.vaalLockTimer || 0) <= 0) {
-              sp.vaalSouls = Math.min(60, (sp.vaalSouls || 0) + 12);
+              sp.vaalSouls = Math.min(60, (sp.vaalSouls || 0) + 15);
+            }
+          }
+          if (haz.staggerBossId) {
+            const stBoss = room.enemies.get(haz.staggerBossId);
+            if (stBoss && stBoss.hp > 0) {
+              stBoss.shielded = false;
+              stBoss.vulnerableTimer = 4.2;
+              stBoss.pauseTimer = 2.5;
+              stBoss.castName = '⚡ OVERLOADED & STAGGERED (+50% DAMAGE TAKEN!)';
+              stBoss.castTimer = stBoss.castMax = 4.2;
             }
           }
         } else {
@@ -212,8 +222,8 @@ function updateRoomWavesAndInteractables(room, dt, allPlayers, alivePlayers) {
       }
     }
 
-    // Spawn an Atlas Map Boss every 5 waves (Wave 5, 10, 15, 20...) or when initial timer elapses
-    const shouldSpawnWaveBoss = (!room.isRaidEncounter && room.wave % 5 === 0 && room.waveProgress >= 85 && room.lastBossWave !== room.wave);
+    // Spawn an Atlas Map Boss every 3 waves (Wave 3, 6, 9, 12...) or when initial timer elapses
+    const shouldSpawnWaveBoss = (!room.isRaidEncounter && room.wave % 3 === 0 && room.waveProgress >= 85 && room.lastBossWave !== room.wave);
     const shouldSpawnTimerBoss = (!room.isRaidEncounter && room.runTimer >= room.runDuration && !room.bossSpawned);
     if (shouldSpawnWaveBoss || shouldSpawnTimerBoss) {
       spawnMapBoss(room);

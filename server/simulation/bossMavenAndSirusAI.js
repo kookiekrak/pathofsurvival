@@ -109,17 +109,16 @@ function updateMavenBossAI(room, m, dt, target, bestD, ang, alivePlayers) {
   }
   if (m.shielded || m.actionTimer > 0 || bestD > 680) return;
 
-  m.actionTimer = (m.bossPhase >= 2 ? 1.45 : 1.65) + Math.random() * 0.20;
+  m.actionTimer = (m.bossPhase >= 2 ? 2.4 : 2.8) + Math.random() * 0.30;
   m.bossAttackIndex = ((m.bossAttackIndex || 0) + 1) % 4;
 
   if (m.bossAttackIndex === 0) {
-    // 1. "CASCADE OF PAIN!" — 20 Star-Bolts + 2 Rotating Void Lasers
-    m.pauseTimer = 0.75;
-    m.castName = '"CASCADE OF PAIN!" (20 STAR-BOLTS + VOID LASERS)';
+    // 1. "CASCADE OF PAIN!" — Star-Bolts + 2 Rotating Void Lasers
+    m.pauseTimer = 0.85;
+    m.castName = '"CASCADE OF PAIN!" (STAR-BOLTS + VOID LASERS)';
     m.castTimer = m.castMax = 1.35;
-    for (let i = 0; i < 20; i++) {
-      const spread = (i - 9.5) * 0.14;
-      pushEnemyBolt(room, m.x, m.y, ang + spread, 240 + (i % 2) * 40, 11, Math.round(m.damage * 0.88), 'cold', 3.0);
+    for (let i = -3; i <= 3; i++) {
+      pushEnemyBolt(room, m.x, m.y, ang + i * 0.16, 240, 11, Math.round(m.damage * 0.88), 'cold', 2.8);
     }
     room.raidBeams = room.raidBeams || [];
     if (room.raidBeams.length < 2) {
@@ -131,7 +130,7 @@ function updateMavenBossAI(room, m, dt, target, bestD, ang, alivePlayers) {
     }
   } else if (m.bossAttackIndex === 1) {
     // 2. "STAND STILL!" — Twin Overlapping Gravity Wells on Players
-    m.pauseTimer = 0.7;
+    m.pauseTimer = 0.75;
     m.castName = '"STAND STILL!" (GRAVITY CASCADE)';
     m.castTimer = m.castMax = 1.35;
     for (const p of alivePlayers) {
@@ -139,26 +138,26 @@ function updateMavenBossAI(room, m, dt, target, bestD, ang, alivePlayers) {
       spawnGroundHazard(room, p.x + 36, p.y, 72, 1.5, Math.round(m.damage * 1.35), 'Maven Gravity Cascade');
     }
   } else if (m.bossAttackIndex === 2) {
-    // 3. Brain Synapse Soak Orb (Soak to prevent Psychic Nova)
+    // 3. Brain Synapse Soak Orb (Soak to stagger Maven & prevent Psychic Nova)
     const soakTarget = pick(alivePlayers) || target;
-    m.castName = 'BRAIN SYNAPSE ORB (SOAK INSIDE RING!)';
+    m.castName = 'BRAIN SYNAPSE ORB (STAND INSIDE TO STAGGER!)';
     m.castTimer = m.castMax = 3.2;
     const sx = Math.max(-half + 90, Math.min(half - 90, Math.round(soakTarget.x + randInt(-60, 60))));
     const sy = Math.max(-half + 90, Math.min(half - 90, Math.round(soakTarget.y + randInt(-60, 60))));
     room.hazards.push({
-      id: uid('haz'), kind: 'soak', x: sx, y: sy,
-      r: 72, fuse: 3.2, maxFuse: 3.2, damage: Math.round(m.damage * 1.7),
+      id: uid('haz'), kind: 'soak', staggerBossId: m.id, x: sx, y: sy,
+      r: 74, fuse: 3.2, maxFuse: 3.2, damage: Math.round(m.damage * 1.7),
       title: 'SYNAPSE SOAK [STAND INSIDE!]', color: '#ffd43b'
     });
   } else {
-    // 4. "TAKE THIS!" — Giant Twin Solar/Void Orbs + Radial Starburst
-    m.pauseTimer = 0.65;
+    // 4. "TAKE THIS!" — Twin Celestial Orbs + 8-Bolt Starburst
+    m.pauseTimer = 0.75;
     m.castName = '"TAKE THIS!" (TWIN CELESTIAL ORBS)';
     m.castTimer = m.castMax = 1.25;
-    pushEnemyBolt(room, m.x, m.y, ang - 0.18, 165, 22, Math.round(m.damage * 1.35), 'fire', 4.2);
-    pushEnemyBolt(room, m.x, m.y, ang + 0.18, 165, 22, Math.round(m.damage * 1.35), 'cold', 4.2);
-    for (let k = 0; k < 12; k++) {
-      pushEnemyBolt(room, m.x, m.y, (Math.PI * 2 * k) / 12, 235, 10, Math.round(m.damage * 0.85), 'lightning', 2.8);
+    pushEnemyBolt(room, m.x, m.y, ang - 0.18, 165, 22, Math.round(m.damage * 1.35), 'fire', 4.0);
+    pushEnemyBolt(room, m.x, m.y, ang + 0.18, 165, 22, Math.round(m.damage * 1.35), 'cold', 4.0);
+    for (let k = 0; k < 8; k++) {
+      pushEnemyBolt(room, m.x, m.y, (Math.PI * 2 * k) / 8, 225, 10, Math.round(m.damage * 0.85), 'lightning', 2.6);
     }
   }
 }
@@ -238,7 +237,7 @@ function updateSirusBossAI(room, m, dt, target, bestD, ang, alivePlayers) {
   }
 
   if (m.actionTimer > 0 || bestD > 680) return;
-  m.actionTimer = (m.bossPhase >= 2 ? 1.45 : 1.65) + Math.random() * 0.20;
+  m.actionTimer = (m.bossPhase >= 2 ? 2.4 : 2.8) + Math.random() * 0.30;
   m.bossAttackIndex = ((m.bossAttackIndex || 0) + 1) % 4;
 
   if (m.bossAttackIndex === 0) {
@@ -246,13 +245,13 @@ function updateSirusBossAI(room, m, dt, target, bestD, ang, alivePlayers) {
     m.x = Math.max(-half + 90, Math.min(half - 90, Math.round(target.x + Math.cos(flankAng) * 230)));
     m.y = Math.max(-half + 90, Math.min(half - 90, Math.round(target.y + Math.sin(flankAng) * 230)));
     room.fxEvents.push({ kind: 'blink', x: m.x, y: m.y, r: 58, color: '#ff3b3b' });
-    m.pauseTimer = 1.1;
-    m.dieBeamWindup = 1.0;
+    m.pauseTimer = 1.2;
+    m.dieBeamWindup = 1.05;
     m.castName = '⚠ "DIE!" BEAM — DASH SIDEWAYS NOW!';
-    m.castTimer = m.castMax = 1.0;
+    m.castTimer = m.castMax = 1.05;
   } else if (m.bossAttackIndex === 1) {
-    m.pauseTimer = 0.75;
-    m.castName = '"RAIN OF STARS!" (CORRUPTED CLONE RING)';
+    m.pauseTimer = 0.85;
+    m.castName = '"RAIN OF STARS!" (CORRUPTED METEOR RING)';
     m.castTimer = m.castMax = 1.4;
     for (let k = 0; k < 6; k++) {
       const cAng = (Math.PI * 2 * k) / 6;
@@ -260,29 +259,29 @@ function updateSirusBossAI(room, m, dt, target, bestD, ang, alivePlayers) {
     }
     spawnGroundHazard(room, target.x, target.y, 80, 1.5, Math.round(m.damage * 1.45), 'Awakener Starfall');
   } else if (m.bossAttackIndex === 2) {
-    m.castName = 'DEATOMIZATION VORTEX (SOAK ORB!)';
+    m.castName = 'DEATOMIZATION VORTEX (STAND INSIDE TO STAGGER!)';
     m.castTimer = m.castMax = 3.2;
     const sx = Math.max(-half + 90, Math.min(half - 90, Math.round(target.x + randInt(-65, 65))));
     const sy = Math.max(-half + 90, Math.min(half - 90, Math.round(target.y + randInt(-65, 65))));
     room.hazards.push({
-      id: uid('haz'), kind: 'soak', x: sx, y: sy,
+      id: uid('haz'), kind: 'soak', staggerBossId: m.id, x: sx, y: sy,
       r: 74, fuse: 3.2, maxFuse: 3.2, damage: Math.round(m.damage * 1.75),
       title: 'AWAKENER ORB [STAND INSIDE!]', color: '#ffd43b'
     });
   } else {
-    // 4. Desolation of the Awakener: 22 Corruption Bolts + Faster 4-Way Spinning Beams + Corridor Barrage
-    m.pauseTimer = 0.75;
-    m.castName = '"EVERLASTING FIRE!" (22 CORRUPTION BOLTS)';
+    // 4. Desolation of the Awakener: 10 Corruption Bolts + 4-Way Spinning Beams + Corridor Slam
+    m.pauseTimer = 0.85;
+    m.castName = '"EVERLASTING FIRE!" (SPINNING CORRUPTION CROSS)';
     m.castTimer = m.castMax = 1.35;
-    for (let k = 0; k < 22; k++) {
-      const bAng = (Math.PI * 2 * k) / 22 + (k % 2) * 0.08;
-      pushEnemyBolt(room, m.x, m.y, bAng, 235 + (k % 2) * 35, 11, Math.round(m.damage * 0.88), k % 2 === 0 ? 'fire' : 'physical', 3.1);
+    for (let k = 0; k < 10; k++) {
+      const bAng = (Math.PI * 2 * k) / 10;
+      pushEnemyBolt(room, m.x, m.y, bAng, 235, 11, Math.round(m.damage * 0.88), k % 2 === 0 ? 'fire' : 'physical', 2.8);
     }
     room.raidBeams = room.raidBeams || [];
     if (room.raidBeams.length === 0) {
       room.raidBeams.push({
         id: uid('beam'), bossId: m.id, x: m.x, y: m.y,
-        angle: ang, angVel: m.bossPhase === 3 ? 0.92 : 0.72, arms: 4, length: 480,
+        angle: ang, angVel: m.bossPhase === 3 ? 0.85 : 0.65, arms: 4, length: 480,
         duration: 6.0, damage: Math.round(m.damage * 0.8), tickCd: 0.25
       });
     }
@@ -304,86 +303,60 @@ function updateSingleBossAI(room, m, dt, target, bestD, ang, alivePlayers) {
   if (m.raidId === 'raid_maven_crucible') return updateMavenBossAI(room, m, dt, target, bestD, ang, alivePlayers);
   if (m.raidId === 'raid_sirus_awakener') return updateSirusBossAI(room, m, dt, target, bestD, ang, alivePlayers);
 
-  if ((m.bossPhase || 1) === 1 && m.hp <= m.maxHp * 0.55) m.bossPhase = 2;
+  // Atlas Map Boss 50% HP Crucible Phase Transition (Sanctuary Ring + Sweeping Lasers + Stagger Reward!)
+  if ((m.bossPhase || 1) === 1 && m.hp <= m.maxHp * 0.55) {
+    m.bossPhase = 2; m.pauseTimer = m.castTimer = m.castMax = 3.8;
+    m.castName = '⚡ CRUCIBLE OVERLOAD — STAND IN GOLDEN SANCTUARY RING!';
+    const sAng = Math.random() * Math.PI * 2;
+    const sx = Math.max(-ARENA_HALF + 140, Math.min(ARENA_HALF - 140, Math.round(m.x + Math.cos(sAng) * 165)));
+    const sy = Math.max(-ARENA_HALF + 140, Math.min(ARENA_HALF - 140, Math.round(m.y + Math.sin(sAng) * 165)));
+    room.raidSanctuary = { id: uid('sanc'), staggerBossId: m.id, x: sx, y: sy, r: 105, fuse: 3.8, maxFuse: 3.8, damage: Math.round(m.damage * 1.85), bossName: `${m.name} Crucible Slam` };
+    room.raidBeams = room.raidBeams || [];
+    room.raidBeams.push({ id: uid('beam'), bossId: m.id, x: m.x, y: m.y, angle: ang, angVel: 0.62, arms: 2, length: 420, duration: 7.5, damage: Math.round(m.damage * 0.78), tickCd: 0.26 });
+    broadcastRoomEvent(room, { type: 'announcement', title: `⚡ ${m.name.toUpperCase()} — PHASE II CRUCIBLE OVERLOAD!`, subtitle: 'Dash into the Golden Sanctuary Ring within 3.8s to survive the Nova and STAGGER the Boss (+50% Damage)!', color: '#ffd43b' });
+    return;
+  }
   if (m.actionTimer > 0 || bestD > 680) return;
 
-  m.actionTimer = (m.bossPhase === 2 ? 1.55 : 1.70) + Math.random() * 0.25;
+  m.actionTimer = (m.bossPhase === 2 ? 2.5 : 2.9) + Math.random() * 0.30;
   m.attackStep = (m.attackStep || 0) + 1;
-  switch (m.attackStep % 5) {
-    case 0:
-      m.pauseTimer = 0.65;
-      m.castName = 'AIMED FAN & RADIAL BULLET RING';
-      m.castTimer = m.castMax = 1.1;
-      for (let i = -3; i <= 3; i++) {
-        pushEnemyBolt(room, m.x, m.y, ang + i * 0.14, 295, 11, Math.round(m.damage * 0.95), 'fire', 2.8);
-      }
-      for (let k = 0; k < 14; k++) {
-        pushEnemyBolt(room, m.x, m.y, (Math.PI * 2 * k) / 14, 245, 10, Math.round(m.damage * 0.85), 'lightning', 3.0);
-      }
-      break;
-    case 1: {
-      m.pauseTimer = 0.95;
-      m.castName = 'CATACLYSMIC LEAP SLAM';
-      m.castTimer = m.castMax = 1.25;
+  switch (m.attackStep % 4) {
+    case 0: {
+      m.pauseTimer = 1.1; m.castName = '⚠ CATACLYSMIC SLAM — DODGE RED CIRCLE!'; m.castTimer = m.castMax = 1.35;
       const lx = Math.round(target.x), ly = Math.round(target.y);
-      room.hazards.push({
-        id: uid('haz'), x: lx, y: ly, r: 145, fuse: 1.25, maxFuse: 1.25,
-        damage: Math.round(m.damage * 1.5), title: `${m.name} Leap Slam`, leapBossId: m.id, color: '#ff4d4d'
-      });
-      for (let k = 0; k < 6; k++) {
-        const aAng = (Math.PI * 2 * k) / 6;
-        spawnGroundHazard(room, lx + Math.cos(aAng) * 135, ly + Math.sin(aAng) * 135, 64, 1.55, Math.round(m.damage * 1.15), 'Aftershock');
+      room.hazards.push({ id: uid('haz'), x: lx, y: ly, r: 135, fuse: 1.35, maxFuse: 1.35, damage: Math.round(m.damage * 1.45), title: `${m.name} Slam`, leapBossId: m.id, color: '#ff4d4d' });
+      for (let k = 0; k < 4; k++) {
+        const aAng = (Math.PI * 2 * k) / 4 + 0.4;
+        spawnGroundHazard(room, lx + Math.cos(aAng) * 130, ly + Math.sin(aAng) * 130, 58, 1.65, Math.round(m.damage * 1.1), 'Aftershock');
       }
       break;
     }
-    case 2:
-      m.pauseTimer = 0.65;
-      m.castName = 'BULLET-HELL SPIRAL VOLLEY';
-      m.castTimer = m.castMax = 1.1;
-      for (let k = 0; k < 18; k++) {
-        const sAng = (Math.PI * 2 * k) / 18 + (k % 2) * 0.12;
-        pushEnemyBolt(room, m.x, m.y, sAng, k % 2 === 0 ? 265 : 210, 10, Math.round(m.damage * 0.88), k % 2 === 0 ? 'cold' : 'fire', 3.2);
+    case 1:
+      m.pauseTimer = 1.0; m.castName = 'SWEEPING CRUCIBLE LASERS (ROTATE AROUND BOSS!)'; m.castTimer = m.castMax = 3.2;
+      room.raidBeams = room.raidBeams || [];
+      if (room.raidBeams.length === 0) {
+        room.raidBeams.push({ id: uid('beam'), bossId: m.id, x: m.x, y: m.y, angle: ang - 0.5, angVel: 0.62, arms: 2, length: 400, duration: 3.4, damage: Math.round(m.damage * 0.78), tickCd: 0.26 });
       }
-      for (const off of [-0.05, 0.05]) {
-        pushEnemyBolt(room, m.x, m.y, ang + off, 370, 12, Math.round(m.damage * 1.15), 'physical', 2.4);
-      }
+      for (let i = -2; i <= 2; i++) pushEnemyBolt(room, m.x, m.y, ang + i * 0.22, 235, 11, Math.round(m.damage * 0.88), 'fire', 2.6);
       break;
-    case 3:
-      m.pauseTimer = 0.75;
-      m.castName = 'TRIPLE SUNDER FAULT LINE';
-      m.castTimer = m.castMax = 1.2;
-      for (const lane of [-0.28, 0, 0.28]) {
-        const lAng = ang + lane;
-        for (let d = 1; d <= 4; d++) {
-          spawnGroundHazard(room, m.x + Math.cos(lAng) * (d * 82), m.y + Math.sin(lAng) * (d * 82), 58, 0.4 + d * 0.2, Math.round(m.damage * 1.25), `${m.name} Sunder`);
-        }
-      }
-      for (let k = 0; k < 12; k++) {
-        pushEnemyBolt(room, m.x, m.y, (Math.PI * 2 * k) / 12, 225, 10, Math.round(m.damage * 0.85), 'physical', 2.8);
-      }
+    case 2: {
+      m.pauseTimer = 0.8; m.castName = '⚡ AETHER SIPHON — STAND IN GOLDEN RING TO STAGGER!'; m.castTimer = m.castMax = 3.0;
+      const sx = Math.max(-ARENA_HALF + 120, Math.min(ARENA_HALF - 120, Math.round(target.x + randInt(-75, 75))));
+      const sy = Math.max(-ARENA_HALF + 120, Math.min(ARENA_HALF - 120, Math.round(target.y + randInt(-75, 75))));
+      room.hazards.push({ id: uid('haz'), kind: 'soak', staggerBossId: m.id, x: sx, y: sy, r: 74, fuse: 3.0, maxFuse: 3.0, damage: Math.round(m.damage * 1.55), title: 'SOAK TO STAGGER BOSS!', color: '#ffd43b' });
       break;
+    }
     default:
-      m.pauseTimer = 0.5;
-      m.castName = 'METEOR APOCALYPSE & CHARGE';
-      m.castTimer = m.castMax = 1.3;
-      for (let k = 0; k < 5; k++) {
-        const mAng = (Math.PI * 2 * k) / 5;
-        const distOff = k === 0 ? 0 : 95;
-        spawnGroundHazard(room, target.x + Math.cos(mAng) * distOff, target.y + Math.sin(mAng) * distOff, 76, 0.85 + k * 0.16, Math.round(m.damage * 1.35), 'Meteor Apocalypse');
+      m.pauseTimer = 0.85; m.castName = 'TRIPLE SUNDER FAULT LINE & CHARGE'; m.castTimer = m.castMax = 1.25;
+      for (const lane of [-0.32, 0, 0.32]) {
+        const lAng = ang + lane;
+        for (let d = 1; d <= 4; d++) spawnGroundHazard(room, m.x + Math.cos(lAng) * (d * 82), m.y + Math.sin(lAng) * (d * 82), 56, 0.45 + d * 0.2, Math.round(m.damage * 1.2), `${m.name} Sunder`);
       }
-      m.chargeWindup = 0.25;
-      m.chargeAngle = ang;
+      m.chargeWindup = 0.45; m.chargeAngle = ang;
       break;
   }
 }
 
-const exportsObj = {
-  startMavenMemoryGame,
-  tickMavenMemoryGame,
-  updateMavenBossAI,
-  triggerSirusMeteorMaze,
-  updateSirusBossAI,
-  updateSingleBossAI
-};
+const exportsObj = { startMavenMemoryGame, tickMavenMemoryGame, updateMavenBossAI, triggerSirusMeteorMaze, updateSirusBossAI, updateSingleBossAI };
 Object.assign(global, exportsObj);
 module.exports = exportsObj;

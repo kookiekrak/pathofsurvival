@@ -149,31 +149,31 @@ function updateSearingExarchAI(room, m, dt, target, bestD, ang) {
   if ((m.bossPhase || 1) === 2 && hpRatio <= 0.35 && !m.shielded) { startExarchRollingBoulderPhase(room, m, 3); return; }
   if (m.shielded || m.actionTimer > 0 || bestD > 720) return;
 
-  m.actionTimer = (m.bossPhase >= 2 ? 1.45 : 1.65) + Math.random() * 0.20;
+  m.actionTimer = (m.bossPhase >= 2 ? 2.4 : 2.8) + Math.random() * 0.30;
   m.bossAttackIndex = ((m.bossAttackIndex || 0) + 1) % 4;
 
   if (m.bossAttackIndex === 0) {
-    m.pauseTimer = 1.6; m.castName = '🔥 "INCINERATION!" — 20-BOLT NOVA & SOLAR BLAST!';
+    m.pauseTimer = 1.6; m.castName = '🔥 "INCINERATION!" — DODGE OUT OF SOLAR NOVA!';
     m.castTimer = 1.9; m.castMax = 1.9;
-    spawnGroundHazard(room, m.x, m.y, 245, 1.9, Math.round(m.damage * 2.2), 'Exarch Incineration Nova');
-    for (let k = 0; k < 20; k++) {
-      pushEnemyBolt(room, m.x, m.y, (Math.PI * 2 * k) / 20, 275, 13, Math.round(m.damage * 1.05), 'fire', 3.2, true);
+    spawnGroundHazard(room, m.x, m.y, 235, 1.9, Math.round(m.damage * 2.1), 'Exarch Incineration Nova');
+    for (let k = 0; k < 10; k++) {
+      pushEnemyBolt(room, m.x, m.y, (Math.PI * 2 * k) / 10, 250, 13, Math.round(m.damage * 1.0), 'fire', 3.0, true);
     }
   } else if (m.bossAttackIndex === 1) {
-    m.pauseTimer = 0.75; m.castName = '"ANNIHILATION!" (20-BOLT SOLAR BARRAGE)';
-    m.castTimer = 1.2; m.castMax = 1.2;
-    for (let i = 0; i < 20; i++) {
-      pushEnemyBolt(room, m.x, m.y, ang + (i - 9.5) * 0.11, 275 + (i % 2) * 35, 13, Math.round(m.damage * 1.05), 'fire', 3.2, true);
+    m.pauseTimer = 0.85; m.castName = '"ANNIHILATION!" (SOLAR CONE BARRAGE)';
+    m.castTimer = 1.25; m.castMax = 1.25;
+    for (let i = -3; i <= 3; i++) {
+      pushEnemyBolt(room, m.x, m.y, ang + i * 0.16, 265, 13, Math.round(m.damage * 1.0), 'fire', 3.0, true);
     }
   } else if (m.bossAttackIndex === 2) {
-    m.pauseTimer = 0.65; m.castName = 'SEARING RUNE TRAPS & METEOR RING';
-    m.castTimer = 1.25; m.castMax = 1.25;
-    for (let r = 0; r < 6; r++) {
-      const rAng = (Math.PI * 2 * r) / 6 + Math.random() * 0.35;
-      spawnGroundHazard(room, target.x + Math.cos(rAng) * 95, target.y + Math.sin(rAng) * 95, 58, 1.15 + r * 0.12, Math.round(m.damage * 1.35), 'Searing Rune Trap');
+    m.pauseTimer = 0.75; m.castName = 'SEARING RUNE TRAPS & METEOR RING';
+    m.castTimer = 1.3; m.castMax = 1.3;
+    for (let r = 0; r < 5; r++) {
+      const rAng = (Math.PI * 2 * r) / 5 + Math.random() * 0.35;
+      spawnGroundHazard(room, target.x + Math.cos(rAng) * 95, target.y + Math.sin(rAng) * 95, 58, 1.2 + r * 0.12, Math.round(m.damage * 1.3), 'Searing Rune Trap');
     }
-    for (let k = 0; k < 12; k++) {
-      pushEnemyBolt(room, m.x, m.y, (Math.PI * 2 * k) / 12, 260, 11, Math.round(m.damage * 0.95), 'fire', 3.0, true);
+    for (let k = 0; k < 8; k++) {
+      pushEnemyBolt(room, m.x, m.y, (Math.PI * 2 * k) / 8, 240, 11, Math.round(m.damage * 0.9), 'fire', 2.8, true);
     }
   } else {
     m.pauseTimer = 0.65; m.castName = 'ROLLING MAGMA WALL (9 BOULDERS)';
@@ -232,15 +232,15 @@ function updateEaterOfWorldsAI(room, m, dt, target, bestD, ang) {
   }
   if (m.actionTimer > 0 || bestD > 720) return;
 
-  m.actionTimer = (m.bossPhase >= 2 ? 1.45 : 1.65) + Math.random() * 0.20;
+  m.actionTimer = (m.bossPhase >= 2 ? 2.4 : 2.8) + Math.random() * 0.30;
   m.bossAttackIndex = ((m.bossAttackIndex || 0) + 1) % 4;
 
   if (m.bossAttackIndex === 0) {
-    m.pauseTimer = 1.1; m.castName = '🐙 "HUNGER!" — TENTACLE SLAM, 18 BOLTS & TWIN BEAMS!';
+    m.pauseTimer = 1.1; m.castName = '🐙 "HUNGER!" — TENTACLE SLAM & TWIN BEAMS!';
     m.castTimer = 1.45; m.castMax = 1.45;
-    spawnGroundHazard(room, target.x, target.y, 185, 1.45, Math.round(m.damage * 2.05), 'Eater "Hunger!" Slam');
-    for (let k = 0; k < 18; k++) {
-      pushEnemyBolt(room, m.x, m.y, (Math.PI * 2 * k) / 18, 275, 12, Math.round(m.damage * 0.98), 'lightning', 3.0, true);
+    spawnGroundHazard(room, target.x, target.y, 175, 1.45, Math.round(m.damage * 1.95), 'Eater "Hunger!" Slam');
+    for (let k = 0; k < 8; k++) {
+      pushEnemyBolt(room, m.x, m.y, (Math.PI * 2 * k) / 8, 250, 12, Math.round(m.damage * 0.92), 'lightning', 2.8, true);
     }
     room.raidBeams = room.raidBeams || [];
     room.raidBeams.push({
@@ -255,32 +255,26 @@ function updateEaterOfWorldsAI(room, m, dt, target, bestD, ang) {
       id: uid('beam'), bossId: m.id, x: m.x, y: m.y,
       angle: ang - 0.65, angVel: 0.62, arms: 2, length: 480, duration: 3.4, damage: Math.round(m.damage * 0.88), tickCd: 0.24
     });
-    for (let k = 0; k < 18; k++) {
-      pushEnemyBolt(room, m.x, m.y, ang + (k - 8.5) * 0.14, 260, 11, Math.round(m.damage * 0.95), 'cold', 3.0, true);
+    for (let k = -3; k <= 3; k++) {
+      pushEnemyBolt(room, m.x, m.y, ang + k * 0.18, 245, 11, Math.round(m.damage * 0.90), 'cold', 2.8, true);
     }
   } else if (m.bossAttackIndex === 2) {
-    m.pauseTimer = 0.75; m.castName = 'WRITHING TENTACLE CROSS & 18-BOLT NOVA';
+    m.pauseTimer = 0.85; m.castName = 'WRITHING TENTACLE CROSS';
     m.castTimer = 1.25; m.castMax = 1.25;
     for (let arm = 0; arm < 4; arm++) {
       const aAng = ang + (Math.PI * 2 * arm) / 4;
       for (let d = 1; d <= 4; d++) {
-        spawnGroundHazard(room, m.x + Math.cos(aAng) * (d * 85), m.y + Math.sin(aAng) * (d * 85), 58, 0.45 + d * 0.20, Math.round(m.damage * 1.35), 'Tentacle Whip');
+        spawnGroundHazard(room, m.x + Math.cos(aAng) * (d * 85), m.y + Math.sin(aAng) * (d * 85), 58, 0.45 + d * 0.20, Math.round(m.damage * 1.3), 'Tentacle Whip');
       }
     }
-    for (let k = 0; k < 18; k++) {
-      pushEnemyBolt(room, m.x, m.y, (Math.PI * 2 * k) / 18 + 0.1, 255, 11, Math.round(m.damage * 0.92), 'lightning', 3.0, true);
-    }
   } else {
-    m.castName = 'DROWNING ORB (STAND INSIDE RING!)'; m.castTimer = 3.2; m.castMax = 3.2;
+    m.castName = 'DROWNING ORB (STAND INSIDE RING TO STAGGER!)'; m.castTimer = 3.2; m.castMax = 3.2;
     const sx = Math.max(-raidLim + 60, Math.min(raidLim - 60, Math.round(target.x + randInt(-65, 65))));
     const sy = Math.max(-raidLim + 60, Math.min(raidLim - 60, Math.round(target.y + randInt(-65, 65))));
     room.hazards.push({
-      id: uid('haz'), kind: 'soak', x: sx, y: sy, r: 72, fuse: 3.2, maxFuse: 3.2,
+      id: uid('haz'), kind: 'soak', staggerBossId: m.id, x: sx, y: sy, r: 74, fuse: 3.2, maxFuse: 3.2,
       damage: Math.round(m.damage * 1.75), title: 'AETHER SOAK [STAND INSIDE!]', color: '#ffd43b'
     });
-    for (let i = -3; i <= 3; i++) {
-      pushEnemyBolt(room, m.x, m.y, ang + i * 0.15, 290, 12, Math.round(m.damage * 1.0), 'cold', 2.8, true);
-    }
   }
 }
 
@@ -335,11 +329,24 @@ function updateBossRaidMechanics(room, dt, alivePlayers) {
     if (s.fuse <= 0) {
       room.fxEvents.push({ kind: 'nova', x: s.x, y: s.y, r: 340, color: '#ff3b3b' });
       room.fxEvents.push({ kind: 'nova', x: s.x, y: s.y, r: s.r, color: '#ffd43b' });
+      let anyInside = false;
       for (const p of alivePlayers) {
         if (dist(p.x, p.y, s.x, s.y) <= s.r + 18) {
+          anyInside = true;
           p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.25));
+          if ((p.vaalLockTimer || 0) <= 0) p.vaalSouls = Math.min(60, (p.vaalSouls || 0) + 15);
         } else {
           applyDamageToPlayer(room, p, s.damage, 'elemental', true);
+        }
+      }
+      if (anyInside && s.staggerBossId) {
+        const stBoss = room.enemies.get(s.staggerBossId);
+        if (stBoss && stBoss.hp > 0) {
+          stBoss.shielded = false;
+          stBoss.vulnerableTimer = 4.5;
+          stBoss.pauseTimer = 2.6;
+          stBoss.castName = '⚡ CRUCIBLE STAGGER (+50% DAMAGE TAKEN!)';
+          stBoss.castTimer = stBoss.castMax = 4.5;
         }
       }
       room.raidSanctuary = null;

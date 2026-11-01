@@ -85,22 +85,25 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
 
   if (isBossSpawn) {
     // Clear remaining normal/magic/rare trash mobs so the Map Boss fight is a true 1v1 / party-vs-boss encounter!
-    for (const [id, m] of room.enemies.entries()) {
-      if (m.rarity !== 'boss') room.enemies.delete(id);
-    }
+    for (const [id, m] of room.enemies.entries()) if (m.rarity !== 'boss') room.enemies.delete(id);
+    const anchor = pick(alivePlayers), bAng = Math.random() * Math.PI * 2;
+    x = Math.max(-arenaLim, Math.min(arenaLim, Math.round(anchor.x + Math.cos(bAng) * 230)));
+    y = Math.max(-arenaLim, Math.min(arenaLim, Math.round(anchor.y + Math.sin(bAng) * 230)));
+    room.fxEvents.push({ kind: 'shockwave', x, y, r: 165, color: '#ff4d4d' });
+    const bossVisuals = {
+      strand: ['shield_juggernaut', 'Colossus Slammer'], fetid_pool: ['devourer', 'Blight Devourer'], submerged_cavern: ['frost_sentinel', 'Tidal Siren'], vaal_pyramid: ['necromancer', 'Vaal Construct'],
+      sarn_ruins: ['storm_herald', 'Solar General'], blood_aqueduct: ['kitava_herald', 'Crimson Behemoth'], toxic_sewer: ['necromancer', 'Malediction Witch'], lunaris_temple: ['storm_herald', 'Thaumaturge'],
+      imperial_gardens: ['shield_juggernaut', 'High Templar'], crimson_temple: ['cultist', 'Nightmare Core'], caldera_of_ash: ['kitava_herald', 'Molten King'], glacier_summit: ['frost_sentinel', 'Eyrie Redeemer'],
+      defiled_cathedral: ['storm_herald', 'God-Emperor'], alluring_abyss: ['cultist', 'Vaal Queen'], synthete_cortex: ['necromancer', 'High Synthete'], shaper_realm: ['cultist', 'Realm Shaper']
+    };
+    const [bTypeId, bRole] = bossVisuals[mapDef.id] || ['kitava_herald', 'Crucible Overlord'];
     const bossId = uid('m');
-    const bossHp = Math.round(5200 * totalHpScale);
+    const bossHp = Math.round(2100 * mapDef.monsterScale * partyMult * (1 + Math.max(0, w - 1) * 0.22) * modHpMult);
     const bossObj = {
-      id: bossId, name: mapDef.bossName, typeId: 'kitava_herald', rarity: 'boss',
-      mods: ['Gargantuan', 'Flameweaver', 'Relentless'], x, y,
-      hp: bossHp, maxHp: bossHp,
-      armor: Math.round(tierArmor * 1.25),
-      speed: Math.min(275, Math.round(142 * tierSpeedScale * modSpdMult)),
-      radius: 36, damage: Math.round(68 * waveDmgMult),
-      xp: Math.round(360 * xpScale),
-      color: '#ff4d4d', behavior: 'boss', bossPhase: 1,
-      actionTimer: 1.6, attackStep: 0,
-      hitTimer: 0, chillTimer: 0, shockTimer: 0, isBreachMob: false
+      id: bossId, name: mapDef.bossName, typeId: bTypeId, rarity: 'boss', mods: [bRole, 'Sweeping Lasers & Soak Stagger'], x, y,
+      hp: bossHp, maxHp: bossHp, armor: Math.round(tierArmor * 1.15), speed: Math.min(245, Math.round(136 * tierSpeedScale * modSpdMult)),
+      radius: 36, damage: Math.round(52 * waveDmgMult), xp: Math.round(380 * xpScale), color: '#ff4d4d', behavior: 'boss', bossPhase: 1,
+      actionTimer: 1.5, attackStep: 0, hitTimer: 0, chillTimer: 0, shockTimer: 0, isBreachMob: false
     };
     room.enemies.set(bossId, bossObj);
     return bossObj;
