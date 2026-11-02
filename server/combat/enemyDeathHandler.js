@@ -184,16 +184,30 @@ function onEnemyKilled(room, enemy, killer) {
 
   if (enemy.rarity === 'boss' || enemy.rarity === 'unique') {
     const bossIlvl = baseIlvl + 3;
-    const bossIIR = totalRarityBonus + (enemy.isPinnacleRaid ? 320 : 180);
-    // Bosses drop 1 guaranteed high-rarity PoE 2 Currency Orb & 1 guaranteed high-rarity item (50% chance for a 2nd on Raid Boss)
-    spawnCurrencyDrop(room, enemy.x - 18, enemy.y, null, bossIIR);
-    const bossGearCount = (enemy.isPinnacleRaid && Math.random() < 0.5) ? 2 : 1;
-    for (let i = 0; i < bossGearCount; i++) {
-      const uniqueChance = Math.min(0.045, (0.008 + (mapTier - 1) * 0.0012) * Math.sqrt(iirMult));
-      spawnGroundDrop(room, enemy.x + 18 + i * 20, enemy.y, 'gear', Math.random() < uniqueChance ? 'unique' : 'rare', bossIlvl, bossIIR);
-    }
-    if (Math.random() < 0.05) {
-      spawnGroundDrop(room, enemy.x, enemy.y + 24, 'flask');
+    const bossIIR = totalRarityBonus + (enemy.isPinnacleRaid ? 550 + mapTier * 35 : 180);
+    if (enemy.isPinnacleRaid) {
+      // Pinnacle Raid Boss Loot Explosion: Guaranteed Unique(s) + High-Tier Orbs (Chaos/Exalted/Divine) + 3-4 High-Ilvl Rares!
+      const highOrb = mapTier >= 13 ? (Math.random() < 0.45 ? 'divine' : 'exalted') : (Math.random() < 0.45 ? 'exalted' : 'chaos');
+      spawnCurrencyDrop(room, enemy.x - 28, enemy.y - 12, highOrb, bossIIR);
+      const extraOrbs = 2 + Math.floor(mapTier / 5);
+      for (let c = 0; c < extraOrbs; c++) {
+        spawnCurrencyDrop(room, enemy.x + randInt(-36, 36), enemy.y + randInt(-28, 28), null, bossIIR);
+      }
+      const guaranteedUniques = (mapTier >= 13 && Math.random() < 0.55) ? 2 : 1;
+      for (let u = 0; u < guaranteedUniques; u++) {
+        spawnGroundDrop(room, enemy.x - 18 + u * 36, enemy.y + 14, 'gear', 'unique', bossIlvl, bossIIR);
+      }
+      const rareCount = 3 + (mapTier >= 9 ? 1 : 0);
+      for (let i = 0; i < rareCount; i++) {
+        spawnGroundDrop(room, enemy.x + randInt(-42, 42), enemy.y + randInt(-32, 32), 'gear', 'rare', bossIlvl, bossIIR);
+      }
+      if (Math.random() < 0.45) spawnGroundDrop(room, enemy.x, enemy.y + 30, 'flask');
+    } else {
+      // Map Bosses drop 1 guaranteed Currency Orb & 1 guaranteed high-rarity item
+      spawnCurrencyDrop(room, enemy.x - 18, enemy.y, null, bossIIR);
+      const uniqueChance = Math.min(0.055, (0.01 + (mapTier - 1) * 0.0015) * Math.sqrt(iirMult));
+      spawnGroundDrop(room, enemy.x + 18, enemy.y, 'gear', Math.random() < uniqueChance ? 'unique' : 'rare', bossIlvl, bossIIR);
+      if (Math.random() < 0.06) spawnGroundDrop(room, enemy.x, enemy.y + 24, 'flask');
     }
 
     addRoomChat(room, 'Atlas', `${enemy.name} has been slain! Extraction Portal is open at (0, 0) — extract or fight endless waves!`, '#53f574');

@@ -132,8 +132,13 @@ function updateRoomEnemiesAndProjectiles(room, dt, allPlayers, alivePlayers) {
       if (Math.abs(prj.x - enemy.x) > hitR || Math.abs(prj.y - enemy.y) > hitR) continue;
       if (dist(prj.x, prj.y, enemy.x, enemy.y) <= hitR) {
         prj.hitIds.add(enemy.id);
-        const { dmg, isCrit } = rollSkillDamage(prj.exec);
-        damageEnemy(room, enemy, dmg, isCrit, owner, prj.exec.lifeOnHit, prj.damageType, false, isVaalHit);
+        const prevCastHits = prj.castHits ? (prj.castHits.get(enemy.id) || 0) : 0;
+        if (prj.castHits) prj.castHits.set(enemy.id, prevCastHits + 1);
+        if (prevCastHits < 2) {
+          const { dmg, isCrit } = rollSkillDamage(prj.exec);
+          const overlapMult = prevCastHits === 0 ? 1.0 : 0.35;
+          damageEnemy(room, enemy, Math.max(1, Math.round(dmg * overlapMult)), isCrit, owner, prevCastHits === 0 ? prj.exec.lifeOnHit : 0, prj.damageType, false, isVaalHit);
+        }
 
         if ((prj.behavior === 'fireball_explode' || prj.behavior === 'molten_lob') && prj.hitIds.size <= 2) {
           if (room.fxEvents.length < 22) {

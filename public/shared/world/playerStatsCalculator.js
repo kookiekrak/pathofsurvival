@@ -170,7 +170,7 @@
       s.spellDmgPct += 65;
     }
     if (s.crownOfEyes > 0) {
-      s.physDmgPct += Math.round(s.spellDmgPct * 1.5);
+      s.physDmgPct += Math.min(140, Math.round(s.spellDmgPct * 0.75));
     }
     if (s.lorisLucky > 0 && player.hp && player.maxHp && player.hp <= player.maxHp * 0.65) {
       s.moveSpeedPct += 20;

@@ -62,11 +62,14 @@ function applyDamageToPlayer(room, player, rawDamage, dmgType, ignoreEvade = fal
   }
 
   let mitigated = rawDamage;
+  const raidPen = (room && room.isRaidEncounter && room.activeRaidDef) ? (room.activeRaidDef.elePen || (room.activeRaidDef.tier * 2)) : 0;
   if (dmgType === 'physical') {
-    const armorRed = Math.min(0.75, s.armor / (s.armor + rawDamage * 8));
+    const effArmor = raidPen > 0 ? Math.max(0, s.armor * (1 - raidPen / 100)) : s.armor;
+    const armorRed = Math.min(0.75, effArmor / (effArmor + rawDamage * 8));
     mitigated = Math.max(2, Math.round(rawDamage * (1 - armorRed)));
   } else {
-    mitigated = Math.max(2, Math.round(rawDamage * (1 - Math.min(78, s.allRes || 0) / 100)));
+    const effRes = Math.max(-30, Math.min(78, (s.allRes || 0) - raidPen));
+    mitigated = Math.max(2, Math.round(rawDamage * (1 - effRes / 100)));
   }
 
   if (player.es > 0) {

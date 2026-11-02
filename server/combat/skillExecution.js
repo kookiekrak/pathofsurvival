@@ -199,12 +199,13 @@ function triggerSkillSetup(room, player, exec) {
       }
     }
     const lobCount = Math.min(4, Math.max(2, exec.projCount));
+    const lobCastHits = new Map();
     for (let k = 0; k < lobCount; k++) {
       const lAng = (Math.PI * 2 * k) / lobCount + 0.3;
       spawnProjectile(room, {
         id: uid('prj'), ownerId: player.id, skillId: 'molten_strike', behavior: 'molten_lob',
         damageType: 'fire', x: geyser.x, y: geyser.y, vx: Math.cos(lAng) * 280, vy: Math.sin(lAng) * 280,
-        speed: 280, radius: 11, aoeRadius: 56, chainsLeft: 0, pierceLeft: 0, duration: 0.42, maxDuration: 0.42, exec, hitIds: new Set()
+        speed: 280, radius: 11, aoeRadius: 56, chainsLeft: 0, pierceLeft: 0, duration: 0.42, maxDuration: 0.42, exec, hitIds: new Set(), castHits: lobCastHits
       });
     }
     return;
@@ -277,6 +278,7 @@ function triggerSkillSetup(room, player, exec) {
   const spreadTotal = Math.min(Math.PI * 0.85, (count - 1) * 0.16);
   let behavior = active.id === 'lightning_arrow' ? 'lightning_arrow' : active.behavior;
   if (exec.returnProj && behavior === 'standard') behavior = 'boomerang';
+  const castHits = new Map();
 
   for (let i = 0; i < count; i++) {
     const offset = count === 1 ? 0 : -spreadTotal / 2 + (spreadTotal / (count - 1)) * i;
@@ -291,7 +293,7 @@ function triggerSkillSetup(room, player, exec) {
       aoeRadius: exec.radius,
       chainsLeft: behavior === 'lightning_arrow' ? Math.max(2, exec.chains) : exec.chains,
       pierceLeft: (behavior === 'ball_lightning' || behavior === 'eye_of_winter') ? 99 : (behavior === 'lightning_arrow' ? Math.max(2, exec.pierceCount || 0) : (exec.pierceCount || 0)),
-      duration: dur, maxDuration: dur, pulseCd: 0.28, exec, hitIds: new Set()
+      duration: dur, maxDuration: dur, pulseCd: 0.28, exec, hitIds: new Set(), castHits
     });
   }
 }
