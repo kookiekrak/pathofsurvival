@@ -1,6 +1,61 @@
 // Server Items Module: Draft Choice Application & Currency Orb Crafting
 const GameData = global.GameData || require('../../public/shared/gameData.js');
 
+function autoGrantRandomSupportGem(player, preferredActiveId = null) {
+  const supportDefs = Object.values(GameData.SKILL_GEMS).filter(g => g && g.type === 'support');
+  if (supportDefs.length === 0) return null;
+
+  const activeSlots = (player.gemLinks || []).filter(s => s && s.activeGem);
+  if (activeSlots.length === 0) return null;
+
+  // Ensure every active slot supports up to 5 Support Gems (6-Link) automatically
+  for (const s of activeSlots) {
+    if ((s.maxSupports || 2) < 5) s.maxSupports = 5;
+    if (!Array.isArray(s.supports)) s.supports = [];
+  }
+
+  // Sort slots: preferredActiveId first, then fewest linked supports
+  const orderedSlots = [...activeSlots].sort((a, b) => {
+    if (preferredActiveId) {
+      if (a.activeGem.id === preferredActiveId && b.activeGem.id !== preferredActiveId) return -1;
+      if (b.activeGem.id === preferredActiveId && a.activeGem.id !== preferredActiveId) return 1;
+    }
+    return a.supports.length - b.supports.length;
+  });
+
+  // 1. Try to auto-link a new random compatible Support Gem into an open socket (< 5 supports)
+  for (const slot of orderedSlots) {
+    if (slot.supports.length >= 5) continue;
+    const actDef = GameData.SKILL_GEMS[slot.activeGem.id];
+    if (!actDef) continue;
+    const compat = supportDefs.filter(
+      sup => canSupportLinkToActive(actDef, sup) && !slot.supports.some(s => s && s.id === sup.id)
+    );
+    if (compat.length > 0) {
+      const picked = pick(compat);
+      slot.supports.push({ id: picked.id, level: 1 });
+      return `Auto-Linked ${picked.name} → ${actDef.name} (${1 + slot.supports.length}-Link)!`;
+    }
+  }
+
+  // 2. If all equipped skills have full 6-Links (or all compatible supports linked), level up a linked Support Gem!
+  const allLinkedPairs = [];
+  for (const slot of orderedSlots) {
+    const actDef = GameData.SKILL_GEMS[slot.activeGem.id];
+    for (const sup of slot.supports) {
+      if (sup && (sup.level || 1) < 8) {
+        allLinkedPairs.push({ slot, actDef, sup, supDef: GameData.SKILL_GEMS[sup.id] });
+      }
+    }
+  }
+  if (allLinkedPairs.length > 0) {
+    const target = pick(allLinkedPairs);
+    target.sup.level = (target.sup.level || 1) + 1;
+    return `Upgraded ${target.supDef ? target.supDef.name : target.sup.id} (Lv. ${target.sup.level}) on ${target.actDef ? target.actDef.name : 'Skill'}!`;
+  }
+  return null;
+}
+
 function applyGemDraftChoice(player, optionId) {
   if (!player.pendingDrafts || player.pendingDrafts.length === 0) return false;
   const currentDraft = player.pendingDrafts[0];
@@ -12,11 +67,13 @@ function applyGemDraftChoice(player, optionId) {
   player.pendingDrafts.shift();
 
   let healBonus = false;
+  let preferredSkillId = null;
   if (choice.kind === 'run_upgrade' || choice.optionType === 'run_upgrade') {
     if (!player.runUpgrades) player.runUpgrades = {};
     player.runUpgrades[choice.gemId] = (player.runUpgrades[choice.gemId] || 0) + 1;
     healBonus = true;
   } else if (choice.kind === 'active_upgrade') {
+    preferredSkillId = choice.gemId;
     for (const slot of player.gemLinks) {
       if (slot.activeGem && slot.activeGem.id === choice.gemId) {
         slot.activeGem.level = (slot.activeGem.level || 1) + 1;
@@ -24,49 +81,16 @@ function applyGemDraftChoice(player, optionId) {
       }
     }
   } else if (choice.kind === 'active_new') {
+    preferredSkillId = choice.gemId;
     const emptySlot = player.gemLinks.find(s => !s.activeGem);
     if (emptySlot) {
       emptySlot.activeGem = { id: choice.gemId, level: 1 };
-    }
-  } else if (choice.kind === 'support_gem') {
-    const supDef = GameData.SKILL_GEMS[choice.gemId];
-    let upgradedExisting = false;
-    for (const slot of player.gemLinks) {
-      if (!slot.activeGem) continue;
-      const actDef = GameData.SKILL_GEMS[slot.activeGem.id];
-      if (!canSupportLinkToActive(actDef, supDef)) continue;
-      for (const sup of slot.supports) {
-        if (sup && sup.id === choice.gemId) {
-          sup.level = (sup.level || 1) + 1;
-          upgradedExisting = true;
-          break;
-        }
-      }
-      if (upgradedExisting) break;
-    }
-
-    if (!upgradedExisting) {
-      let placed = false;
-      for (const slot of player.gemLinks) {
-        if (!slot.activeGem) continue;
-        const actDef = GameData.SKILL_GEMS[slot.activeGem.id];
-        if (!canSupportLinkToActive(actDef, supDef)) continue;
-        if (slot.supports.length < slot.maxSupports && !slot.supports.some(s => s.id === choice.gemId)) {
-          slot.supports.push({ id: choice.gemId, level: 1 });
-          placed = true;
-          break;
-        }
-      }
-      if (!placed) {
-        player.supportReserve.push({ id: uid('sup'), gemId: choice.gemId, level: 1 });
-      }
-    }
-  } else if (choice.kind === 'link_expand') {
-    const slot = player.gemLinks[choice.slotIndex];
-    if (slot) {
-      slot.maxSupports = Math.min(5, (slot.maxSupports || 2) + 1);
+      emptySlot.maxSupports = 5;
     }
   }
+
+  // Every draft pick (Main Skill or Ascendancy Run Modifier) automatically links or upgrades a random compatible Support Gem!
+  player.lastAutoSupportMsg = autoGrantRandomSupportGem(player, preferredSkillId);
 
   syncSkillRingsFromGemLinks(player);
   const prevMaxHp = player.maxHp || 100;

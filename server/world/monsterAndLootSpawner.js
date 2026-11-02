@@ -73,11 +73,11 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
 
   // Compounding Wave & Map Tier HP, Armor, Speed + Damage Scaling
   const w = Math.max(1, room.wave || 1);
-  const waveHpMult = Math.pow(1.28, w - 1) * (1 + (w - 1) * 0.18);
+  const waveHpMult = Math.pow(1.38, w - 1) * (1 + (w - 1) * 0.25);
   const totalHpScale = mapDef.monsterScale * partyMult * waveHpMult * modHpMult;
   const tierDmgScale = mapDef.dmgScale || Math.pow(mapDef.monsterScale, 0.72);
-  const waveDmgMult = Math.pow(1.135, w - 1) * (1 + (w - 1) * 0.055) * tierDmgScale * modDmgMult;
-  const waveSpeedMult = Math.min(1.55, 1 + (w - 1) * 0.032);
+  const waveDmgMult = Math.pow(1.18, w - 1) * (1 + (w - 1) * 0.08) * tierDmgScale * modDmgMult;
+  const waveSpeedMult = Math.min(1.62, 1 + (w - 1) * 0.04);
   const tierArmor = (mapDef.monsterArmor || 0) * modArmorMult;
   const tierSpeedScale = mapDef.speedScale || (1 + (mapTier - 1) * 0.12);
   const tierEliteBonus = mapDef.eliteBonus || 0;
@@ -98,11 +98,11 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
     };
     const [bTypeId, bRole] = bossVisuals[mapDef.id] || ['kitava_herald', 'Crucible Overlord'];
     const bossId = uid('m');
-    const bossHp = Math.round(2100 * mapDef.monsterScale * partyMult * (1 + Math.max(0, w - 1) * 0.22) * modHpMult);
+    const bossHp = Math.round(3600 * mapDef.monsterScale * partyMult * (1 + Math.max(0, w - 1) * 0.32) * modHpMult);
     const bossObj = {
       id: bossId, name: mapDef.bossName, typeId: bTypeId, rarity: 'boss', mods: [bRole, 'Sweeping Lasers & Soak Stagger'], x, y,
-      hp: bossHp, maxHp: bossHp, armor: Math.round(tierArmor * 1.15), speed: Math.min(245, Math.round(136 * tierSpeedScale * modSpdMult)),
-      radius: 36, damage: Math.round(52 * waveDmgMult), xp: Math.round(380 * xpScale), color: '#ff4d4d', behavior: 'boss', bossPhase: 1,
+      hp: bossHp, maxHp: bossHp, armor: Math.round(tierArmor * 1.25), speed: Math.min(255, Math.round(142 * tierSpeedScale * modSpdMult)),
+      radius: 36, damage: Math.round(68 * waveDmgMult), xp: Math.round(380 * xpScale), color: '#ff4d4d', behavior: 'boss', bossPhase: 1,
       actionTimer: 1.5, attackStep: 0, hitTimer: 0, chillTimer: 0, shockTimer: 0, isBreachMob: false
     };
     room.enemies.set(bossId, bossObj);
@@ -150,16 +150,16 @@ function spawnMonster(room, isBoss = false, overridePos = null, forceRarity = nu
     }
     // Each modifier on a Rare monster grants +90% Increased Item Rarity and scales HP & Damage!
     rarityBonusPct = chosenMods.length * 90;
-    hpMulti = 1.45 + chosenMods.length * 0.52;
-    dmgMulti = 1.10 + chosenMods.length * 0.16;
-    speedMulti = Math.min(1.32, speedMulti);
+    hpMulti = 1.85 + chosenMods.length * 0.72;
+    dmgMulti = 1.22 + chosenMods.length * 0.20;
+    speedMulti = Math.min(1.36, speedMulti);
     color = '#ffd43b';
   } else if (rarity === 'magic') {
     const mod1 = pick(GameData.RARE_MODS);
     mods.push(mod1.name);
     rarityBonusPct = 45;
-    hpMulti = (mod1.hpMulti || 1.45) * 1.15;
-    dmgMulti = (mod1.dmgMulti || 1.15) * 1.08;
+    hpMulti = (mod1.hpMulti || 1.55) * 1.28;
+    dmgMulti = (mod1.dmgMulti || 1.20) * 1.15;
     speedMulti *= Math.min(1.18, mod1.speedMulti || 1.1);
     radiusMulti = mod1.radiusMulti || 1.12;
     color = '#4dabf7';

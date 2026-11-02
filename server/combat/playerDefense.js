@@ -62,13 +62,20 @@ function applyDamageToPlayer(room, player, rawDamage, dmgType, ignoreEvade = fal
   }
 
   let mitigated = rawDamage;
-  const raidPen = (room && room.isRaidEncounter && room.activeRaidDef) ? (room.activeRaidDef.elePen || (room.activeRaidDef.tier * 2)) : 0;
+  let tierPen = 0;
+  if (room && room.isRaidEncounter && room.activeRaidDef) {
+    tierPen = room.activeRaidDef.elePen || (room.activeRaidDef.tier * 3);
+  } else if (room && room.state === 'RUN') {
+    const mapDef = GameData.ATLAS_MAPS.find(m => m.id === room.selectedMapId);
+    const mapTier = (mapDef && mapDef.tier) || 1;
+    if (mapTier >= 3) tierPen = Math.round((mapTier - 2) * 3.4);
+  }
   if (dmgType === 'physical') {
-    const effArmor = raidPen > 0 ? Math.max(0, s.armor * (1 - raidPen / 100)) : s.armor;
+    const effArmor = tierPen > 0 ? Math.max(0, s.armor * (1 - tierPen / 100)) : s.armor;
     const armorRed = Math.min(0.75, effArmor / (effArmor + rawDamage * 8));
     mitigated = Math.max(2, Math.round(rawDamage * (1 - armorRed)));
   } else {
-    const effRes = Math.max(-30, Math.min(78, (s.allRes || 0) - raidPen));
+    const effRes = Math.max(-35, Math.min(78, (s.allRes || 0) - tierPen));
     mitigated = Math.max(2, Math.round(rawDamage * (1 - effRes / 100)));
   }
 

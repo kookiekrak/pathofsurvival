@@ -142,11 +142,19 @@ function damageEnemy(room, enemy, dmg, isCrit, attacker, lifeOnHit = 0, damageTy
   if ((enemy.shockTimer || 0) > 0) dmg = Math.round(dmg * 1.2);
   if ((enemy.vulnerableTimer || 0) > 0) dmg = Math.round(dmg * 1.5);
 
-  // Pinnacle Raid Boss Anti-Burst Cap & Phase Gates (cannot skip 70% and 35% HP Raid Intermission Phases!)
+  // Pinnacle Raid Boss & Map Boss Anti-Burst Cap & Phase Gates (cannot skip Intermission Phases!)
   if (enemy.isPinnacleRaid) {
-    dmg = Math.min(dmg, Math.round(enemy.maxHp * 0.045));
+    dmg = Math.min(dmg, Math.round(enemy.maxHp * 0.042));
     const phase = enemy.bossPhase || 1;
     const floorHp = phase === 1 ? Math.ceil(enemy.maxHp * 0.695) : phase === 2 ? Math.ceil(enemy.maxHp * 0.345) : 0;
+    if (floorHp > 0 && enemy.hp > floorHp && enemy.hp - dmg < floorHp) {
+      enemy.hp = floorHp;
+    } else {
+      enemy.hp -= dmg;
+    }
+  } else if (enemy.rarity === 'boss') {
+    dmg = Math.min(dmg, Math.round(enemy.maxHp * 0.08));
+    const floorHp = (enemy.bossPhase || 1) === 1 ? Math.ceil(enemy.maxHp * 0.495) : 0;
     if (floorHp > 0 && enemy.hp > floorHp && enemy.hp - dmg < floorHp) {
       enemy.hp = floorHp;
     } else {

@@ -93,7 +93,7 @@ const CLIENT_MODULES = [
 function loadScriptSequential(src) {
   return new Promise((resolve, reject) => {
     const s = document.createElement("script");
-    s.src = `${src}?v=dedupe1`;
+    s.src = `${src}?v=diffscale1`;
     s.async = false;
     s.onload = resolve;
     s.onerror = reject;

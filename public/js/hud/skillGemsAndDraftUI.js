@@ -253,14 +253,6 @@
               selectedReserveSupIdx = null;
             }
           });
-          orb.addEventListener('contextmenu', (ev) => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            window.__POS_CTX__.selectedSupportGem = null;
-            selectedReserveSupIdx = null;
-            hideTooltip();
-            ws.send(JSON.stringify({ type: 'toss_support_gem', fromType: 'slot', slotIndex: sIdx, supIdx }));
-          });
         });
 
         row.addEventListener('click', () => {
@@ -316,21 +308,13 @@
           ${getGemSvg(supDef.color, true)}
           <div style="flex:1">
             <div class="text-gem" style="font-family:var(--font-serif);font-size:0.84rem;font-weight:700">${supDef.name} (Lv.${rEntry.level || 1})</div>
-            <div style="font-size:0.74rem;color:#9e8d73">${isSel ? 'Selected — Click Skill Row to Link' : 'L-Click: Pick Up • R-Click: Toss'}</div>
+            <div style="font-size:0.74rem;color:#9e8d73">${isSel ? 'Selected — Click Skill Row to Link' : 'Click to Pick Up & Link to Any Skill'}</div>
           </div>
-          <button class="poe-chisel-btn sm-btn toss-sup-btn" type="button" style="padding:2px 6px;font-size:0.66rem;color:#ff8787;border-color:#7a2e2e" title="Toss / Discard Support Gem">✕ TOSS</button>
         `;
         if (typeof showSupportGemTooltip === 'function') {
           card.addEventListener('mouseenter', (ev) => showSupportGemTooltip(ev, supDef, rEntry.level || 1));
           card.addEventListener('mouseleave', hideTooltip);
         }
-        card.querySelector('.toss-sup-btn')?.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          window.__POS_CTX__.selectedSupportGem = null;
-          selectedReserveSupIdx = null;
-          hideTooltip();
-          ws.send(JSON.stringify({ type: 'toss_support_gem', fromType: 'reserve', fromIdx: rIdx }));
-        });
         card.addEventListener('click', () => {
           if (isSel) {
             window.__POS_CTX__.selectedSupportGem = null;
@@ -342,13 +326,6 @@
             selectedReserveSupIdx = rIdx;
           }
           renderGemLinksWindow();
-        });
-        card.addEventListener('contextmenu', (ev) => {
-          ev.preventDefault();
-          window.__POS_CTX__.selectedSupportGem = null;
-          selectedReserveSupIdx = null;
-          hideTooltip();
-          ws.send(JSON.stringify({ type: 'toss_support_gem', fromType: 'reserve', fromIdx: rIdx }));
         });
         reserveGrid.appendChild(card);
       });

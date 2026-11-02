@@ -129,10 +129,10 @@ function resetPlayerRunSkills(player) {
   player.runXp = 0;
   player.runXpNext = 180;
   player.gemLinks = [
-    { slotIndex: 0, activeGem: { id: cls.starterSkill, level: 1 }, maxSupports: 2, supports: [] },
-    { slotIndex: 1, activeGem: null, maxSupports: 2, supports: [] },
-    { slotIndex: 2, activeGem: null, maxSupports: 2, supports: [] },
-    { slotIndex: 3, activeGem: null, maxSupports: 2, supports: [] }
+    { slotIndex: 0, activeGem: { id: cls.starterSkill, level: 1 }, maxSupports: 5, supports: [] },
+    { slotIndex: 1, activeGem: null, maxSupports: 5, supports: [] },
+    { slotIndex: 2, activeGem: null, maxSupports: 5, supports: [] },
+    { slotIndex: 3, activeGem: null, maxSupports: 5, supports: [] }
   ];
   player.supportReserve = [];
   player.pendingDrafts = [];
@@ -162,18 +162,15 @@ function generateGemDraftOptions(player) {
   const usedIds = new Set();
 
   const activeDefs = Object.values(GameData.SKILL_GEMS).filter(g => g.type === 'active');
-  const supportDefs = Object.values(GameData.SKILL_GEMS).filter(g => g.type === 'support');
 
   const ownedActives = new Map();
   const activeSkillTags = new Set();
-  const equippedActiveDefs = [];
 
   player.gemLinks.forEach((slot, idx) => {
     if (slot.activeGem) {
       ownedActives.set(slot.activeGem.id, { slotIndex: idx, level: slot.activeGem.level, slot });
       const actDef = GameData.SKILL_GEMS[slot.activeGem.id];
       if (actDef) {
-        equippedActiveDefs.push({ actDef, slot });
         for (const t of (actDef.tags || [])) activeSkillTags.add(t);
       }
     }
@@ -182,12 +179,12 @@ function generateGemDraftOptions(player) {
   const hasOpenActiveSlot = player.gemLinks.some(s => !s.activeGem);
   const colorLabel = (c) => (c === 'R' ? 'RED (STR)' : c === 'G' ? 'GREEN (DEX)' : c === 'B' ? 'BLUE (INT)' : 'PRISMATIC');
 
-  // 1. Active Skill Pool (Upgrade existing Active Skills or Unlock New Active Skill / Link Socket)
+  // 1. Main Skill Pool (Upgrade existing Main Skills or Unlock New Main Skill — automatically grants a Support Gem!)
   const activePool = [];
   for (const act of activeDefs) {
     if (ownedActives.has(act.id)) {
       const info = ownedActives.get(act.id);
-      if (info.level < 8) {
+      if (info.level < 10) {
         activePool.push({
           optionId: `act_up_${act.id}`,
           optionType: 'active_upgrade',
@@ -195,9 +192,9 @@ function generateGemDraftOptions(player) {
           gemId: act.id,
           color: act.color,
           title: `${act.name} (Lv. ${info.level + 1})`,
-          subtitle: `${colorLabel(act.color)} ACTIVE SKILL UPGRADE`,
-          desc: `Levels up ${act.name} to Lv. ${info.level + 1}: +14% MORE Damage, +3% Area & +3% Speed.`,
-          weight: 2.8
+          subtitle: `${colorLabel(act.color)} MAIN SKILL + AUTO-SUPPORT`,
+          desc: `Levels up ${act.name} to Lv. ${info.level + 1} (+14% MORE Damage, +3% Area & Speed) AND auto-links a random Support Gem!`,
+          weight: 3.2
         });
       }
     } else if (hasOpenActiveSlot) {
@@ -208,60 +205,14 @@ function generateGemDraftOptions(player) {
         gemId: act.id,
         color: act.color,
         title: `New Skill: ${act.name}`,
-        subtitle: `NEW ${colorLabel(act.color)} ACTIVE SKILL GEM`,
-        desc: act.description,
+        subtitle: `NEW ${colorLabel(act.color)} MAIN SKILL + AUTO-SUPPORT`,
+        desc: `${act.description} Automatically links a random compatible Support Gem!`,
         weight: 2.8
       });
     }
   }
 
-  // Add Link Expansion option for ALL active slots that have < 5 support sockets (6-Link max)
-  for (const s of player.gemLinks) {
-    if (s && s.activeGem && s.maxSupports < 5) {
-      const actDef = GameData.SKILL_GEMS[s.activeGem.id];
-      if (!actDef) continue;
-      activePool.push({
-        optionId: `link_exp_${s.slotIndex}`,
-        optionType: 'link_expand',
-        kind: 'link_expand',
-        slotIndex: s.slotIndex,
-        color: 'W',
-        title: `Orb of Fusing: ${actDef.name} (${s.maxSupports + 2}-Link)`,
-        subtitle: 'SOCKET LINK EXPANSION',
-        desc: `Adds +1 Linked Support Socket to ${actDef.name} (up to ${s.maxSupports + 2}-Link).`,
-        weight: 2.8
-      });
-    }
-  }
-
-  // 2. Compatible Support Gem Pool (ONLY offered if at least 1 equipped Active Skill has an open support socket that fits!)
-  const supportPool = [];
-  const anyOpenSupportSocket = equippedActiveDefs.some(({ slot }) => (slot.supports || []).length < (slot.maxSupports || 2));
-  if (anyOpenSupportSocket) {
-    for (const sup of supportDefs) {
-      const compatibleSkillNames = [];
-      for (const { actDef, slot } of equippedActiveDefs) {
-        if ((slot.supports || []).length < (slot.maxSupports || 2) && canSupportLinkToActive(actDef, sup) && !slot.supports.some(s => s && s.id === sup.id)) {
-          compatibleSkillNames.push(actDef.name);
-        }
-      }
-      if (compatibleSkillNames.length === 0) continue;
-
-      supportPool.push({
-        optionId: `sup_${sup.id}`,
-        optionType: 'support_gem',
-        kind: 'support_gem',
-        gemId: sup.id,
-        color: sup.color,
-        title: `${sup.name} (${sup.short})`,
-        subtitle: `SUPPORTS: ${compatibleSkillNames.join(', ').toUpperCase()}`,
-        desc: sup.description,
-        weight: 2.6
-      });
-    }
-  }
-
-  // 3. Context-Aware, Varied Rogue-lite Boon & Ascendancy Pool
+  // 2. Context-Aware Rogue-lite Boon & Ascendancy Modifier Pool (also auto-grants a random Support Gem to your skills!)
   const runPool = [];
   const runCatalog = Object.assign({}, getRunUpgradesCatalog());
   if (GameData.ASCENDANCY_BOONS) {
@@ -286,9 +237,9 @@ function generateGemDraftOptions(player) {
       gemId: up.id,
       color: up.color || 'W',
       title: maxRanks > 1 ? `${up.name} (Rank ${stacks + 1}/${maxRanks})` : up.name,
-      subtitle: up.subtitle || 'ROGUE-LITE RUN BOON',
-      desc: up.desc || up.description || 'Increases character power for the current Map Run.',
-      weight: 3.2
+      subtitle: `${up.subtitle || 'ASCENDANCY RUN MODIFIER'} + AUTO-SUPPORT`,
+      desc: `${up.desc || up.description || 'Increases character power for this Map Run.'} (+1 Random Support Gem auto-linked!)`,
+      weight: 3.4
     });
   }
 
@@ -306,8 +257,23 @@ function generateGemDraftOptions(player) {
     return arr.splice(chosenIdx, 1)[0];
   };
 
-  // Pick all 3 choices randomly from combined pool (weighted 3.2 runPool, 2.8 activePool, 2.6 supportPool)
-  const combined = [...activePool, ...supportPool, ...runPool];
+  // Guarantee at least 1 Main Skill option and at least 1 Ascendancy/Run Modifier option when available!
+  if (activePool.length > 0) {
+    const chosenAct = pickWeighted(activePool);
+    if (chosenAct) {
+      usedIds.add(chosenAct.optionId);
+      options.push(chosenAct);
+    }
+  }
+  if (runPool.length > 0) {
+    const chosenRun = pickWeighted(runPool);
+    if (chosenRun) {
+      usedIds.add(chosenRun.optionId);
+      options.push(chosenRun);
+    }
+  }
+
+  const combined = [...activePool, ...runPool];
   while (options.length < 3 && combined.length > 0) {
     const chosen = pickWeighted(combined);
     if (chosen && !usedIds.has(chosen.optionId)) {

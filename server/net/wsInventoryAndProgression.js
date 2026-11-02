@@ -50,6 +50,10 @@ function equipFlaskFromInventorySlot(player, invIdx, slotIdx) {
 function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlayer) {
   if (msg.type === 'pick_gem_draft' || msg.type === 'select_draft' || msg.type === 'choose_gem_draft') {
     if (applyGemDraftChoice(currentPlayer, msg.optionId || msg.gemId)) {
+      if (currentPlayer.lastAutoSupportMsg) {
+        sendCraftFeedback(ws, true, currentPlayer.lastAutoSupportMsg);
+        addRoomChat(currentRoom, 'Gem Link', `✨ ${currentPlayer.name}: ${currentPlayer.lastAutoSupportMsg}`, '#38d9a9');
+      }
       sendPrivateProfile(currentPlayer);
     }
     return true;
@@ -137,16 +141,7 @@ function handleInventoryAndProgressionMessage(ws, msg, currentRoom, currentPlaye
     return true;
   }
   if (msg.type === 'toss_support_gem' || msg.type === 'drop_support_gem') {
-    if (msg.fromType === 'slot') {
-      const slot = currentPlayer.gemLinks[msg.slotIndex ?? msg.fromSlot];
-      const idx = msg.supIdx ?? msg.fromIdx;
-      if (slot && Array.isArray(slot.supports) && slot.supports[idx]) slot.supports.splice(idx, 1);
-    } else if (msg.fromType === 'reserve') {
-      const idx = msg.fromIdx ?? msg.supIdx;
-      if (Array.isArray(currentPlayer.supportReserve) && currentPlayer.supportReserve[idx]) currentPlayer.supportReserve.splice(idx, 1);
-    }
-    syncSkillRingsFromGemLinks(currentPlayer); recalcPlayer(currentPlayer, false); sendPrivateProfile(currentPlayer);
-    pushPlayerFloatingText(currentRoom, currentPlayer, 'TOSSED SUPPORT GEM', 'TOSSED SUPPORT GEM', '#ff8787', 15);
+    // Support gem right-click deletion disabled per player UX design
     return true;
   }
   if (msg.type === 'unslot_support_gem' || msg.type === 'unequip_support_gem') {
